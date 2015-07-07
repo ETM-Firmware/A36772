@@ -1,6 +1,6 @@
 /*
   -------------------------------------------
-  This file contains configuration data specific to the A35975-000
+  This file contains configuration data specific to the A36772-000
   
   Dan Parker
   2012-06-09
@@ -8,8 +8,8 @@
   --------------------------------------------
 */
 
-#ifndef __A35975_250_H
-#define __A35975_250_H
+#ifndef __A36772_H
+#define __A36772_H
 
 #include <xc.h>
 #include <libpic30.h>
@@ -33,24 +33,14 @@
   Timer5 - Used/Configured by ETM CAN - Used for detecting error on can bus
 
   SPI1   - Used/Configured by Gun Driver
+  SPI2   - Used by local DAC 
 
-  Timer1 - Used to generate 100ms Timer - DPARKER this apears to be used by multiple 100ms timing operations
-  Timer2 - Used for 10msTicToc (route this over to Timer)
+  Timer2 - Used for 10msTicToc 
 
-  ADC Module - Not used
+  ADC Module - AN3,AN4,AN5,AN6,AN7,VREF+,VREF-,AN13,AN14,AN15
 
 */
 
-
-
-
-// --------- Compile Time Options -----------------
-
-#define TEST_MODE_BYP_FIBER_OFF        1    /* don't turn off hv or trig because fiber off, for test only */
-
-#define USE_ENGINEERING_UNIT_ON_GUN_DRIVER    1   /* use engineering units for all parameters on CAN */
-
-//#define TEST_BYP_FPGA_FAULTS       1
 
 
 
@@ -59,34 +49,72 @@
 // All unused pins will be set to outputs and logic zero
 // LAT values default to 0 at startup so they do not need to be manually set
 
-// ----------------- DIGITAL INPUT PINS --------------- //
+
+// Pins to be configured as inputs
+
+
 /*
-  RA15 - optical HV enable1
-  RA14 - optical HV enable2
-  RA13 - test pulse good2
-  RA12 - test pulse good1
+  RA9  - ADC VREF-
+  RA10 - ADC VREF+
+  RA15 - PIN_CUSTOMER_HV_ON
+ 
+  RB0  - ICD  - PROGRAM
+  RB1  - ICD  - PROGRAM
+  RB3  - AN3  - POT EK
+  RB4  - AN4  - POT VTOP
+  RB5  - AN5  - POT HTR
+  RB6  - AN6  - REF HTR
+  RB7  - AN7  - REF VTOP
+  RB13 - AN13 - REF EK
+  RB14 - AN14 - PIC ADC +15V MON
+  RB15 - AN15 - PIC ADC -15V MON
+
+  RC1  - DAC LDAC  (Configured by DAC module)
+
+  RD8  - PIN_CUSTOMER_BEAM_ENABLE
+
+
+  RF0  - CAN 1 (Configured By Pic Module)
+  RF1  - CAN 1 (Configured By Pic Module)
+  RF2  - UART 1 (Configured By Pic Module)
+  RF3  - UART 1 (Configured By Pic Module)
+  RF6  - SPI 1 (Configured By Pic Module)
+  RF7  - SPI 1 (Configured By Pic Module)
+  RF8  - SPI 1 (Configured By Pic Module)
+
+
+  RG0  - CAN 2 (Configured By Pic Module)
+  RG1  - CAN 2 (Configured By Pic Module)
+  RG2  - I2C   (Configured By Pic Module)
+  RG3  - I2C   (Configured By Pic Module)
+  RG6  - SPI2 CLK
+  RG7  - SPI2 DI
+  RG8  - SPI2 DO
+  RG14 - Reset Detect
+  RG15 - DAC CS/LD (Configured by DAC module)
+
+
+
+
   
-  RB15 - CS DAC Enable 
-
-  RB11 - optical Trig enable
-  RB9  - optical test pulse enable
-
-
 */
 
-//   ------------------  Digital Output Pins ---------------
-/*
 
-  
- */
 
-//					         fedcba9876543210
-#define A35975_TRISA_VALUE 0b1111000000000000 
-#define A35975_TRISB_VALUE 0b1000101000000000 
-#define A35975_TRISC_VALUE 0b0000000000000000 
-#define A35975_TRISD_VALUE 0b0000000000000000 
-#define A35975_TRISF_VALUE 0b0000000010000101 
-#define A35975_TRISG_VALUE 0b0000000000000001
+#define A36772_TRISA_VALUE 0b1000011000000000 
+#define A36772_TRISB_VALUE 0b1110000011111011 
+#define A36772_TRISC_VALUE 0b0000000000000010 
+#define A36772_TRISD_VALUE 0b0000000100000000 
+#define A36772_TRISF_VALUE 0b0000000111001111 
+#define A36772_TRISG_VALUE 0b1100000111001111 
+
+
+
+
+// Digital Inputs
+#define PIN_CUSTOMER_HV_ON                  _RA15
+#define PIN_CUSTOMER_BEAM_ENABLE            _RD8
+
 
 //------------------- GUN Driver Interface I/O ------------------------- //
 #define PIN_CS_DAC                          _LATD13
@@ -99,153 +127,78 @@
 #define OLL_PIN_CS_FPGA_SELECTED            1
 
 
-// LOGIC Output Pins
-#define PIN_OPT_GD_READY                     _LATA10	   
-#define OLL_OPT_GD_READY                     1
 
-#define PIN_CAN_HV_ENABLE                    _LATB12	   
-#define OLL_CAN_HV_ENABLE                    1
+// Digital Outputs
+#define PIN_CPU_WARMUP_STATUS               _LATD0
+#define PIN_CPU_STANDBY_STATUS              _LATD11
+#define PIN_CPU_HV_ON_STATUS                _LATD10
+#define PIN_CPU_BEAM_ENABLE_STATUS          _LATD9  // DPARKER THERE IS ERROR ON SCHEMATIC
+#define PIN_CPU_SYSTEM_OK_STATUS            _LATA15
+#define PIN_CPU_EXTRA_STATUS                _LATD3
 
-#define PIN_CAN_PULSETOP_ENABLE              _LATB10	   
-#define OLL_CAN_PULSETOP_ENABLE              1
+#define PIN_CPU_HV_ENABLE                   _LATD2
+#define PIN_CPU_BEAM_ENABLE                 _LATD8
 
-#define PIN_CAN_TRIGGER_ENABLE               _LATB8	   
-#define OLL_CAN_TRIGGER_ENABLE               1
-
-
-//#define PIN_OPT_CAN_XMIT_OUT                 _LATG1		   
-//#define OLL_OPT_CAN_XMIT_ON                  1
-
-
-// LOGIC Input Pins
-//#define PIN_CS_DAC_ENABLE_INPUT            _RB15		   // was designed for DAC output 
-
-
-#ifndef DEMO
-#define PIN_OPT_HV_ENABLE1_INPUT             _RA15	   
-#define ILL_OPT_HV_ENABLE                    1
-
-#define PIN_OPT_HV_ENABLE2_INPUT             _RA14	   // A14 and A15 inputs are tied together
-
-#define PIN_OPT_TRIG_ENABLE_INPUT            _RB11
-#define ILL_OPT_TRIG_ENABLE                  1
-
-#define PIN_OPT_TEST_PULSE_ENABLE_INPUT       _RB9	   
-#define ILL_OPT_TEST_PULSE_ENABLE             1
-
-#else
-#define PIN_OPT_HV_ENABLE1_INPUT             1	   
-#define ILL_OPT_HV_ENABLE                    1
-
-#define PIN_OPT_HV_ENABLE2_INPUT             _RA14	   // A14 and A15 inputs are tied together
-
-#define PIN_OPT_TRIG_ENABLE_INPUT              1
-#define ILL_OPT_TRIG_ENABLE                    1
-
-#define PIN_OPT_TEST_PULSE_ENABLE_INPUT        1	   
-#define ILL_OPT_TEST_PULSE_ENABLE              1
-#endif
-
-#define PIN_TEST_PULSE_GOOD1_INPUT           _RA12
-#define ILL_TEST_PULSE_GOOD                  1
-
-#define PIN_TEST_PULSE_GOOD2_INPUT           _RA13	   // A12 and A13 inputs are tied together
-
-
-
-// MCP4822 DAC Output Pins
-#define PIN_CS_MCP4822_ENABLE                _LATB14	   
-#define OLL_CS_MCP4822_ENABLE                0
-
-#define PIN_LDAC_MCP4822_ENABLE              _LATB13	   
-#define OLL_LDAC_MCP4822_ENABLE              0
-
-
-
-// UART TX enable
-#define PIN_RS422_DE                         _LATF4
-#define OLL_RS422_DE_ENABLE_RS422_DRIVER     1
-
-
+#define PIN_RS485_ENABLE                    _LATF4  // DPARKER THERE IS ERROR ON SCHEMATIC
 
 
 // LED Indicator Output Pins
-#define OLL_LED_ON                            0
+#define OLL_LED_ON                           0
 
-#define PIN_LED_24DC_OK                      _LATG14	   
+#define PIN_LED_I1B                          _LATG12
+#define PIN_LED_I1C                          _LATG13
+#define PIN_LED_I1D                          _LATA7
 
-#define PIN_LED_LAST_PULSE_GOOD              _LATG12	   
+#define PIN_LED_I2A                          _LATC2
+#define PIN_LED_I2B                          _LATC3
+#define PIN_LED_I2C                          _LATC4
+#define PIN_LED_I2D                          _LATA6
 
-#define PIN_LED_GD_READY                     _LATG13	   
+#define PIN_RESET_DETECT_OUTPUT              _LATG14
+#define PIN_RESET_DETECT_INPUT               _RG14
 
-#define PIN_LED_HV_ENABLE                    _LATG15   
+#define PIN_TEST_POINT_B                     _LATF5
+#define PIN_TEST_POINT_E                     _LATB8
+#define PIN_TEST_POINT_F                     _LATB9
 
-#define PIN_LED_AC_ON                        _LATC1   
 
-#define PIN_LED_LAST_PULSE_FAIL              _LATC2  
-//#define TRIS_PIN_LED_LAST_PULSE_FAIL         _TRISC2		   
-//#define OLL_LED_LAST_PULSE_FAIL              0
+#define PIN_LED_AC_ON                        PIN_LED_I2A
+#define PIN_LED_LAST_PULSE_FAIL              PIN_LED_I2B
+#define PIN_LED_WARMUP                       PIN_LED_I2C
+#define PIN_LED_SUM_FAULT                    PIN_LED_I2D
 
-#define PIN_LED_WARMUP                       _LATC3   
-
-#define PIN_LED_SUM_FAULT                    _LATC4   
 
 
 // -----------------------  END IO PIN CONFIGURATION ------------------------ //
 
 
-/* ------------------------------ CLOCK AND TIMING CONFIGURATION ------------------------- */
-//#define FCY_CLK                    10000000      // 29.495 MHz   defined in ETM CAN
-//#define FCY_CLK_MHZ                10.000        // 29.495 MHz   defined in ETM CAN
-
-#define UART1_BAUDRATE             124000        // U1 Baud Rate
-#define I2C_CLK                    100000        // Target I2C Clock frequency of 100KHz
-
-
 
 // -------------------------------------------- INTERNAL MODULE CONFIGURATION --------------------------------------------------//
-
 
 /*
   --- SPI1 Port --- 
   This SPI port is used to connect with the gun driver
-  The prescales of 16:1 and 1:1 will generate a clock = Fcy/16.  In this case 1.843MHz
   This must be slower to compensate for the 2x delay across the optocoupler 200ns with filtering in one direction, 80ns (without filtering) in the other direction
   Minimum clock period is therefore 280ns + holdtime + margins
 */
-#define A35975_SPI1CON_VALUE  (FRAME_ENABLE_OFF & ENABLE_SDO_PIN & SPI_MODE16_OFF & SPI_SMP_OFF & SPI_CKE_OFF & SLAVE_ENABLE_OFF & CLK_POL_ACTIVE_HIGH & MASTER_ENABLE_ON)
-#define A35975_SPI1STAT_VALUE (SPI_ENABLE & SPI_IDLE_CON & SPI_RX_OVFLOW_CLR)   
-//#define A35975_SPI1CON_CLOCK (SEC_PRESCAL_4_1 & PRI_PRESCAL_4_1)
-//#define A35975_SPI2CON_CLOCK (SEC_PRESCAL_2_1 & PRI_PRESCAL_1_1)
-
-
-
-/*
-  --- Timer1 Setup ---
-  Period of 100mS
-*/
-#define A35975_T1CON_VALUE  (T1_ON & T1_IDLE_CON & T1_GATE_OFF & T1_PS_1_64 & T1_SOURCE_INT)
-#define A35975_PR1_ROLL_US  100000      // 100mS
-#define A35975_PR1_VALUE    ((FCY_CLK/1000000)*A35975_PR1_ROLL_US/64)
+#define A36772_SPI1CON_VALUE  (FRAME_ENABLE_OFF & ENABLE_SDO_PIN & SPI_MODE16_OFF & SPI_SMP_OFF & SPI_CKE_OFF & SLAVE_ENABLE_OFF & CLK_POL_ACTIVE_HIGH & MASTER_ENABLE_ON)
+#define A36772_SPI1STAT_VALUE (SPI_ENABLE & SPI_IDLE_CON & SPI_RX_OVFLOW_CLR)   
 
 
 /*
   --- Timer2 Setup ---
   Period of 10mS
 */
-#define A35975_T2CON_VALUE     (T2_ON & T2_IDLE_CON & T2_GATE_OFF & T2_PS_1_8 & T2_32BIT_MODE_OFF & T2_SOURCE_INT)
-#define A35975_PR2_VALUE_US    10000   // 10mS
-#define A35975_PR2_VALUE       ((FCY_CLK/1000000)*A35975_PR2_VALUE_US/8)
+#define A36772_T2CON_VALUE     (T2_ON & T2_IDLE_CON & T2_GATE_OFF & T2_PS_1_8 & T2_32BIT_MODE_OFF & T2_SOURCE_INT)
+#define A36772_PR2_VALUE_US    10000   // 10mS
+#define A36772_PR2_VALUE       ((FCY_CLK/1000000)*A36772_PR2_VALUE_US/8)
 
  
 // ---- Hard Coded Delays ---- //
-#define DELAY_TCY_10US                          100       // 10us us at 10MHz Clock
-
-#define DELAY_PULSE_CABLE_SELECT_PROP_DELAY_US  1        // 1uS
-// This delay must be longer than the propogation delay on the Isolated DAC Cable Select Line
-#define DELAY_PULSE_CABLE_SELECT_PROP_DELAY     ((FCY_CLK/1000000)*DELAY_PULSE_CABLE_SELECT_PROP_DELAY_US)
+#define DELAY_FPGA_CABLE_DELAY 10
 
 
+#if(0)
 
 // ----------- Data Structures ------------ //
 
@@ -444,7 +397,7 @@ enum {
 #define EG_SET_MAX              33033 /* 140V, 0.00666    */
 #define EK_SET_MAX              60060 /* -20kV/-0.000333  */
  
-
+#endif
 
 
 
@@ -475,6 +428,7 @@ enum {
 
 
 #define _FAULT_PIC_HEATER_TURN_OFF                      _FAULT_0
+
 
 
 
@@ -549,10 +503,10 @@ typedef struct {
   unsigned int dac_write_failure;
   unsigned int dac_write_failure_count;
 
-} TYPE_GLOBAL_DATA_A35975_250;
+} TYPE_GLOBAL_DATA_A36772;
 
 
-extern TYPE_GLOBAL_DATA_A35975_250 global_data_A35975_250;
+extern TYPE_GLOBAL_DATA_A36772 global_data_A36772;
 
 #define STATE_START_UP                       0x10
 #define STATE_WAIT_FOR_CONFIG                0x20
