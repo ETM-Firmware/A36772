@@ -93,11 +93,30 @@
   RG14 - Reset Detect
   RG15 - DAC CS/LD (Configured by DAC module)
 
-
-
-
-  
 */
+
+
+
+
+/*
+  This sets up the ADC to work as following
+  AUTO Sampeling
+  External Vref+/Vref-
+  With 10MHz System Clock, ADC Clock is 450ns, Sample Time is 6 ADC Clock so total sample time is 9.0uS
+  8 Samples per Interrupt, use alternating buffers
+  Conversion rate of 111KHz (13.875 Khz per Channel), 138 Samples per 10mS interrupt
+  Scan Through Selected Inputs (8 selected at any point in time)
+
+*/
+
+#define ADCON1_SETTING          (ADC_MODULE_OFF & ADC_IDLE_STOP & ADC_FORMAT_INTG & ADC_CLK_AUTO & ADC_AUTO_SAMPLING_ON)
+#define ADCON2_SETTING          (ADC_VREF_EXT_EXT & ADC_SCAN_ON & ADC_SAMPLES_PER_INT_8 & ADC_ALT_BUF_ON & ADC_ALT_INPUT_OFF)
+#define ADCON3_SETTING          (ADC_SAMPLE_TIME_4 & ADC_CONV_CLK_SYSTEM & ADC_CONV_CLK_9Tcy2)
+#define ADCHS_SETTING           (ADC_CH0_POS_SAMPLEA_AN3 & ADC_CH0_NEG_SAMPLEA_VREFN & ADC_CH0_POS_SAMPLEB_AN3 & ADC_CH0_NEG_SAMPLEB_VREFN)
+#define ADPCFG_SETTING          (ENABLE_AN3_ANA & ENABLE_AN4_ANA & ENABLE_AN5_ANA & ENABLE_AN6_ANA & ENABLE_AN7_ANA & ENABLE_AN13_ANA & ENABLE_AN14_ANA & ENABLE_AN15_ANA)
+
+#define ADCSSL_SETTING          (SKIP_SCAN_AN0 & SKIP_SCAN_AN1 & SKIP_SCAN_AN2 & SKIP_SCAN_AN8 & SKIP_SCAN_AN9 & SKIP_SCAN_AN10 & SKIP_SCAN_AN11 & SKIP_SCAN_AN12)
+
 
 
 
@@ -113,8 +132,10 @@
 
 // Digital Inputs
 #define PIN_CUSTOMER_HV_ON                  _RA15
-#define PIN_CUSTOMER_BEAM_ENABLE            _RD8
+#define ILL_PIN_CUSTOMER_HV_ON_ENABLE_HV    1
 
+#define PIN_CUSTOMER_BEAM_ENABLE            _RD8
+#define ILL_PIN_CUSTOMER_BEAM_ENABLE_BEAM_ENABLED 1
 
 //------------------- GUN Driver Interface I/O ------------------------- //
 #define PIN_CS_DAC                          _LATD13
@@ -409,6 +430,10 @@ enum {
 #define _STATUS_GD_HTR_NOT_ENABLED                      _STATUS_5	
 
 
+//#define _STATUS_HV_DISABLE
+//#define _STATUS_
+
+
 
 #define _FAULT_GD_SUM_FAULT                             _FAULT_0
 #define _FAULT_GD_FPGA_COMM_LOST                        _FAULT_1
@@ -458,24 +483,42 @@ typedef struct {
   unsigned int watchdog_count_error;
   unsigned int control_state;
   unsigned int start_up_counter;
-  unsigned int led_flash_counter;
+  unsigned int run_time_counter;
   unsigned int power_supply_startup_up_counter;
 
   unsigned int heater_voltage_target;   // This is the targeted heater voltage set poing
-  unsigned int heater_ramp_counter;
+  unsigned int heater_ramp_interval;
+  unsigned int heater_warm_up_time_counter;
+
+  unsigned int request_hv_enable;
+  unsigned int request_beam_enable;
+
+  unsigned int can_high_voltage_set_point;
+  unsigned int can_pulse_top_set_point;
+  unsigned int can_heater_voltage_set_point;
 
 
-  // These are the DAC outputs
+
+
+  // These are the off board DAC outputs
   AnalogOutput analog_output_high_voltage;
   AnalogOutput analog_output_top_voltage;
   AnalogOutput analog_output_heater_voltage;
-  unsigned int dac_digital_hv_enable;
-  unsigned int dac_digital_heater_enable;
-  unsigned int dac_digital_top_enable;
-  unsigned int dac_digital_trigger_enable;
-  unsigned int dac_digital_watchdog_oscillator;
+  //unsigned int dac_digital_hv_enable;
+  //unsigned int dac_digital_heater_enable;
+  //unsigned int dac_digital_top_enable;
+  //unsigned int dac_digital_trigger_enable;
+  //unsigned int dac_digital_watchdog_oscillator;
 
-  // These are the ADC inputs
+  // These are the on board DAC outputs
+  AnalogOutput monitor_heater_voltage;
+  AnalogOutput monitor_heater_current;
+  AnalogOutput monitor_cathode_voltage;
+  AnalogOutput monitor_grid_voltage;
+  
+
+
+  // These are the ADC input from the external device on the SPI BUS
   AnalogInput  input_adc_temperature;
   AnalogInput  input_hv_v_mon;
   AnalogInput  input_hv_i_mon;
@@ -494,6 +537,19 @@ typedef struct {
   unsigned int adc_digital_grid_flt;
   AnalogInput  input_dac_monitor;
 
+  // These are the anlog input from the PICs internal DAC
+  AnalogInput  pot_htr;     // an3
+  AnalogInput  pot_vtop;    // an4
+  AnalogInput  pot_ek;      // an5
+  AnalogInput  ref_htr;     // an6
+  AnalogInput  ref_vtop;    // an7
+  AnalogInput  ref_ek;      // an13
+  AnalogInput  pos_15v_mon; // an14
+  AnalogInput  neg_15v_mon; // an15
+  
+  unsigned int accumulator_counter;
+
+
 
   TYPE_FPGA_DATA fpga_data;
   unsigned int adc_read_error_count;
@@ -511,7 +567,8 @@ extern TYPE_GLOBAL_DATA_A36772 global_data_A36772;
 #define STATE_START_UP                       0x10
 #define STATE_WAIT_FOR_CONFIG                0x20
 #define STATE_HEATER_RAMP_UP                 0x30
-#define STATE_HEATER_RAMP_UP_DONE            0x40
+#define STATE_HEATER_WARM_UP                 0x38
+#define STATE_HEATER_WARM_UP_DONE            0x40
 #define STATE_POWER_SUPPLY_RAMP_UP           0x50
 #define STATE_HV_ON                          0x60
 #define STATE_FAULT_HEATER_OFF               0x70
