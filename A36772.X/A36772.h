@@ -159,6 +159,8 @@
 
 #define PIN_CPU_HV_ENABLE                   _LATD2
 #define PIN_CPU_BEAM_ENABLE                 _LATD8
+#define OLL_PIN_CPU_BEAM_ENABLE_BEAM_ENABLED  1
+#define OLL_PIN_CPU_HV_ENABLE_HV_ENABLED      1
 
 #define PIN_RS485_ENABLE                    _LATF4  // DPARKER THERE IS ERROR ON SCHEMATIC
 
@@ -221,191 +223,6 @@
 
 #if(0)
 
-// ----------- Data Structures ------------ //
-
-#define ANALOG_SET_SIZE   8
-#define ANALOG_READ_SIZE  10
-
-
-// analog set pointers
-enum {
-  ANA_SET_EK = 0,
-  ANA_SET_EG,
-  ANA_SET_EF,
-  ANA_SET_HV_ON,
-  ANA_SET_HTR_ON,
-  ANA_SET_PULSETOP_ON,
-  ANA_SET_TRIG_ON,
-  ANA_SET_WDOG,
-};
-
-
-
-
-
-// analog read pointers
-enum {
-  ANA_RD_EK = 0,
-  ANA_RD_IKA,
-  ANA_RD_IKP,
-  ANA_RD_EF,
-  ANA_RD_IF,
-  ANA_RD_EG, // grid V
-  ANA_RD_EC, // bias V
-  ANA_RD_24V, // 24DC
-  ANA_RD_TEMP, // temperature
-   
-  ANA_RD_HTR_WARMUP,
-  ANA_RD_WATCHDOG,
-  ANA_RD_ARC,
-  ANA_RD_OT,
-  ANA_RD_PW_DUTY,
-  ANA_RD_BIASFLT,
-  ANA_RD_DA_FDBK,
-};
-
-
-
-#ifdef USE_ENGINEERING_UNIT_ON_GUN_DRIVER 
-
-#define CAN_SCALE_TABLE_SIZE  13
-// analog read pointers
-enum {
-  CAN_RD_EK = 0,
-  //   CAN_RD_IKA,
-  CAN_RD_IKP,
-  CAN_RD_EF,
-  CAN_RD_IF,
-  CAN_RD_EG, // grid V
-  CAN_RD_EC, // bias V
-  //  CAN_RD_24V, // 24DC
-  CAN_RD_TEMP, // temperature
-   
-  CAN_RD_EKSET,
-  CAN_RD_EFSET,
-  CAN_RD_EGSET,
-  CAN_SET_EKSET,
-  CAN_SET_EFSET,
-  CAN_SET_EGSET,
-   
-};
-/*
-  Name 	      |   cal factor | offset|	CAN Interface |	CAN Unit/bit |	CAN Range|	CAN Scaling| ScaleFactor |Scale Offset
-  --------------------------------------------------------------------------------------------------------------------------
-  EK_RD		  |	  0.005555	 | 0	 |	1 V/bit	      |  0.001		 |	65.535	 |	5.555	   | 22753 		 | 0
-  IKA_RD		  |	  0.001667	 | 0	 |	1 mA/bit	  |  0.001		 |	65.535	 |	1.667	   | 54624 		 | 0
-  IKP_RD		  |	  0.277		 | 0	 |	100 mA/bit    |    0.1		 |	6553.5	 |	2.77	   | 11345 		 | 0
-  EF_RD		  |	  0.00222	 | 0	 |	1 mV/bit	  |  0.001		 |	65.535	 |	2.22	   | 9093  		 | 0
-  IF_RD		  |	  0.001667	 | 0	 |	10 mA/bit	  |  0.001		 |	65.535	 |	1.667	   | 54624 		 | 0
-  EG_RD		  |	  0.1111	 | 80	 |   100 mV/bit	  |    0.1		 |	6553.5	 |	1.111	   | 36405 		 | 0
-  EC_RD		  |	  0.05555	 | 0	 |	100 mV/bit    |    0.1		 |	6553.5	 |	0.5555	   | 18202 		 | 0
-  TEMP_RD		  |	  0.0133	 | 0	 |	0.01 C/bit    |   0.01		 |	655.35	 |	1.33	   | 43581 		 | 0
-  |				 |		 |				  |				 |		  	 |			   |	   		 |	
-  Ekset bits-val|	  0.0003333	 | 0	 |	1 V/bit	      |  0.001		 |	65.535	 |	0.3333	   | 10921 		 | 0
-  Ekset val-bits|				 |		 |				  |				 |		  	 |	3.00030003 | 12289 		 | 0
-  Efset bits-val|	  0.000133	 | 0	 |	10 mV/bit	  |  0.001		 |	65.535	 |	0.133	   | 4358  		 | 0
-  Efset val-bits|				 |		 |				  |				 |		  	 |	7.518796992| 30796 		 | 0
-  Egset bits-val|	  0.00666	 | 80	 |   100 mV/bit	  |    0.1		 |	6553.5	 |	0.0666	   | 2182  		 | 0
-  Egset val-bits|				 |		 |				  |				 |			 |	15.01501502| 61501 		 | 0  
-
-
-  Note:  Scale offset for EG read/set is handled by GUI.
-			  
-*/			  
-
-#define CAL_EK_RD    0.005555
-#define CAL_IKA_RD   0.001667
-#define CAL_IKP_RD   0.277
-#define CAL_EF_RD    0.00222
-#define CAL_IF_RD    0.001667
-#define CAL_EG_RD    0.1111
-#define CAL_EC_RD	 0.05555
-#define CAL_TEMP_RD	 0.0133
-
-#define CAL_EKSET    0.0003333
-#define CAL_EFSET    0.000133
-#define CAL_EGSET    0.00666
-
-#define CAN_EK_SCALE     0.001
-#define CAN_IKA_SCALE 	 0.001	
-#define CAN_IKP_SCALE 	 0.1	
-#define CAN_EF_SCALE 	 0.001	
-#define CAN_IF_SCALE 	 0.001	
-#define CAN_EG_SCALE 	 0.1	
-#define CAN_EC_SCALE 	 0.1	
-#define CAN_TEMP_SCALE 	 0.01	
-								
-#define CAN_EKSET_SCALE  0.001
-#define CAN_EFSET_SCALE  0.001
-#define CAN_EGSET_SCALE  0.1
-					 
-					 
-
-
-
-
-#endif /* USE_ENGINEERING_UNIT_ON_GUN_DRIVER */
-
-
-
-
-#define FAULT_SIZE  22  /* 6 ADC + 16 FPGA_ID */
-
-//#define DIGI_ADC_HTR_FLT_WARMUP    0
-#define DIGI_ADC_FPGA_WATCHDOG     1
-#define DIGI_ADC_ARC      		   2
-//#define DIGI_ADC_TEMP			   3
-//#define DIGI_ADC_PW_DUTY  		   4
-//#define DIGI_ADC_BIAS_TOP          5
-
-#define DIGI_ID_ARC_COUNT          6
-//#define DIGI_ID_ARC_HV_INHIBIT     7
-//#define DIGI_ID_EF_LESS_4p5V       8
-//#define DIGI_ID_TEMP_65C		   9
-#define DIGI_ID_TEMP_75C		   10
-#define DIGI_ID_PW_LIMITING        11
-#define DIGI_ID_PRF			       12
-#define DIGI_ID_CURR_PW		       13
-
-#define DIGI_ID_GRID_HW		  	   14
-#define DIGI_ID_GRID_OV		       15
-#define DIGI_ID_GRID_UV		       16
-#define DIGI_ID_BIAS_V			   17
-//#define DIGI_ID_HV_REGULATION      18
-#define DIGI_ID_DIP_SW             19
-#define DIGI_ID_TEST_MODE		   20
-#define DIGI_ID_LOCAL_MODE         21
- 
-
-
-
-
-
-/*
-  --- LOGIC  STATE DEFINITIONS ---
-  See flow diagram for more information
-  DPARKER add flow diagram doc number
-*/
-
-
-/* 
-   --- SYSTEM STATE BYTE DEFINITIONS --- 
-*/
-#define SYS_BYTE_HTR_ON						 0x01
-#define SYS_BYTE_LOGIC_READY  				 0x02
-#define SYS_BYTE_HV_ON						 0x04
-#define SYS_BYTE_PULSETOP_ON    		     0x08
-
-#define SYS_BYTE_TRIG_ON					 0x10
-#define SYS_BYTE_FAULT_ACTIVE                0x20
-#define SYS_BYTE_HTR_WARMUP				     0x40  /* htr off or warmup */
-#define SYS_BYTE_HV_DRIVEUP				     0x80
-
-/*
-  --- Public Functions ---
-*/
-
-
 #define SYSTEM_WARM_UP_TIME      3000 /* 100ms Units  //DPARKER this is way to short */
 #define EF_READ_MAX              2838 /*  -6.3/-0.00222 */
 #define IF_READ_MAX              1051 /*  1.75/0.001666 */
@@ -454,30 +271,62 @@ enum {
 
 #define _FAULT_PIC_HEATER_TURN_OFF                      _FAULT_0
 
+/*
+typedef struct {
+  fpga_converter_logic_pcb_rev_mismatch;
+  fpga_firmware_major_rev_mismatch;
+  fpga_firmware_minor_rev_mismatch;
+  fpga_heater_voltage_less_than_4_5_volts;
+  fpga_temp_greater_than_65_c;
+  fpga_temp_greater_than_75_c;
+  fpga_pulse_width_limiting;
+  fpga_prf_fault;
+  fpga_current_monitor_pulse_width;
+  fpga_grid_module_hardware;
+  fpga_grid_module_over_voltage;
+  fpga_grid_module_under_voltage;
+  fpga_grid_module_bias_voltage;
+  fpga_hv_regulation_warn;
+  fpga_dipswitch_1_on;
+  fpga_test_mode_toggle_switch;
+  fpga_local_mode_toggle_switch;
+  
+} TYPE_FAULT_COUNTERS;
+*/
+
+#define _FPGA_FIRMWARE_MAJOR_REV_MISMATCH              dac_test
+#define _FPGA_CONVERTER_LOGIC_PCB_REV_MISMATCH         dac_test
+#define _FPGA_FIRMWARE_MINOR_REV_MISMATCH              dac_test
+#define _FPGA_ARC_COUNTER_GREATER_ZERO                 dac_test
+#define _FPGA_ARC_HIGH_VOLTAGE_INHIBIT_ACTIVE          dac_test
+#define _FPGA_HEATER_VOLTAGE_LESS_THAN_4_5_VOLTS       dac_test
+#define _FPGA_MODULE_TEMP_GREATER_THAN_65_C            dac_test
+#define _FPGA_MODULE_TEMP_GREATER_THAN_75_C            dac_test
+#define _FPGA_PULSE_WIDTH_LIMITING                     dac_test
+#define _FPGA_PRF_FAULT                                dac_test
+#define _FPGA_CURRENT_MONITOR_PULSE_WIDTH_FAULT        dac_test
+#define _FPGA_GRID_MODULE_HARDWARE_FAULT               dac_test
+#define _FPGA_GRID_MODULE_OVER_VOLTAGE_FAULT           dac_test
+#define _FPGA_GRID_MODULE_UNDER_VOLTAGE_FAULT          dac_test
+#define _FPGA_GRID_MODULE_BIAS_VOLTAGE_FAULT           dac_test
+#define _FPGA_HV_REGULATION_WARNING                    dac_test
+#define _FPGA_DIPSWITCH_1_ON                           dac_test
+#define _FPGA_TEST_MODE_TOGGLE_SWITCH_TEST_MODE        dac_test
+#define _FPGA_LOCAL_MODE_TOGGLE_SWITCH_LOCAL_MODE      dac_test
 
 
 
 typedef struct {
-  unsigned converter_logic_pcb_rev:6;
-  unsigned fpga_firmware_major_rev:4;
-  unsigned fpga_firmware_minor_rev:6;
-  unsigned arc:1;
-  unsigned arc_high_voltage_inihibit_active:1;
-  unsigned heater_voltage_greater_than_4_5_volts:1;
-  unsigned module_temp_greater_than_65_C:1;
-  unsigned module_temp_greater_than_75_C:1;
-  unsigned pulse_width_limiting_active:1;
-  unsigned prf_fault:1;
-  unsigned current_monitor_pulse_width_fault:1;
-  unsigned grid_module_hardware_fault:1;
-  unsigned grid_module_over_voltage_fault:1;
-  unsigned grid_module_under_voltage_fault:1;
-  unsigned grid_module_bias_voltage_fault:1;
-  unsigned hv_regulation_warning:1;
-  unsigned dipswitch_1_on:1;
-  unsigned test_mode_toggle_switch_set_to_test:1;
-  unsigned local_mode_toggle_switch_set_to_local:1;
-} TYPE_FPGA_DATA;
+  unsigned int filtered_reading;
+  unsigned int accumulator;
+  unsigned int filter_time;
+} TYPE_DIGITAL_INPUT;
+
+
+
+
+
+
 
 typedef struct {
   unsigned int watchdog_count_error;
@@ -496,6 +345,8 @@ typedef struct {
   unsigned int can_high_voltage_set_point;
   unsigned int can_pulse_top_set_point;
   unsigned int can_heater_voltage_set_point;
+  unsigned int reset_active;
+
 
 
 
@@ -504,11 +355,11 @@ typedef struct {
   AnalogOutput analog_output_high_voltage;
   AnalogOutput analog_output_top_voltage;
   AnalogOutput analog_output_heater_voltage;
-  //unsigned int dac_digital_hv_enable;
-  //unsigned int dac_digital_heater_enable;
-  //unsigned int dac_digital_top_enable;
-  //unsigned int dac_digital_trigger_enable;
-  //unsigned int dac_digital_watchdog_oscillator;
+  unsigned int dac_digital_hv_enable;
+  unsigned int dac_digital_heater_enable;
+  unsigned int dac_digital_top_enable;
+  unsigned int dac_digital_trigger_enable;
+  unsigned int dac_digital_watchdog_oscillator;
 
   // These are the on board DAC outputs
   AnalogOutput monitor_heater_voltage;
@@ -516,6 +367,28 @@ typedef struct {
   AnalogOutput monitor_cathode_voltage;
   AnalogOutput monitor_grid_voltage;
   
+
+
+  // Digital Data from the FPGA
+  TYPE_DIGITAL_INPUT fpga_coverter_logic_pcb_rev_mismatch;
+  TYPE_DIGITAL_INPUT fpga_firmware_major_rev_mismatch;
+  TYPE_DIGITAL_INPUT fpga_firmware_minor_rev_mismatch;
+  TYPE_DIGITAL_INPUT fpga_arc;
+  TYPE_DIGITAL_INPUT fpga_arc_high_voltage_inihibit_active;
+  TYPE_DIGITAL_INPUT fpga_heater_voltage_less_than_4_5_volts;
+  TYPE_DIGITAL_INPUT fpga_module_temp_greater_than_65_C;
+  TYPE_DIGITAL_INPUT fpga_module_temp_greater_than_75_C;
+  TYPE_DIGITAL_INPUT fpga_pulse_width_limiting_active;
+  TYPE_DIGITAL_INPUT fpga_prf_fault;
+  TYPE_DIGITAL_INPUT fpga_current_monitor_pulse_width_fault;
+  TYPE_DIGITAL_INPUT fpga_grid_module_hardware_fault;
+  TYPE_DIGITAL_INPUT fpga_grid_module_over_voltage_fault;
+  TYPE_DIGITAL_INPUT fpga_grid_module_under_voltage_fault;
+  TYPE_DIGITAL_INPUT fpga_grid_module_bias_voltage_fault;
+  TYPE_DIGITAL_INPUT fpga_hv_regulation_warning;
+  TYPE_DIGITAL_INPUT fpga_dipswitch_1_on;
+  TYPE_DIGITAL_INPUT fpga_test_mode_toggle_switch_set_to_test;
+  TYPE_DIGITAL_INPUT fpga_local_mode_toggle_switch_set_to_local;
 
 
   // These are the ADC input from the external device on the SPI BUS
@@ -529,12 +402,12 @@ typedef struct {
   AnalogInput  input_bias_v_mon;
   AnalogInput  input_24_v_mon;
   AnalogInput  input_temperature_mon;
-  unsigned int adc_digital_warmup_flt;
-  unsigned int adc_digital_watchdog_flt;
-  unsigned int adc_digital_arc_flt;
-  unsigned int adc_digital_over_temp_flt;
-  unsigned int adc_digital_pulse_width_duty_flt;
-  unsigned int adc_digital_grid_flt;
+  TYPE_DIGITAL_INPUT adc_digital_warmup_flt;
+  TYPE_DIGITAL_INPUT adc_digital_watchdog_flt;
+  TYPE_DIGITAL_INPUT adc_digital_arc_flt;
+  TYPE_DIGITAL_INPUT adc_digital_over_temp_flt;
+  TYPE_DIGITAL_INPUT adc_digital_pulse_width_duty_flt;
+  TYPE_DIGITAL_INPUT adc_digital_grid_flt;
   AnalogInput  input_dac_monitor;
 
   // These are the anlog input from the PICs internal DAC
@@ -550,16 +423,19 @@ typedef struct {
   unsigned int accumulator_counter;
 
 
-
-  TYPE_FPGA_DATA fpga_data;
   unsigned int adc_read_error_count;
   unsigned int adc_read_error_test;
+  unsigned int adc_read_ok;
 
   unsigned int dac_write_error_count;
   unsigned int dac_write_failure;
   unsigned int dac_write_failure_count;
 
 } TYPE_GLOBAL_DATA_A36772;
+
+void ETMDigitalUpdateInput(TYPE_DIGITAL_INPUT* input, unsigned int current_value);
+void ETMDigitalInitializeInput(TYPE_DIGITAL_INPUT* input, unsigned int initial_value, unsigned int filter_time);
+
 
 
 extern TYPE_GLOBAL_DATA_A36772 global_data_A36772;
@@ -571,6 +447,7 @@ extern TYPE_GLOBAL_DATA_A36772 global_data_A36772;
 #define STATE_HEATER_WARM_UP_DONE            0x40
 #define STATE_POWER_SUPPLY_RAMP_UP           0x50
 #define STATE_HV_ON                          0x60
+#define STATE_BEAM_ENABLE                    0x68
 #define STATE_FAULT_HEATER_OFF               0x70
 #define STATE_FAULT_HEATER_ON                0x80
 #define STATE_FAULT_HEATER_FAILURE           0x90
