@@ -238,39 +238,6 @@
 #endif
 
 
-
-#define _STATUS_GD_HV_DISABLE                           _STATUS_0	
-#define _STATUS_GD_HTR_NOT_READY                        _STATUS_1
-#define _STATUS_GD_TRIG_NOT_ENABLED                     _STATUS_2
-#define _STATUS_GD_TOP_NOT_ENABLED                      _STATUS_3
-#define _STATUS_GD_HV_NOT_ENABLED    			_STATUS_4
-#define _STATUS_GD_HTR_NOT_ENABLED                      _STATUS_5	
-
-
-//#define _STATUS_HV_DISABLE
-//#define _STATUS_
-
-
-
-#define _FAULT_GD_SUM_FAULT                             _FAULT_0
-#define _FAULT_GD_FPGA_COMM_LOST                        _FAULT_1
-#define _FAULT_GD_SW_HTR_OVOC                           _FAULT_2
-#define _FAULT_GD_SW_BIAS_UV                            _FAULT_3
-#define _FAULT_GD_SW_EK_OV                              _FAULT_4
-#define _FAULT_GD_SW_EK_UV                              _FAULT_5
-#define _FAULT_GD_SW_GRID_OV                            _FAULT_6
-#define _FAULT_GD_FPGA_TEMP_75C                         _FAULT_7
-#define _FAULT_CAN_COMMUNICATION_LATCHED                _FAULT_8
-#define _FAULT_GD_FPGA_ARC_FAULT                        _FAULT_9
-#define _FAULT_GD_FPGA_PULSE_FAULT                      _FAULT_A
-#define _FAULT_GD_FPGA_GRID_FAULT                       _FAULT_B
-#define _FAULT_GD_SW_HTR_UV                             _FAULT_C
-#define _FAULT_GD_SW_24V_FAULT                          _FAULT_D
-#define _FAULT_GD_SYS_FAULTS                            _FAULT_E
-
-
-#define _FAULT_PIC_HEATER_TURN_OFF                      _FAULT_0
-
 /*
 typedef struct {
   fpga_converter_logic_pcb_rev_mismatch;
@@ -294,25 +261,50 @@ typedef struct {
 } TYPE_FAULT_COUNTERS;
 */
 
-#define _FPGA_FIRMWARE_MAJOR_REV_MISMATCH              dac_test
-#define _FPGA_CONVERTER_LOGIC_PCB_REV_MISMATCH         dac_test
-#define _FPGA_FIRMWARE_MINOR_REV_MISMATCH              dac_test
-#define _FPGA_ARC_COUNTER_GREATER_ZERO                 dac_test
-#define _FPGA_ARC_HIGH_VOLTAGE_INHIBIT_ACTIVE          dac_test
-#define _FPGA_HEATER_VOLTAGE_LESS_THAN_4_5_VOLTS       dac_test
-#define _FPGA_MODULE_TEMP_GREATER_THAN_65_C            dac_test
-#define _FPGA_MODULE_TEMP_GREATER_THAN_75_C            dac_test
-#define _FPGA_PULSE_WIDTH_LIMITING                     dac_test
-#define _FPGA_PRF_FAULT                                dac_test
-#define _FPGA_CURRENT_MONITOR_PULSE_WIDTH_FAULT        dac_test
-#define _FPGA_GRID_MODULE_HARDWARE_FAULT               dac_test
-#define _FPGA_GRID_MODULE_OVER_VOLTAGE_FAULT           dac_test
-#define _FPGA_GRID_MODULE_UNDER_VOLTAGE_FAULT          dac_test
-#define _FPGA_GRID_MODULE_BIAS_VOLTAGE_FAULT           dac_test
-#define _FPGA_HV_REGULATION_WARNING                    dac_test
-#define _FPGA_DIPSWITCH_1_ON                           dac_test
-#define _FPGA_TEST_MODE_TOGGLE_SWITCH_TEST_MODE        dac_test
-#define _FPGA_LOCAL_MODE_TOGGLE_SWITCH_LOCAL_MODE      dac_test
+
+
+#define _FPGA_FIRMWARE_MAJOR_REV_MISMATCH              _FAULT_0
+#define _FPGA_CONVERTER_LOGIC_PCB_REV_MISMATCH         _STATUS_7
+#define _FPGA_FIRMWARE_MINOR_REV_MISMATCH              _STATUS_7
+#define _FPGA_ARC_COUNTER_GREATER_ZERO                 _STATUS_7
+#define _FPGA_ARC_HIGH_VOLTAGE_INHIBIT_ACTIVE          _STATUS_7
+#define _FPGA_HEATER_VOLTAGE_LESS_THAN_4_5_VOLTS       _STATUS_7
+#define _FPGA_MODULE_TEMP_GREATER_THAN_65_C            _STATUS_7
+#define _FPGA_MODULE_TEMP_GREATER_THAN_75_C            _STATUS_7
+#define _FPGA_PULSE_WIDTH_LIMITING                     _STATUS_6
+#define _FPGA_PRF_FAULT                                _FAULT_1
+#define _FPGA_CURRENT_MONITOR_PULSE_WIDTH_FAULT        _FAULT_1
+#define _FPGA_GRID_MODULE_HARDWARE_FAULT               _FAULT_1
+#define _FPGA_GRID_MODULE_OVER_VOLTAGE_FAULT           _FAULT_1
+#define _FPGA_GRID_MODULE_UNDER_VOLTAGE_FAULT          _FAULT_1
+#define _FPGA_GRID_MODULE_BIAS_VOLTAGE_FAULT           _FAULT_1
+#define _FPGA_HV_REGULATION_WARNING                    _STATUS_5
+#define _FPGA_DIPSWITCH_1_ON                           _STATUS_6
+#define _FPGA_TEST_MODE_TOGGLE_SWITCH_TEST_MODE        _STATUS_6
+#define _FPGA_LOCAL_MODE_TOGGLE_SWITCH_LOCAL_MODE      _STATUS_6
+
+
+
+
+
+
+#define _FAULT_ADC_DIGITAL_WARMUP                      _FAULT_2
+#define _FAULT_ADC_DIGITAL_WATCHDOG                    _FAULT_3
+#define _FAULT_ADC_DIGITAL_ARC                         _FAULT_4
+#define _FAULT_ADC_DIGITAL_OVER_TEMP                   _FAULT_5
+#define _FAULT_ADC_DIGITAL_PULSE_WIDTH_DUTY            _FAULT_6
+#define _FAULT_ADC_DIGITAL_GRID                        _FAULT_7
+#define _FAULT_ADC_HV_I_MON_OVER_ABSOLUTE              _FAULT_8
+#define _FAULT_ADC_GUN_I_PEAK_OVER_ABSOLUTE            _FAULT_9
+#define _FAULT_ADC_HTR_I_MON_OVER_ABSOLUTE             _FAULT_A
+
+
+
+#define _FAULT_HEATER_RAMP_TIMEOUT                     _FAULT_B
+
+
+
+
 
 
 
@@ -331,21 +323,28 @@ typedef struct {
 typedef struct {
   unsigned int watchdog_count_error;
   unsigned int control_state;
-  unsigned int start_up_counter;
-  unsigned int run_time_counter;
-  unsigned int power_supply_startup_up_counter;
-
-  unsigned int heater_voltage_target;   // This is the targeted heater voltage set poing
-  unsigned int heater_ramp_interval;
-  unsigned int heater_warm_up_time_counter;
-
   unsigned int request_hv_enable;
   unsigned int request_beam_enable;
+  unsigned int reset_active;
+
+
+
+  unsigned int heater_start_up_attempts;       // This counts the number of times the heater has started up without successfully completing it's ramp up.
+
+  unsigned int run_time_counter;              // This counts how long the unit has been running for.  It wraps every 11 minutes
+  unsigned int fault_restart_counter;         // This counts the delay of the heater automatic restart
+  unsigned int power_supply_startup_counter;  // This counts counts the ramp up time of the HV supply
+  unsigned int heater_warm_up_time_counter;   // This counts the time of the heater warm up
+
+  unsigned int heater_voltage_target;         // This is the targeted heater voltage set point
+  unsigned int heater_ramp_interval;          // This counts the interval between heater ramp voltage changes
+
+
 
   unsigned int can_high_voltage_set_point;
   unsigned int can_pulse_top_set_point;
   unsigned int can_heater_voltage_set_point;
-  unsigned int reset_active;
+
 
 
 
@@ -433,23 +432,22 @@ typedef struct {
 
 } TYPE_GLOBAL_DATA_A36772;
 
-void ETMDigitalUpdateInput(TYPE_DIGITAL_INPUT* input, unsigned int current_value);
-void ETMDigitalInitializeInput(TYPE_DIGITAL_INPUT* input, unsigned int initial_value, unsigned int filter_time);
 
 
 
 extern TYPE_GLOBAL_DATA_A36772 global_data_A36772;
 
-#define STATE_START_UP                       0x10
-#define STATE_WAIT_FOR_CONFIG                0x20
-#define STATE_HEATER_RAMP_UP                 0x30
-#define STATE_HEATER_WARM_UP                 0x38
-#define STATE_HEATER_WARM_UP_DONE            0x40
-#define STATE_POWER_SUPPLY_RAMP_UP           0x50
-#define STATE_HV_ON                          0x60
-#define STATE_BEAM_ENABLE                    0x68
-#define STATE_FAULT_HEATER_OFF               0x70
-#define STATE_FAULT_HEATER_ON                0x80
-#define STATE_FAULT_HEATER_FAILURE           0x90
+#define STATE_FAULT_HEATER_OFF               0x00
+#define STATE_FAULT_HEATER_ON                0x10
+#define STATE_FAULT_HEATER_FAILURE           0x20
+#define STATE_START_UP                       0x30
+#define STATE_WAIT_FOR_CONFIG                0x40
+#define STATE_HEATER_RAMP_UP                 0x50
+#define STATE_HEATER_WARM_UP                 0x60
+#define STATE_HEATER_WARM_UP_DONE            0x70
+#define STATE_POWER_SUPPLY_RAMP_UP           0x80
+#define STATE_HV_ON                          0x90
+#define STATE_BEAM_ENABLE                    0xA0
+
 
 #endif
