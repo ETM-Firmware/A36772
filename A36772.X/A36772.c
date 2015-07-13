@@ -11,6 +11,9 @@ _FGS(CODE_PROT_OFF);
 _FICD(PGD);
 
 
+void ETMDigitalInitializeInput(TYPE_DIGITAL_INPUT* input, unsigned int initial_value, unsigned int filter_time);
+void ETMDigitalUpdateInput(TYPE_DIGITAL_INPUT* input, unsigned int current_value);
+
 /*
   We have a couple of compile time options
   __MODE_CAN_INTERFACE        
@@ -54,6 +57,9 @@ _FICD(PGD);
 #define __CAN_CONTROLS
 #define __CAN_ENABLED
 #define __CAN_REFERENCE
+#ifdef __OPTION_ENABLE_CAN
+#error "OPTION_ENABLE_CAN not valid modifier to MODE_CAN_INTERFACE"
+#endif
 #endif // #ifdef __MODE_CAN_INTERFACE
 
 
@@ -100,10 +106,11 @@ unsigned int dac_test = 0;
 
 void DoStateMachine(void);
 void DoA36772(void);
+void UpdateFaults(void);
 //void UpdateFaultsHeaterRampUp(void);
-void UpdateFaultsHeaterOn(void);
-void UpdateFaultsPowerSupplyRampUp(void);
-void UpdateFaultsPowerSupplyOn(void);
+//void UpdateFaultsHeaterOn(void);
+//void UpdateFaultsPowerSupplyRampUp(void);
+//void UpdateFaultsPowerSupplyOn(void);
 void EnableHeater(void);
 void DisableHeater(void);
 void EnableHighVoltage(void);
@@ -136,7 +143,7 @@ void DoStateMachine(void) {
     DisableHeater();
     _CONTROL_NOT_CONFIGURED = 1;
     _CONTROL_NOT_READY = 1;
-    global_data_A36772.start_up_counter = 0;
+    global_data_A36772.heater_start_up_attempts = 0;
     global_data_A36772.run_time_counter = 0;
 #ifndef __CAN_REFERENCE
     _CONTROL_NOT_CONFIGURED = 0;
@@ -145,7 +152,7 @@ void DoStateMachine(void) {
     break;
 
 #define LED_STARTUP_FLASH_TIME   200 // 2 Seconds
-#define MAX_HEATER_RAMP_UP_TIME   12000 // 2 minutes
+#define MAX_HEATER_RAMP_UP_TIME  12000 // 2 minutes
 
   case STATE_WAIT_FOR_CONFIG:
     DisableBeam();
@@ -163,21 +170,21 @@ void DoStateMachine(void) {
 
   case STATE_HEATER_RAMP_UP:
     global_data_A36772.analog_output_heater_voltage.set_point = 0;
-    global_data_A36772.start_up_counter++;
+    global_data_A36772.heater_start_up_attempts++;
     global_data_A36772.heater_warm_up_time_counter = 0;
     DisableBeam();
     DisableHighVoltage();
     EnableHeater();
+    _FAULT_HEATER_RAMP_TIMEOUT = 0;
     while (global_data_A36772.control_state == STATE_HEATER_RAMP_UP) {
       DoA36772();
       if (global_data_A36772.analog_output_heater_voltage.set_point >= global_data_A36772.heater_voltage_target) {
 	global_data_A36772.control_state = STATE_HEATER_WARM_UP;
       }
       if (global_data_A36772.heater_warm_up_time_counter > MAX_HEATER_RAMP_UP_TIME) {
-	// DPARKER SET FAULT
-	
+	_FAULT_HEATER_RAMP_TIMEOUT = 1;
       }
-      if (_FAULT_PIC_HEATER_TURN_OFF) {
+      if (CheckFault()) {
 	global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
       }
     }
@@ -198,7 +205,7 @@ void DoStateMachine(void) {
       if (global_data_A36772.heater_warm_up_time_counter > HEATER_WARM_UP_TIME) {
 	global_data_A36772.control_state = STATE_HEATER_WARM_UP_DONE;
       }
-      if (0) { //DPARKER CHECK FOR FAULT
+      if (CheckFault()) {
 	global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
       }
     }
@@ -208,10 +215,10 @@ void DoStateMachine(void) {
   case STATE_HEATER_WARM_UP_DONE:
     DisableBeam();
     DisableHighVoltage();
+    global_data_A36772.heater_start_up_attempts = 0;
     while (global_data_A36772.control_state == STATE_HEATER_WARM_UP_DONE) {
       DoA36772();
-      global_data_A36772.analog_output_heater_voltage.set_point = global_data_A36772.heater_voltage_target;
-      if (!_SYNC_CONTROL_PULSE_SYNC_DISABLE_HV) {
+      if (global_data_A36772.request_hv_enable) {
 	global_data_A36772.control_state = STATE_POWER_SUPPLY_RAMP_UP;
       }
       if (CheckFault()) {
@@ -226,14 +233,13 @@ void DoStateMachine(void) {
   case STATE_POWER_SUPPLY_RAMP_UP:
     DisableBeam();
     EnableHighVoltage();
-    global_data_A36772.power_supply_startup_up_counter = 0;
+    global_data_A36772.power_supply_startup_counter = 0;
     while (global_data_A36772.control_state == STATE_POWER_SUPPLY_RAMP_UP) {
       DoA36772();
-      global_data_A36772.analog_output_heater_voltage.set_point = global_data_A36772.heater_voltage_target;
-      if (global_data_A36772.power_supply_startup_up_counter >= GUN_DRIVER_POWER_SUPPLY_STATUP_TIME) {
+      if (global_data_A36772.power_supply_startup_counter >= GUN_DRIVER_POWER_SUPPLY_STATUP_TIME) {
 	global_data_A36772.control_state = STATE_HV_ON;
       }
-      if (_SYNC_CONTROL_PULSE_SYNC_DISABLE_HV) {
+      if (!global_data_A36772.request_hv_enable) {
 	global_data_A36772.control_state = STATE_HEATER_WARM_UP_DONE;
       }
       if (CheckFault()) {
@@ -246,8 +252,10 @@ void DoStateMachine(void) {
     DisableBeam();
     while (global_data_A36772.control_state == STATE_HV_ON) {
       DoA36772();
-      global_data_A36772.analog_output_heater_voltage.set_point = global_data_A36772.heater_voltage_target;
-      if (_SYNC_CONTROL_PULSE_SYNC_DISABLE_HV) {
+      if (global_data_A36772.request_beam_enable) {
+	global_data_A36772.control_state = STATE_BEAM_ENABLE;
+      }
+      if (!global_data_A36772.request_hv_enable) {
 	global_data_A36772.control_state = STATE_HEATER_WARM_UP_DONE;
       }
       if (CheckFault()) {
@@ -257,31 +265,61 @@ void DoStateMachine(void) {
     break;
 
   case STATE_BEAM_ENABLE:
+    EnableBeam();
     while (global_data_A36772.control_state == STATE_BEAM_ENABLE) {
       DoA36772();
-      
+      if (!global_data_A36772.request_beam_enable) {
+	global_data_A36772.control_state = STATE_HV_ON;
+      }
+      if (!global_data_A36772.request_hv_enable) {
+	global_data_A36772.control_state = STATE_HEATER_WARM_UP_DONE;
+      }
+      if (CheckFault()) {
+	global_data_A36772.control_state = STATE_FAULT_HEATER_ON;
+      }
     }
     break;
-
+    
   case STATE_FAULT_HEATER_ON:
     DisableHighVoltage();
-    DisableHeater();
+    DisableBeam();
     while (global_data_A36772.control_state == STATE_FAULT_HEATER_ON) {
-
+      DoA36772();
+      if (global_data_A36772.reset_active) {
+	global_data_A36772.control_state = STATE_HEATER_WARM_UP_DONE;
+      }
+      if (CheckFault()) { // DPARKER need better fault check here
+	global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
+      }
     }
     break;
+
+#define MAX_HEATER_START_UP_ATTEMPTS   5
+#define HEATER_AUTO_RESTART_TIME       500 // 5 seconds
 
   case STATE_FAULT_HEATER_OFF:
     DisableHighVoltage();
     DisableHeater();
+    DisableBeam();
+    global_data_A36772.fault_restart_counter = 0;
     while (global_data_A36772.control_state == STATE_FAULT_HEATER_OFF) {
+      DoA36772();
+      if (global_data_A36772.fault_restart_counter > HEATER_AUTO_RESTART_TIME) {
+	global_data_A36772.control_state = STATE_WAIT_FOR_CONFIG;
+      }
+      if (global_data_A36772.heater_start_up_attempts > MAX_HEATER_START_UP_ATTEMPTS) {
+	global_data_A36772.control_state = STATE_FAULT_HEATER_FAILURE;
+      }
     }
     break;
 
   case STATE_FAULT_HEATER_FAILURE:
     DisableHighVoltage();
     DisableHeater();
+    DisableBeam();
     while (global_data_A36772.control_state == STATE_FAULT_HEATER_FAILURE) {
+      // Can't leave this state without power cycle
+      DoA36772();
     }
     break;
 
@@ -364,11 +402,9 @@ void DoA36772(void) {
     // Run once every 10ms
     // Update to counter used to flash the LEDs at startup and time transmits to DACs
     global_data_A36772.run_time_counter++;
-
-    global_data_A36772.power_supply_startup_up_counter++;
-    if (global_data_A36772.power_supply_startup_up_counter >= GUN_DRIVER_POWER_SUPPLY_STATUP_TIME) {
-      global_data_A36772.power_supply_startup_up_counter = GUN_DRIVER_POWER_SUPPLY_STATUP_TIME;
-    }
+    global_data_A36772.fault_restart_counter++;
+    
+    global_data_A36772.power_supply_startup_counter++;
 
     // Update Data from the FPGA
     FPGAReadData();
@@ -465,7 +501,7 @@ void DoA36772(void) {
     // Ramp the heater voltage
     global_data_A36772.heater_warm_up_time_counter++;
     global_data_A36772.heater_ramp_interval++;
-    if (global_data_A36772.heater_ramp_interval >= 10) {
+    if (global_data_A36772.heater_ramp_interval >= HEATER_RAMP_UP_TIME_INCREMENT) {
       global_data_A36772.heater_ramp_interval = 0;
       if (global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated < MAX_HEATER_CURRENT_DURING_RAMP_UP) {
 	global_data_A36772.analog_output_heater_voltage.set_point += HEATER_RAMP_UP_INCREMENT;
@@ -540,7 +576,8 @@ void DoA36772(void) {
       break;
 
     }
-    // DPARKER CHECK FOR FAULTS
+    // Update Faults
+    UpdateFaults();
   }
 }
 
@@ -549,15 +586,10 @@ void UpdateFaults(void) {
   /*
     List of faults
     
-    // ------------- Generated by the FPGA and passed via DAC ------------- //
-    fpga_warmup_flt
-    fpga_watchdog_flt
-    fpga_arc_flt
-    fpga_over_temp_flt
-    fpga_pulse_width_duty_flt
-    fpga_grid_flt
-    
     // -----------  Generated from the FPGA from 32 bit FPGA read ---------- //
+    (N/A) fpga_bits_converter_logic_pcb_rev
+    (#1 ) fpga_bits_firmware_major_rev
+    (N/A) fpga_bits_firmware_minor_rev
     (N/A) fpga_bits_arc_count_greater_than_zero
     (#1 ) fpga_bits_arc_high_voltage_inhibit_active
     (N/A) fpga_bits_heater_voltage_less_than_4_5_volts
@@ -571,14 +603,26 @@ void UpdateFaults(void) {
     (#1 ) fpga_bits_grid_module_under_voltage_fault
     (#1 ) fpga_bits_grid_module_bias_voltage_fault
     (N/A) fpga_bits_hv_regulation_warning
-
-    // ---------------  Other Status from the FPGA ----------------- //
-    (N/A) fpga_bits_converter_logic_pcb_rev
-    (#1 ) fpga_bits_firmware_major_rev
-    (N/A) fpga_bits_firmware_minor_rev
     (#2 ) fpga_bits_dipswitch_1_on
     (#2 ) fpga_bits_test_mode_toggle_switch_set_to_test
     (#2 ) fpga_bits_local_mode_toggle_switch_set_to_local
+
+
+    // ------------- Generated by the FPGA and passed via ADC ------------- //
+    (#1 ) fpga_warmup_flt
+    (#1 ) fpga_watchdog_flt
+    (#1 ) fpga_arc_flt
+    (#1 ) fpga_over_temp_flt
+    (#1 ) fpga_pulse_width_duty_flt
+    (#1 ) fpga_grid_flt
+    
+    // ------------ Analog Values read from the ADC ------------------- //
+    (#1 ) input_hv_i_mon - Over Absolute
+    (#1 ) input_gun_i_peak - Over Absolute
+    (#1 ) input_htr_i_mon - Over Absolute
+
+
+
 
     #1 Indicates that we should latch a fault
     #2 Indicates that we should should flash the LED
@@ -597,75 +641,86 @@ void UpdateFaults(void) {
 #define TARGET_FPGA_FIRMWARE_MINOR_REV   0b000000
 
 
-
-
-
-  //  ------------- Evaluate the 32 bits received from the FPGA --------------------- //
-
-    
-
-  
-
-  //  END ------------- Evaluate the 32 bits received from the FPGA --------------------- //
-
-
-  
-
-  // ------------------- Evaluate the digital readings from the Coverter Logic Board ADC ---------------------//
+  // Evaluate the readigns from the Coverter Logic Board ADC
   if (global_data_A36772.adc_read_ok) {
-    // There was a valid read of the data from the 
-    
+    // There was a valid read of the data from the converter logic board
+  
+    // ------------------- Evaluate the digital readings from the Coverter Logic Board ADC ---------------------//  
     if (global_data_A36772.adc_digital_warmup_flt.filtered_reading) {
-      
+      _FAULT_ADC_DIGITAL_WARMUP = 1;
+    } else {
+      if (global_data_A36772.reset_active) {
+	_FAULT_ADC_DIGITAL_WARMUP = 0;
+      }
     }
     
+    if (global_data_A36772.adc_digital_watchdog_flt.filtered_reading) {
+      _FAULT_ADC_DIGITAL_WATCHDOG = 1;
+    } else {
+      if (global_data_A36772.reset_active) {
+	_FAULT_ADC_DIGITAL_WATCHDOG = 0;
+      }
+    }
     
+    if (global_data_A36772.adc_digital_arc_flt.filtered_reading) {
+      _FAULT_ADC_DIGITAL_ARC = 1;
+    } else {
+      if (global_data_A36772.reset_active) {
+	_FAULT_ADC_DIGITAL_ARC = 0;
+      }
+    }
+    
+    if (global_data_A36772.adc_digital_over_temp_flt.filtered_reading) {
+      _FAULT_ADC_DIGITAL_OVER_TEMP = 1;
+    } else {
+      if (global_data_A36772.reset_active) {
+	_FAULT_ADC_DIGITAL_OVER_TEMP = 0;
+      }
+    }
+
+    if (global_data_A36772.adc_digital_pulse_width_duty_flt.filtered_reading) {
+      _FAULT_ADC_DIGITAL_PULSE_WIDTH_DUTY = 1;
+    } else {
+      if (global_data_A36772.reset_active) {
+	_FAULT_ADC_DIGITAL_PULSE_WIDTH_DUTY = 0;
+      }
+    }
+
+    if (global_data_A36772.adc_digital_grid_flt.filtered_reading) {
+      _FAULT_ADC_DIGITAL_GRID = 1;
+    } else {
+      if (global_data_A36772.reset_active) {
+	_FAULT_ADC_DIGITAL_GRID = 0;
+      }
+    }
+  
+    // ------------------- Evaluate the analog readings from the Coverter Logic Board ADC ---------------------//
+    if (ETMAnalogCheckOverAbsolute(&global_data_A36772.input_hv_i_mon)) {
+      _FAULT_ADC_HV_I_MON_OVER_ABSOLUTE = 1;
+    } else {
+      if (global_data_A36772.reset_active) {
+	_FAULT_ADC_HV_I_MON_OVER_ABSOLUTE = 0;
+      }
+    }
+
+    if (ETMAnalogCheckOverAbsolute(&global_data_A36772.input_gun_i_peak)) {
+      _FAULT_ADC_GUN_I_PEAK_OVER_ABSOLUTE = 1;
+    } else {
+      if (global_data_A36772.reset_active) {
+	_FAULT_ADC_GUN_I_PEAK_OVER_ABSOLUTE = 0;
+      }
+    }
+
+    if (ETMAnalogCheckOverAbsolute(&global_data_A36772.input_htr_i_mon)) {
+      _FAULT_ADC_HTR_I_MON_OVER_ABSOLUTE = 1;
+    } else {
+      if (global_data_A36772.reset_active) {
+	_FAULT_ADC_HTR_I_MON_OVER_ABSOLUTE = 0;
+      }
+    }
   }
-  
-  
-  
-  
-  
 }
 
-
-
-
-/*
-  Based on the control state only a subset of faults are checked
-  There are four fault checking functions that are called based upon the operation state
-*/
-
-
-void UpdateFaultsHeaterRampUp(void) {
-  /*
-    This updates all faults related to the heater ramping up
-  */
-}
-
-void UpdateFaultsHeaterOn(void) {
-  /*
-    This includes all faults in UpdateFaultsHeaterRampUp as well as 
-    faults that are checked once the heater has finished ramping up
-  */
-}
-
-
-void UpdateFaultsPowerSupplyRampUp(void) {
-  /*
-    All faults in UpdateFaultsHeaterOn as well as
-    faults that are checked when the power supplies are ramping up
-  */
-}
-
-
-void UpdateFaultsPowerSupplyOn(void) {
-  /*
-    All faults in UpdateFaultsPowerSupplyRampUp as well as
-    all other remaining faults
-  */
-
-}
 
 
 
@@ -1071,7 +1126,6 @@ void FPGAReadData(void) {
   // Only check the rest of the data bits if the Major Rev Matches
   if (fpga_bits.fpga_firmware_major_rev == TARGET_FPGA_FIRMWARE_MAJOR_REV) {
 
-    
     // Check the logic board pcb rev (LATCHED)
     if (fpga_bits.converter_logic_pcb_rev != TARGET_CONVERTER_LOGIC_PCB_REV) {
       ETMDigitalUpdateInput(&global_data_A36772.fpga_coverter_logic_pcb_rev_mismatch, 1);   
@@ -1122,6 +1176,10 @@ void FPGAReadData(void) {
 
     // Check the heater voltage less than 4.5 Volts (LATCHED)
     ETMDigitalUpdateInput(&global_data_A36772.fpga_heater_voltage_less_than_4_5_volts, fpga_bits.heater_voltage_less_than_4_5_volts);
+    // Confirm that the heater has completed it's ramp up before evaluating this fault
+    if (global_data_A36772.control_state <= STATE_HEATER_RAMP_UP) {
+      ETMDigitalInitializeInput(&global_data_A36772.fpga_heater_voltage_less_than_4_5_volts    , 0, 10);
+    }
     if (global_data_A36772.fpga_heater_voltage_less_than_4_5_volts.filtered_reading) {
       _FPGA_HEATER_VOLTAGE_LESS_THAN_4_5_VOLTS = 1;
     } else {
@@ -1174,8 +1232,8 @@ void FPGAReadData(void) {
 
 
     // Check Current Monitor Pulse Width Fault (LATCHED)
-    ETMDigitalUpdateInput(&global_data_A36772.fpga_prf_fault, fpga_bits.prf_fault);
-    if (global_data_A36772.fpga_prf_fault.filtered_reading) {
+    ETMDigitalUpdateInput(&global_data_A36772.fpga_current_monitor_pulse_width_fault, fpga_bits.current_monitor_pulse_width_fault);
+    if (global_data_A36772.fpga_current_monitor_pulse_width_fault.filtered_reading) {
       _FPGA_CURRENT_MONITOR_PULSE_WIDTH_FAULT = 1;
     } else {
       if (global_data_A36772.reset_active) {
@@ -1208,6 +1266,10 @@ void FPGAReadData(void) {
 
     // Check grid module under voltage (LATCHED)
     ETMDigitalUpdateInput(&global_data_A36772.fpga_grid_module_under_voltage_fault, fpga_bits.grid_module_under_voltage_fault);
+    // Confirm that the power supplies have completed their ramp up before evaluating this fault
+    if (global_data_A36772.control_state <= STATE_POWER_SUPPLY_RAMP_UP) {
+      ETMDigitalInitializeInput(&global_data_A36772.fpga_grid_module_under_voltage_fault    , 0, 10);
+    }
     if (global_data_A36772.fpga_grid_module_under_voltage_fault.filtered_reading) {
       _FPGA_GRID_MODULE_UNDER_VOLTAGE_FAULT = 1;
     } else {
@@ -1219,6 +1281,10 @@ void FPGAReadData(void) {
 
     // Check grid module bias voltage (LATCHED)
     ETMDigitalUpdateInput(&global_data_A36772.fpga_grid_module_bias_voltage_fault, fpga_bits.grid_module_bias_voltage_fault);
+    // Confirm that the power supplies have completed their ramp up before evaluating this fault
+    if (global_data_A36772.control_state <= STATE_POWER_SUPPLY_RAMP_UP) {
+      ETMDigitalInitializeInput(&global_data_A36772.fpga_grid_module_bias_voltage_fault    , 0, 10);
+    }
     if (global_data_A36772.fpga_grid_module_bias_voltage_fault.filtered_reading) {
       _FPGA_GRID_MODULE_BIAS_VOLTAGE_FAULT = 1;
     } else {
@@ -1228,12 +1294,18 @@ void FPGAReadData(void) {
     }
     
 
-    // High Voltage regulation Warning (NOT LATCHED)
+    // High Voltage regulation Warning (LATCHED)
     ETMDigitalUpdateInput(&global_data_A36772.fpga_hv_regulation_warning, fpga_bits.hv_regulation_warning);
+    // Confirm that the power supplies have completed their ramp up before evaluating this fault
+    if (global_data_A36772.control_state <= STATE_POWER_SUPPLY_RAMP_UP) {
+      ETMDigitalInitializeInput(&global_data_A36772.fpga_hv_regulation_warning   , 0, 10);
+    }
     if (global_data_A36772.fpga_hv_regulation_warning.filtered_reading) {
       _FPGA_HV_REGULATION_WARNING = 1;
     } else {
-      _FPGA_HV_REGULATION_WARNING = 0;
+      if (global_data_A36772.reset_active) {
+	_FPGA_HV_REGULATION_WARNING = 0;
+      }
     }
 
     
@@ -1263,7 +1335,6 @@ void FPGAReadData(void) {
       _FPGA_LOCAL_MODE_TOGGLE_SWITCH_LOCAL_MODE = 0;
     }
   }
-
 }
 
 
@@ -1277,24 +1348,6 @@ unsigned char SPICharInvertered(unsigned char transmit_byte) {
   return (receive_word & 0x00FF);
 }
 
-
-
-/*
-void DoHeaterRampUp(void) {
-  if (global_data_A36772.heater_ramp_counter >= 100) {
-    // We only update the ramp up once per second durring the ramp
-    global_data_A36772.heater_ramp_counter = 0;
-
-    // If the current is less than the max ramp up current, then increase the heater program voltage
-    if (global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated < MAX_HEATER_CURRENT_DURING_RAMP_UP) {
-      global_data_A36772.analog_output_heater_voltage.set_point += HEATER_RAMP_UP_INCREMENT;
-      if (global_data_A36772.analog_output_heater_voltage.set_point > global_data_A36772.heater_voltage_target) {
-	global_data_A36772.analog_output_heater_voltage.set_point = global_data_A36772.heater_voltage_target;
-      }
-    }
-  }  
-}
-*/
 
 
 void InitializeA36772(void) {
@@ -1372,6 +1425,10 @@ void InitializeA36772(void) {
   if (!ETMAnalogCheckEEPromInitialized()) {
     ETMAnalogLoadDefaultCalibration();
   }
+
+#define NO_RELATIVE_COUNTER  NO_COUNTER
+#define NO_ABSOLUTE_COUNTER  NO_COUNTER
+
   
 
   // DPARKER figure out how to convert the temperature 
@@ -1379,26 +1436,117 @@ void InitializeA36772(void) {
 #define ADC_TEMPERATURE_SENSOR_FIXED_SCALE   0
 #define ADC_TEMPERATURE_SENSOR_FIXED_OFFSET  0
 
-  // Configure off board ADC Inputs
+
+  // Initialize off board ADC Inputs
   ETMAnalogInitializeInput(&global_data_A36772.input_adc_temperature,
 			   MACRO_DEC_TO_SCALE_FACTOR_16(ADC_TEMPERATURE_SENSOR_FIXED_SCALE),
-			   OFFSET_ZERO,
+			   ADC_TEMPERATURE_SENSOR_FIXED_OFFSET,
 			   ANALOG_INPUT_NO_CALIBRATION,
 			   NO_OVER_TRIP,
 			   NO_UNDER_TRIP,
 			   NO_TRIP_SCALE,
 			   NO_FLOOR,
-			   NO_COUNTER,
-			   NO_COUNTER);
-
-  // Configure off Board DAC Outputs
+			   NO_RELATIVE_COUNTER,
+			   NO_ABSOLUTE_COUNTER);
 
 
 
 
-  // Configure internal ADC Inputs
+#define ADC_HV_VMON_FIXED_SCALE             1
+#define ADC_HV_VMON_FIXED_OFFSET            0
 
-  // Configure on Board DAC Outputs
+#define ADC_HV_IMON_FIXED_SCALE             1
+#define ADC_HV_IMON_FIXED_OFFSET            0
+#define ADC_HV_IMON_OVER_LIMIT_ABSOLUTE     1000    // 1Amp
+#define ADC_HV_IMON_OVER_LIMIT_TIME         10      // 100mS
+
+
+#define ADC_GUN_I_PEAK_FIXED_SCALE          1
+#define ADC_GUN_I_PEAK_FIXED_OFFSET         0
+#define ADC_GUN_I_PEAK_OVER_LIMIT_ABSOLUTE  1000    // 1 Amp - DPARKER THIS NUMBER MAKES NO SENSE
+
+  ETMAnalogInitializeInput(&global_data_A36772.input_hv_v_mon,
+			   MACRO_DEC_TO_SCALE_FACTOR_16(ADC_HV_VMON_FIXED_SCALE),
+			   ADC_HV_VMON_FIXED_OFFSET,
+			   ANALOG_INPUT_0,
+			   NO_OVER_TRIP,
+			   NO_UNDER_TRIP,
+			   NO_TRIP_SCALE,
+			   NO_FLOOR,
+			   NO_RELATIVE_COUNTER,
+			   NO_ABSOLUTE_COUNTER);
+
+  ETMAnalogInitializeInput(&global_data_A36772.input_hv_i_mon,
+			   MACRO_DEC_TO_SCALE_FACTOR_16(ADC_HV_IMON_FIXED_SCALE),
+			   ADC_HV_IMON_FIXED_OFFSET,
+			   ANALOG_INPUT_1,
+			   ADC_HV_IMON_OVER_LIMIT_ABSOLUTE,
+			   NO_UNDER_TRIP,
+			   NO_TRIP_SCALE,
+			   NO_FLOOR,
+			   NO_RELATIVE_COUNTER,
+			   ADC_HV_IMON_OVER_LIMIT_TIME);
+  
+
+  ETMAnalogInitializeInput(&global_data_A36772.input_gun_i_peak,
+			   MACRO_DEC_TO_SCALE_FACTOR_16(ADC_HV_VMON_FIXED_SCALE),
+			   ADC_HV_VMON_FIXED_OFFSET,
+			   ANALOG_INPUT_0,
+			   NO_OVER_TRIP,
+			   NO_UNDER_TRIP,
+			   NO_TRIP_SCALE,
+			   NO_FLOOR,
+			   NO_RELATIVE_COUNTER,
+			   NO_ABSOLUTE_COUNTER);
+
+
+
+
+
+
+  // Initialize internal ADC Inputs
+
+
+
+  // Initialize off Board DAC Outputs
+
+
+
+
+
+
+
+
+  // Initialize on Board DAC Outputs
+
+
+
+
+
+
+
+
+
+  // Initialize Digital Input Filters
+  ETMDigitalInitializeInput(&global_data_A36772.fpga_coverter_logic_pcb_rev_mismatch       , 0, 10);   
+  ETMDigitalInitializeInput(&global_data_A36772.fpga_firmware_major_rev_mismatch           , 0, 10);   
+  ETMDigitalInitializeInput(&global_data_A36772.fpga_firmware_minor_rev_mismatch           , 0, 10);   
+  ETMDigitalInitializeInput(&global_data_A36772.fpga_arc                                   , 0, 5);
+  ETMDigitalInitializeInput(&global_data_A36772.fpga_arc_high_voltage_inihibit_active      , 0, 0);
+  ETMDigitalInitializeInput(&global_data_A36772.fpga_heater_voltage_less_than_4_5_volts    , 0, 10);
+  ETMDigitalInitializeInput(&global_data_A36772.fpga_module_temp_greater_than_65_C         , 0, 10); 
+  ETMDigitalInitializeInput(&global_data_A36772.fpga_module_temp_greater_than_75_C         , 0, 10);
+  ETMDigitalInitializeInput(&global_data_A36772.fpga_pulse_width_limiting_active           , 0, 10);
+  ETMDigitalInitializeInput(&global_data_A36772.fpga_prf_fault                             , 0, 10);
+  ETMDigitalInitializeInput(&global_data_A36772.fpga_current_monitor_pulse_width_fault     , 0, 10);
+  ETMDigitalInitializeInput(&global_data_A36772.fpga_grid_module_hardware_fault            , 0, 10);
+  ETMDigitalInitializeInput(&global_data_A36772.fpga_grid_module_over_voltage_fault        , 0, 10);
+  ETMDigitalInitializeInput(&global_data_A36772.fpga_grid_module_under_voltage_fault       , 0, 10);
+  ETMDigitalInitializeInput(&global_data_A36772.fpga_grid_module_bias_voltage_fault        , 0, 10);
+  ETMDigitalInitializeInput(&global_data_A36772.fpga_hv_regulation_warning                 , 0, 10); // DPARKER should this be longer
+  ETMDigitalInitializeInput(&global_data_A36772.fpga_dipswitch_1_on                        , 0, 10);
+  ETMDigitalInitializeInput(&global_data_A36772.fpga_test_mode_toggle_switch_set_to_test   , 0, 10);
+  ETMDigitalInitializeInput(&global_data_A36772.fpga_local_mode_toggle_switch_set_to_local , 0, 10);
 
 }
 
