@@ -56,7 +56,7 @@
 /*
   RA9  - ADC VREF-
   RA10 - ADC VREF+
-  RA15 - PIN_CUSTOMER_HV_ON
+  RA14 - PIN_CUSTOMER_HV_ON
  
   RB0  - ICD  - PROGRAM
   RB1  - ICD  - PROGRAM
@@ -120,7 +120,7 @@
 
 
 
-#define A36772_TRISA_VALUE 0b1000011000000000 
+#define A36772_TRISA_VALUE 0b0100011000000000 
 #define A36772_TRISB_VALUE 0b1110000011111011 
 #define A36772_TRISC_VALUE 0b0000000000000010 
 #define A36772_TRISD_VALUE 0b0000000100000000 
@@ -131,11 +131,11 @@
 
 
 // Digital Inputs
-#define PIN_CUSTOMER_HV_ON                  _RA15
+#define PIN_CUSTOMER_HV_ON                  _RA14
 #define ILL_PIN_CUSTOMER_HV_ON_ENABLE_HV    1
 
 #define PIN_CUSTOMER_BEAM_ENABLE            _RD8
-#define ILL_PIN_CUSTOMER_BEAM_ENABLE_BEAM_ENABLED 1
+#define ILL_PIN_CUSTOMER_BEAM_ENABLE_BEAM_ENABLED 0
 
 //------------------- GUN Driver Interface I/O ------------------------- //
 #define PIN_CS_DAC                          _LATD13
@@ -156,6 +156,7 @@
 #define PIN_CPU_BEAM_ENABLE_STATUS          _LATD9  // DPARKER THERE IS ERROR ON SCHEMATIC
 #define PIN_CPU_SYSTEM_OK_STATUS            _LATA15
 #define PIN_CPU_EXTRA_STATUS                _LATD3
+#define OLL_STATUS_ACTIVE                   1
 
 #define PIN_CPU_HV_ENABLE                   _LATD2
 #define PIN_CPU_BEAM_ENABLE                 _LATD8
@@ -185,10 +186,16 @@
 #define PIN_TEST_POINT_F                     _LATB9
 
 
-#define PIN_LED_AC_ON                        PIN_LED_I2A
-#define PIN_LED_LAST_PULSE_FAIL              PIN_LED_I2B
-#define PIN_LED_WARMUP                       PIN_LED_I2C
-#define PIN_LED_SUM_FAULT                    PIN_LED_I2D
+
+#define PIN_LED_BEAM_ENABLE                  PIN_LED_I2A
+//#define PIN_LED_I2C_OPERATION              PIN_LED_I2B
+#define PIN_LED_OPERATIONAL                  PIN_LED_I2C
+#define PIN_LED_SYSTEM_OK                    PIN_LED_I2D
+
+// THIS PIN IS ALWAYS ON WHEN POWERED        PIN_LED_I1A
+#define PIN_LED_WARMUP                       PIN_LED_I1B
+#define PIN_LED_STANDBY                      PIN_LED_I1C
+#define PIN_LED_HV_ON                        PIN_LED_I1D
 
 
 
@@ -263,7 +270,7 @@ typedef struct {
 
 
 
-#define _FPGA_FIRMWARE_MAJOR_REV_MISMATCH              _FAULT_0
+
 #define _FPGA_CONVERTER_LOGIC_PCB_REV_MISMATCH         _STATUS_7
 #define _FPGA_FIRMWARE_MINOR_REV_MISMATCH              _STATUS_7
 #define _FPGA_ARC_COUNTER_GREATER_ZERO                 _STATUS_7
@@ -272,12 +279,12 @@ typedef struct {
 #define _FPGA_MODULE_TEMP_GREATER_THAN_65_C            _STATUS_7
 #define _FPGA_MODULE_TEMP_GREATER_THAN_75_C            _STATUS_7
 #define _FPGA_PULSE_WIDTH_LIMITING                     _STATUS_6
-#define _FPGA_PRF_FAULT                                _FAULT_1
-#define _FPGA_CURRENT_MONITOR_PULSE_WIDTH_FAULT        _FAULT_1
-#define _FPGA_GRID_MODULE_HARDWARE_FAULT               _FAULT_1
-#define _FPGA_GRID_MODULE_OVER_VOLTAGE_FAULT           _FAULT_1
-#define _FPGA_GRID_MODULE_UNDER_VOLTAGE_FAULT          _FAULT_1
-#define _FPGA_GRID_MODULE_BIAS_VOLTAGE_FAULT           _FAULT_1
+#define _FPGA_PRF_FAULT                                _STATUS_7
+#define _FPGA_CURRENT_MONITOR_PULSE_WIDTH_FAULT        _STATUS_7
+#define _FPGA_GRID_MODULE_HARDWARE_FAULT               _STATUS_7
+#define _FPGA_GRID_MODULE_OVER_VOLTAGE_FAULT           _STATUS_7
+#define _FPGA_GRID_MODULE_UNDER_VOLTAGE_FAULT          _STATUS_7
+#define _FPGA_GRID_MODULE_BIAS_VOLTAGE_FAULT           _STATUS_7
 #define _FPGA_HV_REGULATION_WARNING                    _STATUS_5
 #define _FPGA_DIPSWITCH_1_ON                           _STATUS_6
 #define _FPGA_TEST_MODE_TOGGLE_SWITCH_TEST_MODE        _STATUS_6
@@ -286,25 +293,35 @@ typedef struct {
 
 
 
-
-
-#define _FAULT_ADC_DIGITAL_WARMUP                      _FAULT_2
-#define _FAULT_ADC_DIGITAL_WATCHDOG                    _FAULT_3
-#define _FAULT_ADC_DIGITAL_ARC                         _FAULT_4
-#define _FAULT_ADC_DIGITAL_OVER_TEMP                   _FAULT_5
-#define _FAULT_ADC_DIGITAL_PULSE_WIDTH_DUTY            _FAULT_6
-#define _FAULT_ADC_DIGITAL_GRID                        _FAULT_7
-#define _FAULT_ADC_HV_I_MON_OVER_ABSOLUTE              _FAULT_8
-#define _FAULT_ADC_GUN_I_PEAK_OVER_ABSOLUTE            _FAULT_9
-#define _FAULT_ADC_HTR_I_MON_OVER_ABSOLUTE             _FAULT_A
+#define _STATUS_ADC_DIGITAL_HEATER_NOT_READY           _STATUS_2
 
 
 
-#define _FAULT_HEATER_RAMP_TIMEOUT                     _FAULT_B
+#define _FPGA_FIRMWARE_MAJOR_REV_MISMATCH              _FAULT_0
+#define _FAULT_ADC_HV_V_MON_OVER_RELATIVE              _FAULT_1
+#define _FAULT_ADC_HV_V_MON_UNDER_RELATIVE             _FAULT_1
+#define _FAULT_ADC_HTR_V_MON_OVER_RELATIVE             _FAULT_2
+#define _FAULT_ADC_HTR_V_MON_UNDER_RELATIVE            _FAULT_2
+#define _FAULT_ADC_HTR_I_MON_OVER_ABSOLUTE             _FAULT_3
+#define _FAULT_ADC_HTR_I_MON_UNDER_ABSOLUTE            _FAULT_4
+#define _FAULT_ADC_TOP_V_MON_OVER_RELATIVE             _FAULT_5
+#define _FAULT_ADC_TOP_V_MON_UNDER_RELATIVE            _FAULT_5
+#define _FAULT_ADC_BIAS_V_MON_OVER_ABSOLUTE            _FAULT_6
+#define _FAULT_ADC_BIAS_V_MON_UNDER_ABSOLUTE           _FAULT_6
+#define _FAULT_ADC_DIGITAL_WATCHDOG                    _FAULT_8
+#define _FAULT_ADC_DIGITAL_ARC                         _FAULT_9
+#define _FAULT_ADC_DIGITAL_OVER_TEMP                   _FAULT_A
+#define _FAULT_ADC_DIGITAL_PULSE_WIDTH_DUTY            _FAULT_B
+#define _FAULT_ADC_DIGITAL_GRID                        _FAULT_C
+#define _FAULT_CONVERTER_LOGIC_ADC_READ_FAILURE        _FAULT_D
 
 
 
 
+#define _STATUS_CUSTOMER_HV_ON                         _STATUS_0
+#define _STATUS_CUSTOMER_BEAM_ENABLE                   _STATUS_1
+#define _STATUS_DAC_WRITE_FAILURE                      _STATUS_4
+#define _STATUS_HEATER_RAMP_TIMEOUT                    _STATUS_3
 
 
 
@@ -331,13 +348,15 @@ typedef struct {
 
   unsigned int heater_start_up_attempts;       // This counts the number of times the heater has started up without successfully completing it's ramp up.
 
-  unsigned int run_time_counter;              // This counts how long the unit has been running for.  It wraps every 11 minutes
-  unsigned int fault_restart_counter;         // This counts the delay of the heater automatic restart
-  unsigned int power_supply_startup_counter;  // This counts counts the ramp up time of the HV supply
-  unsigned int heater_warm_up_time_counter;   // This counts the time of the heater warm up
+  unsigned int run_time_counter;               // This counts how long the unit has been running for.  It wraps every 11 minutes
+  unsigned int fault_restart_remaining;        // This counts down the delay of the heater automatic restart
+  unsigned int power_supply_startup_remaining; // This counts down the ramp up time of the HV supply
+  unsigned int heater_warm_up_time_remaining;  // This counts down the heater warm up
+  unsigned int heater_ramp_up_time;            // This counts the time it takes the heater to ramp up
+  unsigned int watchdog_counter;
 
-  unsigned int heater_voltage_target;         // This is the targeted heater voltage set point
-  unsigned int heater_ramp_interval;          // This counts the interval between heater ramp voltage changes
+  unsigned int heater_voltage_target;          // This is the targeted heater voltage set point
+  unsigned int heater_ramp_interval;           // This counts the interval between heater ramp voltage changes
 
 
 
@@ -430,6 +449,12 @@ typedef struct {
   unsigned int dac_write_failure;
   unsigned int dac_write_failure_count;
 
+
+  unsigned int fault_reset_fpga;
+  unsigned int fault_reset_high_voltage;
+
+
+
 } TYPE_GLOBAL_DATA_A36772;
 
 
@@ -437,17 +462,18 @@ typedef struct {
 
 extern TYPE_GLOBAL_DATA_A36772 global_data_A36772;
 
-#define STATE_FAULT_HEATER_OFF               0x00
-#define STATE_FAULT_HEATER_ON                0x10
-#define STATE_FAULT_HEATER_FAILURE           0x20
-#define STATE_START_UP                       0x30
-#define STATE_WAIT_FOR_CONFIG                0x40
-#define STATE_HEATER_RAMP_UP                 0x50
-#define STATE_HEATER_WARM_UP                 0x60
-#define STATE_HEATER_WARM_UP_DONE            0x70
-#define STATE_POWER_SUPPLY_RAMP_UP           0x80
-#define STATE_HV_ON                          0x90
-#define STATE_BEAM_ENABLE                    0xA0
+#define STATE_FAULT_HEATER_FAILURE           00
+#define STATE_FAULT_HEATER_OFF               10
+#define STATE_FAULT_HEATER_ON                20
+#define STATE_START_UP                       30
+#define STATE_WAIT_FOR_CONFIG                40
+#define STATE_RESET_FPGA                     50
+#define STATE_HEATER_RAMP_UP                 60
+#define STATE_HEATER_WARM_UP                 70
+#define STATE_HEATER_WARM_UP_DONE            80
+#define STATE_POWER_SUPPLY_RAMP_UP           90
+#define STATE_HV_ON                          100
+#define STATE_BEAM_ENABLE                    110
 
 
 #endif

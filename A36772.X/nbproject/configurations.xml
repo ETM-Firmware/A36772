@@ -39,7 +39,7 @@
           <linkerLibItems>
             <linkerLibFileItem>../../ETM_LIBRARY/lib/ETM_LINAC_CAN_0x0010_CAN2.a</linkerLibFileItem>
             <linkerLibFileItem>../../ETM_LIBRARY/lib/ETM_EEPROM_INTERNAL_0x0010.a</linkerLibFileItem>
-            <linkerLibFileItem>../../ETM_LIBRARY/lib/ETM_LIBRARY_0x0010.a</linkerLibFileItem>
+            <linkerLibFileItem>../../ETM_LIBRARY/lib/ETM_LIBRARY_0x0011.a</linkerLibFileItem>
           </linkerLibItems>
         </linkerTool>
         <archiverTool>
@@ -194,6 +194,7 @@
         <property key="UART 1" value="true"/>
         <property key="UART 2" value="true"/>
         <property key="debugoptions.useswbreakpoints" value="false"/>
+        <property key="firmware.download.all" value="false"/>
         <property key="hwtoolclock.frcindebug" value="false"/>
         <property key="memories.aux" value="false"/>
         <property key="memories.bootflash" value="false"/>
