@@ -150,7 +150,6 @@ void DoStateMachine(void) {
     _CONTROL_NOT_READY = 1;
     global_data_A36772.analog_output_heater_voltage.set_point = 0;
     global_data_A36772.heater_start_up_attempts++;
-    global_data_A36772.heater_warm_up_time_remaining = HEATER_WARM_UP_TIME;
     global_data_A36772.heater_ramp_up_time = MAX_HEATER_RAMP_UP_TIME;
     DisableBeam();
     DisableHighVoltage();
@@ -172,6 +171,7 @@ void DoStateMachine(void) {
     DisableBeam();
     DisableHighVoltage();
     global_data_A36772.heater_ramp_up_time = 0;
+    global_data_A36772.heater_warm_up_time_remaining = HEATER_WARM_UP_TIME;
     while (global_data_A36772.control_state == STATE_HEATER_WARM_UP) {
       DoA36772();
       if (global_data_A36772.heater_warm_up_time_remaining == 0) {
@@ -586,11 +586,22 @@ void DoA36772(void) {
 #endif
 
     // Ramp the heater voltage
+    if (global_data_A36772.control_state == STATE_HEATER_RAMP_UP) {
+      global_data_A36772.heater_voltage_current_limited = 0;
+    }
     global_data_A36772.heater_ramp_interval++;
     if (global_data_A36772.heater_ramp_interval >= HEATER_RAMP_UP_TIME_PERIOD) {
       global_data_A36772.heater_ramp_interval = 0;
       if (global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated < MAX_HEATER_CURRENT_DURING_RAMP_UP) {
 	global_data_A36772.analog_output_heater_voltage.set_point += HEATER_RAMP_UP_INCREMENT;
+	if (global_data_A36772.heater_voltage_current_limited) {
+	  global_data_A36772.heater_voltage_current_limited--;
+	}
+      } else {
+	global_data_A36772.heater_voltage_current_limited++;
+	if (global_data_A36772.heater_voltage_current_limited > HEATER_VOLTAGE_CURRENT_LIMITED_FAULT_TIME) {
+	  global_data_A36772.heater_voltage_current_limited = HEATER_VOLTAGE_CURRENT_LIMITED_FAULT_TIME;
+	}
       }
     }
     if (global_data_A36772.analog_output_heater_voltage.set_point > global_data_A36772.heater_voltage_target) {
@@ -716,7 +727,11 @@ void UpdateFaults(void) {
   if (global_data_A36772.fpga_firmware_major_rev_mismatch.filtered_reading) {
     _FAULT_FPGA_FIRMWARE_MAJOR_REV_MISMATCH = 1;
   }
-    
+   
+  if (global_data_A36772.heater_voltage_current_limited >= HEATER_VOLTAGE_CURRENT_LIMITED_FAULT_TIME) {
+    _FAULT_HEATER_VOLTAGE_CURRENT_LIMITED = 1;
+  }
+ 
   // Evaluate the readings from the Coverter Logic Board ADC
   if (global_data_A36772.adc_read_ok) {
     // There was a valid read of the data from the converter logic board
@@ -759,6 +774,10 @@ void UpdateFaults(void) {
       global_data_A36772.input_htr_v_mon.absolute_under_counter = 0;
     }
     
+    if (global_data_A36772.control_state >= STATE_HEATER_WARM_UP) {
+      // ensure that the 
+    }
+
     // If the high voltage is not on, clear the high voltage, top, and bias error counters
     if (global_data_A36772.control_state < STATE_HV_ON) {
       ETMAnalogClearFaultCounters(&global_data_A36772.input_hv_v_mon);
@@ -1446,7 +1465,7 @@ void InitializeA36772(void) {
 #ifdef __CAN_ENABLED
   // Initialize the Can module
   ETMCanSlaveInitialize(FCY_CLK, ETM_CAN_ADDR_GUN_DRIVER_BOARD, _PIN_RC3, 4);
-  ETMCanSlaveLoadConfiguration(36772, 250, FIRMWARE_AGILE_REV, FIRMWARE_BRANCH, FIRMWARE_MINOR_REV);
+  ETMCanSlaveLoadConfiguration(36772, 000, FIRMWARE_AGILE_REV, FIRMWARE_BRANCH, FIRMWARE_MINOR_REV);
 #endif
 
   ADCConfigure();

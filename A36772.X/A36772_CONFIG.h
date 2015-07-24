@@ -97,7 +97,7 @@
 #define MAX_HEATER_CURRENT_DURING_RAMP_UP  1600   // 1.6 Amps
 #define HEATER_RAMP_UP_INCREMENT           50     // Increase the heater voltage 10mV per step
 #define HEATER_RAMP_UP_TIME_PERIOD         5      // Increase the heater voltage once every 50ms
-
+#define HEATER_VOLTAGE_CURRENT_LIMITED_FAULT_TIME (500 / HEATER_RAMP_UP_TIME_PERIOD)  // 5 Seconds
 
 
 
