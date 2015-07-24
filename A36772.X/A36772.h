@@ -153,7 +153,7 @@
 #define PIN_CPU_WARMUP_STATUS               _LATD0
 #define PIN_CPU_STANDBY_STATUS              _LATD11
 #define PIN_CPU_HV_ON_STATUS                _LATD10
-#define PIN_CPU_BEAM_ENABLE_STATUS          _LATD9  // DPARKER THERE IS ERROR ON SCHEMATIC
+#define PIN_CPU_BEAM_ENABLE_STATUS          _LATF5  // DPARKER THERE IS ERROR ON SCHEMATIC
 #define PIN_CPU_SYSTEM_OK_STATUS            _LATA15
 #define PIN_CPU_EXTRA_STATUS                _LATD3
 #define OLL_STATUS_ACTIVE                   1
@@ -188,7 +188,7 @@
 
 
 #define PIN_LED_BEAM_ENABLE                  PIN_LED_I2A
-//#define PIN_LED_I2C_OPERATION              PIN_LED_I2B
+#define PIN_LED_I2C_OPERATION                PIN_LED_I2B  // This pin is controlled by the CAN Module
 #define PIN_LED_OPERATIONAL                  PIN_LED_I2C
 #define PIN_LED_SYSTEM_OK                    PIN_LED_I2D
 
@@ -228,49 +228,6 @@
 #define DELAY_FPGA_CABLE_DELAY 10
 
 
-#if(0)
-
-#define SYSTEM_WARM_UP_TIME      3000 /* 100ms Units  //DPARKER this is way to short */
-#define EF_READ_MAX              2838 /*  -6.3/-0.00222 */
-#define IF_READ_MAX              1051 /*  1.75/0.001666 */
-//#define IF_READ_MAX_95P          1824 // 95% of IF_MAX
-//#define IF_READ_MAX_85P          1633 // 85% of IF_MAX
-
-#define IF_READ_MAX_90P           945 /* 90% of IF_MAX */
-
-#define EF_SET_MAX              47369 /*  -6.3/-0.000133  */
-#define EG_SET_MAX              33033 /* 140V, 0.00666    */
-#define EK_SET_MAX              60060 /* -20kV/-0.000333  */
- 
-#endif
-
-
-/*
-typedef struct {
-  fpga_converter_logic_pcb_rev_mismatch;
-  fpga_firmware_major_rev_mismatch;
-  fpga_firmware_minor_rev_mismatch;
-  fpga_heater_voltage_less_than_4_5_volts;
-  fpga_temp_greater_than_65_c;
-  fpga_temp_greater_than_75_c;
-  fpga_pulse_width_limiting;
-  fpga_prf_fault;
-  fpga_current_monitor_pulse_width;
-  fpga_grid_module_hardware;
-  fpga_grid_module_over_voltage;
-  fpga_grid_module_under_voltage;
-  fpga_grid_module_bias_voltage;
-  fpga_hv_regulation_warn;
-  fpga_dipswitch_1_on;
-  fpga_test_mode_toggle_switch;
-  fpga_local_mode_toggle_switch;
-  
-} TYPE_FAULT_COUNTERS;
-*/
-
-
-
-
 #define _FPGA_CONVERTER_LOGIC_PCB_REV_MISMATCH         _STATUS_7
 #define _FPGA_FIRMWARE_MINOR_REV_MISMATCH              _STATUS_7
 #define _FPGA_ARC_COUNTER_GREATER_ZERO                 _STATUS_7
@@ -285,56 +242,45 @@ typedef struct {
 #define _FPGA_GRID_MODULE_OVER_VOLTAGE_FAULT           _STATUS_7
 #define _FPGA_GRID_MODULE_UNDER_VOLTAGE_FAULT          _STATUS_7
 #define _FPGA_GRID_MODULE_BIAS_VOLTAGE_FAULT           _STATUS_7
-#define _FPGA_HV_REGULATION_WARNING                    _STATUS_5
+#define _FPGA_HV_REGULATION_WARNING                    _STATUS_6
 #define _FPGA_DIPSWITCH_1_ON                           _STATUS_6
 #define _FPGA_TEST_MODE_TOGGLE_SWITCH_TEST_MODE        _STATUS_6
 #define _FPGA_LOCAL_MODE_TOGGLE_SWITCH_LOCAL_MODE      _STATUS_6
 
 
-
-
-#define _STATUS_ADC_DIGITAL_HEATER_NOT_READY           _STATUS_2
-
-
-
-#define _FPGA_FIRMWARE_MAJOR_REV_MISMATCH              _FAULT_0
-#define _FAULT_ADC_HV_V_MON_OVER_RELATIVE              _FAULT_1
-#define _FAULT_ADC_HV_V_MON_UNDER_RELATIVE             _FAULT_1
-#define _FAULT_ADC_HTR_V_MON_OVER_RELATIVE             _FAULT_2
-#define _FAULT_ADC_HTR_V_MON_UNDER_RELATIVE            _FAULT_2
-#define _FAULT_ADC_HTR_I_MON_OVER_ABSOLUTE             _FAULT_3
-#define _FAULT_ADC_HTR_I_MON_UNDER_ABSOLUTE            _FAULT_4
-#define _FAULT_ADC_TOP_V_MON_OVER_RELATIVE             _FAULT_5
-#define _FAULT_ADC_TOP_V_MON_UNDER_RELATIVE            _FAULT_5
-#define _FAULT_ADC_BIAS_V_MON_OVER_ABSOLUTE            _FAULT_6
-#define _FAULT_ADC_BIAS_V_MON_UNDER_ABSOLUTE           _FAULT_6
-#define _FAULT_ADC_DIGITAL_WATCHDOG                    _FAULT_8
-#define _FAULT_ADC_DIGITAL_ARC                         _FAULT_9
-#define _FAULT_ADC_DIGITAL_OVER_TEMP                   _FAULT_A
-#define _FAULT_ADC_DIGITAL_PULSE_WIDTH_DUTY            _FAULT_B
-#define _FAULT_ADC_DIGITAL_GRID                        _FAULT_C
-#define _FAULT_CONVERTER_LOGIC_ADC_READ_FAILURE        _FAULT_D
-
-
-
-
 #define _STATUS_CUSTOMER_HV_ON                         _STATUS_0
 #define _STATUS_CUSTOMER_BEAM_ENABLE                   _STATUS_1
-#define _STATUS_DAC_WRITE_FAILURE                      _STATUS_4
-#define _STATUS_HEATER_RAMP_TIMEOUT                    _STATUS_3
+#define _STATUS_ADC_DIGITAL_HEATER_NOT_READY           _STATUS_2
+#define _STATUS_DAC_WRITE_FAILURE                      _STATUS_3
 
 
+
+#define _FAULT_FPGA_FIRMWARE_MAJOR_REV_MISMATCH        _FAULT_0 // CHECKED_DP// Heater Fault
+#define _FAULT_ADC_HV_V_MON_OVER_RELATIVE              _FAULT_1 // CHECKED_DP
+#define _FAULT_ADC_HV_V_MON_UNDER_RELATIVE             _FAULT_1 // CHECKED_DP
+#define _FAULT_ADC_HTR_V_MON_OVER_RELATIVE             _FAULT_2 // CHECKED_DP// Heater Fault
+#define _FAULT_ADC_HTR_V_MON_UNDER_RELATIVE            _FAULT_2 // CHECKED_DP// Heater Fault
+#define _FAULT_ADC_HTR_I_MON_OVER_ABSOLUTE             _FAULT_3 // CHECKED_DP// Heater Fault
+#define _FAULT_ADC_HTR_I_MON_UNDER_ABSOLUTE            _FAULT_4 // CHECKED_DP// Heater Fault
+#define _FAULT_ADC_TOP_V_MON_OVER_RELATIVE             _FAULT_5 // CHECKED_DP
+#define _FAULT_ADC_TOP_V_MON_UNDER_RELATIVE            _FAULT_5 // CHECKED_DP
+#define _FAULT_ADC_BIAS_V_MON_OVER_ABSOLUTE            _FAULT_6 // CHECKED_DP 
+#define _FAULT_ADC_BIAS_V_MON_UNDER_ABSOLUTE           _FAULT_6 // CHECKED_DP
+// UNUSED                                              _FAULT_7
+#define _FAULT_ADC_DIGITAL_WATCHDOG                    _FAULT_8  // CHECKED_DP// This requires a FPGA Reset (Goto Heater Off State)
+#define _FAULT_ADC_DIGITAL_ARC                         _FAULT_9  // CHECKED_DP// This requires HV OFF
+#define _FAULT_ADC_DIGITAL_OVER_TEMP                   _FAULT_A  // CHECKED_DP// This requires a FPGA Reset (Goto Heater Off State)
+#define _FAULT_ADC_DIGITAL_PULSE_WIDTH_DUTY            _FAULT_B  // CHECKED_DP// This requires HV OFF
+#define _FAULT_ADC_DIGITAL_GRID                        _FAULT_C  // CHECKED_DP// This requires a FPGA Reset (Goto Heater Off State)
+#define _FAULT_CONVERTER_LOGIC_ADC_READ_FAILURE        _FAULT_D  // CHECKED_DP// Heater Fault
+#define _FAULT_HEATER_RAMP_TIMEOUT                     _FAULT_E  // CHECKED_DP// Heater Fault
+// UNUSED                                              _FAULT_F
 
 typedef struct {
   unsigned int filtered_reading;
   unsigned int accumulator;
   unsigned int filter_time;
 } TYPE_DIGITAL_INPUT;
-
-
-
-
-
 
 
 typedef struct {
@@ -449,11 +395,7 @@ typedef struct {
   unsigned int dac_write_failure;
   unsigned int dac_write_failure_count;
 
-
-  unsigned int fault_reset_fpga;
-  unsigned int fault_reset_high_voltage;
-
-
+  unsigned int previous_state_pin_customer_hv_on;
 
 } TYPE_GLOBAL_DATA_A36772;
 
@@ -463,17 +405,18 @@ typedef struct {
 extern TYPE_GLOBAL_DATA_A36772 global_data_A36772;
 
 #define STATE_FAULT_HEATER_FAILURE           00
-#define STATE_FAULT_HEATER_OFF               10
-#define STATE_FAULT_HEATER_ON                20
+#define STATE_FAULT_WARMUP_HEATER_OFF        10
+#define STATE_FAULT_HEATER_OFF               20
 #define STATE_START_UP                       30
 #define STATE_WAIT_FOR_CONFIG                40
 #define STATE_RESET_FPGA                     50
 #define STATE_HEATER_RAMP_UP                 60
 #define STATE_HEATER_WARM_UP                 70
-#define STATE_HEATER_WARM_UP_DONE            80
-#define STATE_POWER_SUPPLY_RAMP_UP           90
-#define STATE_HV_ON                          100
-#define STATE_BEAM_ENABLE                    110
+#define STATE_FAULT_HEATER_ON                80
+#define STATE_HEATER_WARM_UP_DONE            90
+#define STATE_POWER_SUPPLY_RAMP_UP           100
+#define STATE_HV_ON                          110
+#define STATE_BEAM_ENABLE                    120
 
 
 #endif
