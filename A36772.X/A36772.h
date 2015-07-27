@@ -28,17 +28,22 @@
 /*
   Hardware Module Resource Usage
 
-  CAN2   - Used/Configured by ETM CAN (optical CAN) - DPARKER NEED TO RECOMPILE LIBRARY TO USE CAN2
+  CAN2   - Used/Configured by ETM CAN (optical CAN) 
+  CAN1   - Used/Configured by ETM CAN (hardware CAN) - Not implimented/tested
   Timer4 - Used/Configured by ETM CAN - Used to Time sending of messages (status update / logging data and such) 
   Timer5 - Used/Configured by ETM CAN - Used for detecting error on can bus
 
-  SPI1   - Used/Configured by Gun Driver
-  SPI2   - Used by local DAC 
+  SPI1   - Used for communicating with Converter Logic Board
+  SPI2   - Used for communicating with on board DAC
 
   Timer2 - Used for 10msTicToc 
 
   ADC Module - AN3,AN4,AN5,AN6,AN7,VREF+,VREF-,AN13,AN14,AN15
 
+  I2C    - Used to communicate with on board EEPROM (not used at this time)
+  
+  EEPROM - The internal EEPROM is used at this time
+  
 */
 
 
@@ -95,7 +100,12 @@
 
 */
 
-
+#define A36772_TRISA_VALUE 0b0100011000000000 
+#define A36772_TRISB_VALUE 0b1110000011111011 
+#define A36772_TRISC_VALUE 0b0000000000000010 
+#define A36772_TRISD_VALUE 0b0000000100000000 
+#define A36772_TRISF_VALUE 0b0000000111001111 
+#define A36772_TRISG_VALUE 0b1100000111001111 
 
 
 /*
@@ -114,88 +124,77 @@
 #define ADCON3_SETTING          (ADC_SAMPLE_TIME_4 & ADC_CONV_CLK_SYSTEM & ADC_CONV_CLK_9Tcy2)
 #define ADCHS_SETTING           (ADC_CH0_POS_SAMPLEA_AN3 & ADC_CH0_NEG_SAMPLEA_VREFN & ADC_CH0_POS_SAMPLEB_AN3 & ADC_CH0_NEG_SAMPLEB_VREFN)
 #define ADPCFG_SETTING          (ENABLE_AN3_ANA & ENABLE_AN4_ANA & ENABLE_AN5_ANA & ENABLE_AN6_ANA & ENABLE_AN7_ANA & ENABLE_AN13_ANA & ENABLE_AN14_ANA & ENABLE_AN15_ANA)
-
 #define ADCSSL_SETTING          (SKIP_SCAN_AN0 & SKIP_SCAN_AN1 & SKIP_SCAN_AN2 & SKIP_SCAN_AN8 & SKIP_SCAN_AN9 & SKIP_SCAN_AN10 & SKIP_SCAN_AN11 & SKIP_SCAN_AN12)
 
 
 
 
-#define A36772_TRISA_VALUE 0b0100011000000000 
-#define A36772_TRISB_VALUE 0b1110000011111011 
-#define A36772_TRISC_VALUE 0b0000000000000010 
-#define A36772_TRISD_VALUE 0b0000000100000000 
-#define A36772_TRISF_VALUE 0b0000000111001111 
-#define A36772_TRISG_VALUE 0b1100000111001111 
-
-
-
-
 // Digital Inputs
-#define PIN_CUSTOMER_HV_ON                  _RA14
-#define ILL_PIN_CUSTOMER_HV_ON_ENABLE_HV    1
+#define PIN_CUSTOMER_HV_ON                            _RA14
+#define ILL_PIN_CUSTOMER_HV_ON_ENABLE_HV              1
 
-#define PIN_CUSTOMER_BEAM_ENABLE            _RD8
-#define ILL_PIN_CUSTOMER_BEAM_ENABLE_BEAM_ENABLED 0
+#define PIN_CUSTOMER_BEAM_ENABLE                      _RD8
+#define ILL_PIN_CUSTOMER_BEAM_ENABLE_BEAM_ENABLED     0
 
 //------------------- GUN Driver Interface I/O ------------------------- //
-#define PIN_CS_DAC                          _LATD13
-#define OLL_PIN_CS_DAC_SELECTED             1
+#define PIN_CS_DAC                                    _LATD13
+#define OLL_PIN_CS_DAC_SELECTED                       1
 
-#define PIN_CS_ADC                          _LATD14
-#define OLL_PIN_CS_ADC_SELECTED             1
+#define PIN_CS_ADC                                   _LATD14
+#define OLL_PIN_CS_ADC_SELECTED                      1
 
-#define PIN_CS_FPGA                         _LATD15
-#define OLL_PIN_CS_FPGA_SELECTED            1
+#define PIN_CS_FPGA                                  _LATD15
+#define OLL_PIN_CS_FPGA_SELECTED                     1
 
 
 
 // Digital Outputs
-#define PIN_CPU_WARMUP_STATUS               _LATD0
-#define PIN_CPU_STANDBY_STATUS              _LATD11
-#define PIN_CPU_HV_ON_STATUS                _LATD10
-#define PIN_CPU_BEAM_ENABLE_STATUS          _LATF5  // DPARKER THERE IS ERROR ON SCHEMATIC
-#define PIN_CPU_SYSTEM_OK_STATUS            _LATA15
-#define PIN_CPU_EXTRA_STATUS                _LATD3
-#define OLL_STATUS_ACTIVE                   1
+#define PIN_CPU_WARMUP_STATUS                        _LATD0
+#define PIN_CPU_STANDBY_STATUS                       _LATD11
+#define PIN_CPU_HV_ON_STATUS                         _LATD10
+#define PIN_CPU_BEAM_ENABLE_STATUS                   _LATF5  // DPARKER THERE IS ERROR ON SCHEMATIC
+#define PIN_CPU_SYSTEM_OK_STATUS                     _LATA15
+#define PIN_CPU_EXTRA_STATUS                         _LATD3
+#define OLL_STATUS_ACTIVE                            1
 
-#define PIN_CPU_HV_ENABLE                   _LATD2
-#define PIN_CPU_BEAM_ENABLE                 _LATD8
-#define OLL_PIN_CPU_BEAM_ENABLE_BEAM_ENABLED  1
-#define OLL_PIN_CPU_HV_ENABLE_HV_ENABLED      1
+#define PIN_CPU_HV_ENABLE                            _LATD2
+#define PIN_CPU_BEAM_ENABLE                          _LATD8
+#define OLL_PIN_CPU_BEAM_ENABLE_BEAM_ENABLED         1
+#define OLL_PIN_CPU_HV_ENABLE_HV_ENABLED             1
 
-#define PIN_RS485_ENABLE                    _LATF4  // DPARKER THERE IS ERROR ON SCHEMATIC
+#define PIN_RS485_ENABLE                             _LATF4  // DPARKER THERE IS ERROR ON SCHEMATIC
 
 
 // LED Indicator Output Pins
-#define OLL_LED_ON                           0
+#define OLL_LED_ON                                   0
 
-#define PIN_LED_I1B                          _LATG12
-#define PIN_LED_I1C                          _LATG13
-#define PIN_LED_I1D                          _LATA7
+#define PIN_LED_I1B                                  _LATG12
+#define PIN_LED_I1C                                  _LATG13
+#define PIN_LED_I1D                                  _LATA7
 
-#define PIN_LED_I2A                          _LATC2
-#define PIN_LED_I2B                          _LATC3
-#define PIN_LED_I2C                          _LATC4
-#define PIN_LED_I2D                          _LATA6
+#define PIN_LED_I2A                                  _LATC2
+#define PIN_LED_I2B                                  _LATC3
+#define PIN_LED_I2C                                  _LATC4
+#define PIN_LED_I2D                                  _LATA6
 
-#define PIN_RESET_DETECT_OUTPUT              _LATG14
-#define PIN_RESET_DETECT_INPUT               _RG14
+#define PIN_RESET_DETECT_OUTPUT                      _LATG14
+#define PIN_RESET_DETECT_INPUT                       _RG14
 
-#define PIN_TEST_POINT_B                     _LATF5
-#define PIN_TEST_POINT_E                     _LATB8
-#define PIN_TEST_POINT_F                     _LATB9
+#define PIN_TEST_POINT_B                             _LATF5
+#define PIN_TEST_POINT_E                             _LATB8
+#define PIN_TEST_POINT_F                             _LATB9
 
 
 
-#define PIN_LED_BEAM_ENABLE                  PIN_LED_I2A
-#define PIN_LED_I2C_OPERATION                PIN_LED_I2B  // This pin is controlled by the CAN Module
-#define PIN_LED_OPERATIONAL                  PIN_LED_I2C
-#define PIN_LED_SYSTEM_OK                    PIN_LED_I2D
+#define PIN_LED_BEAM_ENABLE                          PIN_LED_I2A
+#define PIN_LED_I2C_OPERATION                        PIN_LED_I2B  // This pin is controlled by the CAN Module
+#define PIN_LED_OPERATIONAL                          PIN_LED_I2C
+#define PIN_LED_SYSTEM_OK                            PIN_LED_I2D
 
-// THIS PIN IS ALWAYS ON WHEN POWERED        PIN_LED_I1A
-#define PIN_LED_WARMUP                       PIN_LED_I1B
-#define PIN_LED_STANDBY                      PIN_LED_I1C
-#define PIN_LED_HV_ON                        PIN_LED_I1D
+// THIS PIN IS ALWAYS ON WHEN POWERED                PIN_LED_I1A
+#define PIN_LED_WARMUP                               PIN_LED_I1B
+#define PIN_LED_STANDBY                              PIN_LED_I1C
+#define PIN_LED_HV_ON                                PIN_LED_I1D
 
 
 
@@ -226,6 +225,151 @@
  
 // ---- Hard Coded Delays ---- //
 #define DELAY_FPGA_CABLE_DELAY 10
+
+// ---------------------- Converter Logic Board Interface Control ------------------------- //
+#define WATCHDOG_HIGH                                48000
+#define WATCHDOG_LOW                                 16000
+
+#define DAC_DIGITAL_OFF                              0x0000
+#define DAC_DIGITAL_ON                               0xFFFF
+
+#define ADC_DATA_DIGITAL_HIGH                        0x0800
+
+#define TARGET_CONVERTER_LOGIC_PCB_REV               0b000000
+#define TARGET_FPGA_FIRMWARE_MAJOR_REV               0b0001
+#define TARGET_FPGA_FIRMWARE_MINOR_REV               0b000000
+  
+// MAX1230 Control Words
+#define MAX1230_CONVERSION_BYTE                      0b10000011
+#define MAX1230_SETUP_BYTE                           0b01101000
+#define MAX1230_AVERAGE_BYTE                         0b00111000
+#define MAX1230_RESET_BYTE                           0b00010000
+
+
+
+typedef struct {
+  unsigned int filtered_reading;
+  unsigned int accumulator;
+  unsigned int filter_time;
+} TYPE_DIGITAL_INPUT;
+
+
+
+typedef struct {
+  //unsigned int watchdog_count_error;          // 
+  unsigned int control_state;                   // This stores the state of the state machine
+  unsigned int request_hv_enable;               // This indicates that hv_enable has been requested (either from CAN module or from discrete inputs depending upon configuration)
+  unsigned int request_beam_enable;             // This indicates that beam_enable has been requested (either from CAN module or from discrete inputs depending upon configuration)
+  unsigned int reset_active;                    // This indicates that reset has been requested (either from CAN module or from discrete inputs depending upon configuration)
+
+  unsigned int heater_start_up_attempts;        // This counts the number of times the heater has started up without successfully completing it's ramp up.
+
+  unsigned int run_time_counter;                // This counts how long the unit has been running for.  It wraps every 11 minutes
+  unsigned int fault_restart_remaining;         // This counts down the delay of the heater automatic restart
+  unsigned int power_supply_startup_remaining;  // This counts down the ramp up time of the HV supply
+  unsigned int heater_warm_up_time_remaining;   // This counts down the heater warm up
+  unsigned int heater_ramp_up_time;             // This counts the time it takes the heater to ramp up
+  unsigned int watchdog_counter;                // This counts when to updated the watchdog DAC output on the converter logic board
+  unsigned int heater_ramp_interval;            // This counts the interval between heater ramp voltage changes
+  unsigned int heater_voltage_target;           // This is the targeted heater voltage set point
+
+
+  unsigned int can_high_voltage_set_point;      // This is the high voltage set point set over the can interface (it is only used if can mode is selected)
+  unsigned int can_pulse_top_set_point;         // This is the pulse top set point set over the can interface (it is only used if can mode is selected)
+  unsigned int can_heater_voltage_set_point;    // This is the heater voltage set point set over the can interface (it is only used if can mode is selected)
+
+
+  unsigned int accumulator_counter;             // This counts the number of converstion on the internal ADC (used for averaging)
+  unsigned int adc_read_error_count;            // This counts the total number of errors on reads from the adc on the converter logic board
+  unsigned int adc_read_error_test;             // This increments when there is an adc read error and decrements when there is not.  If it exceeds a certain value a fault is generated
+  unsigned int adc_read_ok;                     // This indicates if the previous adc read was successful or not
+
+  unsigned int dac_write_error_count;           // This counts the total number of dac write errors
+  unsigned int dac_write_failure_count;         // This counts the total number of unsessful dac transmissions (After N write errors it gives us)
+  unsigned int dac_write_failure;               // This indicates that the previous attempt to write to the dac failed
+
+  unsigned int heater_voltage_current_limited;  // This counter is used to track how long the heater is opperating in current limited mode. 
+  unsigned int previous_state_pin_customer_hv_on;  // This stores the previous state of customer HV on input.  An On -> Off transion of this pin is used to generate a reset in discrete control mode
+
+
+  // These are the Data Structures for the DAC outputs on the converter logic board
+  AnalogOutput analog_output_high_voltage;
+  AnalogOutput analog_output_top_voltage;
+  AnalogOutput analog_output_heater_voltage;
+  unsigned int dac_digital_hv_enable;
+  unsigned int dac_digital_heater_enable;
+  unsigned int dac_digital_top_enable;
+  unsigned int dac_digital_trigger_enable;
+  unsigned int dac_digital_watchdog_oscillator; //
+
+  // These are the Data Structures for the on board DAC outputs
+  AnalogOutput monitor_heater_voltage;
+  AnalogOutput monitor_heater_current;
+  AnalogOutput monitor_cathode_voltage;
+  AnalogOutput monitor_grid_voltage;
+  
+
+
+  // These are the Data Structures for the Digital Data from the FPGA on the Converter Logic board
+  TYPE_DIGITAL_INPUT fpga_coverter_logic_pcb_rev_mismatch;
+  TYPE_DIGITAL_INPUT fpga_firmware_major_rev_mismatch;
+  TYPE_DIGITAL_INPUT fpga_firmware_minor_rev_mismatch;
+  TYPE_DIGITAL_INPUT fpga_arc;
+  TYPE_DIGITAL_INPUT fpga_arc_high_voltage_inihibit_active;
+  TYPE_DIGITAL_INPUT fpga_heater_voltage_less_than_4_5_volts;
+  TYPE_DIGITAL_INPUT fpga_module_temp_greater_than_65_C;
+  TYPE_DIGITAL_INPUT fpga_module_temp_greater_than_75_C;
+  TYPE_DIGITAL_INPUT fpga_pulse_width_limiting_active;
+  TYPE_DIGITAL_INPUT fpga_prf_fault;
+  TYPE_DIGITAL_INPUT fpga_current_monitor_pulse_width_fault;
+  TYPE_DIGITAL_INPUT fpga_grid_module_hardware_fault;
+  TYPE_DIGITAL_INPUT fpga_grid_module_over_voltage_fault;
+  TYPE_DIGITAL_INPUT fpga_grid_module_under_voltage_fault;
+  TYPE_DIGITAL_INPUT fpga_grid_module_bias_voltage_fault;
+  TYPE_DIGITAL_INPUT fpga_hv_regulation_warning;
+  TYPE_DIGITAL_INPUT fpga_dipswitch_1_on;
+  TYPE_DIGITAL_INPUT fpga_test_mode_toggle_switch_set_to_test;
+  TYPE_DIGITAL_INPUT fpga_local_mode_toggle_switch_set_to_local;
+
+
+  // These are Data Structures for the ADC input from the converter logic board
+  AnalogInput  input_adc_temperature;
+  AnalogInput  input_hv_v_mon;
+  AnalogInput  input_hv_i_mon;
+  AnalogInput  input_gun_i_peak;
+  AnalogInput  input_htr_v_mon;
+  AnalogInput  input_htr_i_mon;
+  AnalogInput  input_top_v_mon;
+  AnalogInput  input_bias_v_mon;
+  AnalogInput  input_24_v_mon;
+  AnalogInput  input_temperature_mon;
+  TYPE_DIGITAL_INPUT adc_digital_warmup_flt;
+  TYPE_DIGITAL_INPUT adc_digital_watchdog_flt;
+  TYPE_DIGITAL_INPUT adc_digital_arc_flt;
+  TYPE_DIGITAL_INPUT adc_digital_over_temp_flt;
+  TYPE_DIGITAL_INPUT adc_digital_pulse_width_duty_flt;
+  TYPE_DIGITAL_INPUT adc_digital_grid_flt;
+  AnalogInput  input_dac_monitor;
+
+  // These are the anlog input from the PICs internal DAC
+  AnalogInput  pot_htr;     // an3
+  AnalogInput  pot_vtop;    // an4
+  AnalogInput  pot_ek;      // an5
+  AnalogInput  ref_htr;     // an6
+  AnalogInput  ref_vtop;    // an7
+  AnalogInput  ref_ek;      // an13
+  AnalogInput  pos_15v_mon; // an14
+  AnalogInput  neg_15v_mon; // an15
+  
+} TYPE_GLOBAL_DATA_A36772;
+
+extern TYPE_GLOBAL_DATA_A36772 global_data_A36772;
+
+
+
+
+
+// ---------------------- FAULT & STATUS   CONFIGURATION ---------------------------- //
 
 
 #define _FPGA_CONVERTER_LOGIC_PCB_REV_MISMATCH         _STATUS_7
@@ -277,135 +421,8 @@
 #define _FAULT_HEATER_RAMP_TIMEOUT                     _FAULT_E  // CHECKED_DP// Heater Fault
 // UNUSED                                              _FAULT_F
 
-typedef struct {
-  unsigned int filtered_reading;
-  unsigned int accumulator;
-  unsigned int filter_time;
-} TYPE_DIGITAL_INPUT;
 
 
-typedef struct {
-  unsigned int watchdog_count_error;
-  unsigned int control_state;
-  unsigned int request_hv_enable;
-  unsigned int request_beam_enable;
-  unsigned int reset_active;
-
-
-
-  unsigned int heater_start_up_attempts;       // This counts the number of times the heater has started up without successfully completing it's ramp up.
-
-  unsigned int run_time_counter;               // This counts how long the unit has been running for.  It wraps every 11 minutes
-  unsigned int fault_restart_remaining;        // This counts down the delay of the heater automatic restart
-  unsigned int power_supply_startup_remaining; // This counts down the ramp up time of the HV supply
-  unsigned int heater_warm_up_time_remaining;  // This counts down the heater warm up
-  unsigned int heater_ramp_up_time;            // This counts the time it takes the heater to ramp up
-  unsigned int watchdog_counter;
-
-  unsigned int heater_voltage_target;          // This is the targeted heater voltage set point
-  unsigned int heater_ramp_interval;           // This counts the interval between heater ramp voltage changes
-
-
-
-  unsigned int can_high_voltage_set_point;
-  unsigned int can_pulse_top_set_point;
-  unsigned int can_heater_voltage_set_point;
-
-
-
-
-
-
-  // These are the off board DAC outputs
-  AnalogOutput analog_output_high_voltage;
-  AnalogOutput analog_output_top_voltage;
-  AnalogOutput analog_output_heater_voltage;
-  unsigned int dac_digital_hv_enable;
-  unsigned int dac_digital_heater_enable;
-  unsigned int dac_digital_top_enable;
-  unsigned int dac_digital_trigger_enable;
-  unsigned int dac_digital_watchdog_oscillator;
-
-  // These are the on board DAC outputs
-  AnalogOutput monitor_heater_voltage;
-  AnalogOutput monitor_heater_current;
-  AnalogOutput monitor_cathode_voltage;
-  AnalogOutput monitor_grid_voltage;
-  
-
-
-  // Digital Data from the FPGA
-  TYPE_DIGITAL_INPUT fpga_coverter_logic_pcb_rev_mismatch;
-  TYPE_DIGITAL_INPUT fpga_firmware_major_rev_mismatch;
-  TYPE_DIGITAL_INPUT fpga_firmware_minor_rev_mismatch;
-  TYPE_DIGITAL_INPUT fpga_arc;
-  TYPE_DIGITAL_INPUT fpga_arc_high_voltage_inihibit_active;
-  TYPE_DIGITAL_INPUT fpga_heater_voltage_less_than_4_5_volts;
-  TYPE_DIGITAL_INPUT fpga_module_temp_greater_than_65_C;
-  TYPE_DIGITAL_INPUT fpga_module_temp_greater_than_75_C;
-  TYPE_DIGITAL_INPUT fpga_pulse_width_limiting_active;
-  TYPE_DIGITAL_INPUT fpga_prf_fault;
-  TYPE_DIGITAL_INPUT fpga_current_monitor_pulse_width_fault;
-  TYPE_DIGITAL_INPUT fpga_grid_module_hardware_fault;
-  TYPE_DIGITAL_INPUT fpga_grid_module_over_voltage_fault;
-  TYPE_DIGITAL_INPUT fpga_grid_module_under_voltage_fault;
-  TYPE_DIGITAL_INPUT fpga_grid_module_bias_voltage_fault;
-  TYPE_DIGITAL_INPUT fpga_hv_regulation_warning;
-  TYPE_DIGITAL_INPUT fpga_dipswitch_1_on;
-  TYPE_DIGITAL_INPUT fpga_test_mode_toggle_switch_set_to_test;
-  TYPE_DIGITAL_INPUT fpga_local_mode_toggle_switch_set_to_local;
-
-
-  // These are the ADC input from the external device on the SPI BUS
-  AnalogInput  input_adc_temperature;
-  AnalogInput  input_hv_v_mon;
-  AnalogInput  input_hv_i_mon;
-  AnalogInput  input_gun_i_peak;
-  AnalogInput  input_htr_v_mon;
-  AnalogInput  input_htr_i_mon;
-  AnalogInput  input_top_v_mon;
-  AnalogInput  input_bias_v_mon;
-  AnalogInput  input_24_v_mon;
-  AnalogInput  input_temperature_mon;
-  TYPE_DIGITAL_INPUT adc_digital_warmup_flt;
-  TYPE_DIGITAL_INPUT adc_digital_watchdog_flt;
-  TYPE_DIGITAL_INPUT adc_digital_arc_flt;
-  TYPE_DIGITAL_INPUT adc_digital_over_temp_flt;
-  TYPE_DIGITAL_INPUT adc_digital_pulse_width_duty_flt;
-  TYPE_DIGITAL_INPUT adc_digital_grid_flt;
-  AnalogInput  input_dac_monitor;
-
-  // These are the anlog input from the PICs internal DAC
-  AnalogInput  pot_htr;     // an3
-  AnalogInput  pot_vtop;    // an4
-  AnalogInput  pot_ek;      // an5
-  AnalogInput  ref_htr;     // an6
-  AnalogInput  ref_vtop;    // an7
-  AnalogInput  ref_ek;      // an13
-  AnalogInput  pos_15v_mon; // an14
-  AnalogInput  neg_15v_mon; // an15
-  
-  unsigned int accumulator_counter;
-
-
-  unsigned int adc_read_error_count;
-  unsigned int adc_read_error_test;
-  unsigned int adc_read_ok;
-
-  unsigned int dac_write_error_count;
-  unsigned int dac_write_failure;
-  unsigned int dac_write_failure_count;
-
-  unsigned int previous_state_pin_customer_hv_on;
-
-  unsigned int heater_voltage_current_limited;
-
-} TYPE_GLOBAL_DATA_A36772;
-
-
-
-
-extern TYPE_GLOBAL_DATA_A36772 global_data_A36772;
 
 #define STATE_FAULT_HEATER_FAILURE           00
 #define STATE_FAULT_WARMUP_HEATER_OFF        10
@@ -420,6 +437,19 @@ extern TYPE_GLOBAL_DATA_A36772 global_data_A36772;
 #define STATE_POWER_SUPPLY_RAMP_UP           100
 #define STATE_HV_ON                          110
 #define STATE_BEAM_ENABLE                    120
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 #endif

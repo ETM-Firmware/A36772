@@ -335,6 +335,351 @@ void DoStateMachine(void) {
   }
 }
 
+
+void InitializeA36772(void) {
+ 
+  // Initialize the status register and load the inhibit and fault masks
+  _FAULT_REGISTER = 0;
+  _CONTROL_REGISTER = 0;
+  etm_can_status_register.data_word_A = 0x0000;
+  etm_can_status_register.data_word_B = 0x0000;
+
+  etm_can_my_configuration.firmware_major_rev = FIRMWARE_AGILE_REV;
+  etm_can_my_configuration.firmware_branch = FIRMWARE_BRANCH;
+  etm_can_my_configuration.firmware_minor_rev = FIRMWARE_MINOR_REV;
+
+
+  // --------- BEGIN IO PIN CONFIGURATION ------------------
+
+  // Initialize Ouput Pin Latches BEFORE setting the pins to Output
+  PIN_CS_DAC = !OLL_PIN_CS_DAC_SELECTED;
+  PIN_CS_ADC = !OLL_PIN_CS_ADC_SELECTED;
+  PIN_CS_FPGA = !OLL_PIN_CS_FPGA_SELECTED;
+	  
+  // ---- Configure the dsPIC ADC Module Analog Inputs------------ //
+  ADPCFG = 0xFFFF;             // all are digital I/O
+ 
+  // Initialize all I/O Registers
+  TRISA = A36772_TRISA_VALUE;
+  TRISB = A36772_TRISB_VALUE;
+  TRISC = A36772_TRISC_VALUE;
+  TRISD = A36772_TRISD_VALUE;
+  TRISF = A36772_TRISF_VALUE;
+  TRISG = A36772_TRISG_VALUE;
+
+  // Config SPI1 for Gun Driver
+  ConfigureSPI(ETM_SPI_PORT_1, A36772_SPI1CON_VALUE, 0, A36772_SPI1STAT_VALUE, SPI_CLK_1_MBIT, FCY_CLK);  
+  
+
+  // ---------- Configure Timers ----------------- //
+
+  // Initialize TMR2
+  PR2   = A36772_PR2_VALUE;
+  TMR2  = 0;
+  _T2IF = 0;
+  _T2IP = 5;
+  T2CON = A36772_T2CON_VALUE;
+
+  // Configure on-board DAC
+  SetupLTC265X(&U32_LTC2654, ETM_SPI_PORT_2, FCY_CLK, LTC265X_SPI_2_5_M_BIT, _PIN_RG15, _PIN_RC1);
+
+
+  // ------------- Configure Internal ADC --------- //
+  ADCON1 = ADCON1_SETTING;             // Configure the high speed ADC module based on H file parameters
+  ADCON2 = ADCON2_SETTING;             // Configure the high speed ADC module based on H file parameters
+  ADCON3 = ADCON3_SETTING;             // Configure the high speed ADC module based on H file parameters
+  ADCHS  = ADCHS_SETTING;              // Configure the high speed ADC module based on H file parameters
+  
+  ADPCFG = ADPCFG_SETTING;             // Set which pins are analog and which are digital I/O
+  ADCSSL = ADCSSL_SETTING;             // Set which analog pins are scanned
+
+  _ADIF = 0;
+  _ADIP = 6; // This needs to be higher priority than the CAN interrupt (Which defaults to 4)
+  _ADIE = 1;
+  _ADON = 1;
+
+#ifdef __CAN_ENABLED
+  // Initialize the Can module
+  ETMCanSlaveInitialize(FCY_CLK, ETM_CAN_ADDR_GUN_DRIVER_BOARD, _PIN_RC3, 4);
+  ETMCanSlaveLoadConfiguration(36772, 000, FIRMWARE_AGILE_REV, FIRMWARE_BRANCH, FIRMWARE_MINOR_REV);
+#endif
+
+  ADCConfigure();
+  
+  if (!ETMAnalogCheckEEPromInitialized()) {
+    ETMAnalogLoadDefaultCalibration();
+  }
+
+  // Initialize off board ADC Inputs
+  ETMAnalogInitializeInput(&global_data_A36772.input_adc_temperature,
+			   MACRO_DEC_TO_SCALE_FACTOR_16(ADC_TEMPERATURE_SENSOR_FIXED_SCALE),
+			   ADC_TEMPERATURE_SENSOR_FIXED_OFFSET,
+			   ANALOG_INPUT_NO_CALIBRATION,
+			   NO_OVER_TRIP,
+			   NO_UNDER_TRIP,
+			   NO_TRIP_SCALE,
+			   NO_FLOOR,
+			   NO_RELATIVE_COUNTER,
+			   NO_ABSOLUTE_COUNTER);
+
+
+  ETMAnalogInitializeInput(&global_data_A36772.input_hv_v_mon,
+			   MACRO_DEC_TO_SCALE_FACTOR_16(ADC_HV_VMON_FIXED_SCALE),
+			   ADC_HV_VMON_FIXED_OFFSET,
+			   ANALOG_INPUT_0,
+			   NO_OVER_TRIP,
+			   NO_UNDER_TRIP,
+			   ADC_HV_VMON_RELATIVE_TRIP_SCALE,
+			   ADC_HV_VMON_RELATIVE_TRIP_FLOOR,
+			   ADC_HV_VMON_RELATIVE_TRIP_COUNT,
+			   NO_ABSOLUTE_COUNTER);
+
+  ETMAnalogInitializeInput(&global_data_A36772.input_hv_i_mon,
+			   MACRO_DEC_TO_SCALE_FACTOR_16(ADC_HV_IMON_FIXED_SCALE),
+			   ADC_HV_IMON_FIXED_OFFSET,
+			   ANALOG_INPUT_1,
+			   NO_OVER_TRIP,
+			   NO_UNDER_TRIP,
+			   NO_TRIP_SCALE,
+			   NO_FLOOR,
+			   NO_RELATIVE_COUNTER,
+			   NO_ABSOLUTE_COUNTER);
+  
+
+  ETMAnalogInitializeInput(&global_data_A36772.input_gun_i_peak,
+			   MACRO_DEC_TO_SCALE_FACTOR_16(ADC_GUN_I_PEAK_FIXED_SCALE),
+			   ADC_GUN_I_PEAK_FIXED_OFFSET,
+			   ANALOG_INPUT_2,
+			   NO_OVER_TRIP,
+			   NO_UNDER_TRIP,
+			   NO_TRIP_SCALE,
+			   NO_FLOOR,
+			   NO_RELATIVE_COUNTER,
+			   NO_ABSOLUTE_COUNTER);
+
+  ETMAnalogInitializeInput(&global_data_A36772.input_htr_v_mon,
+			   MACRO_DEC_TO_SCALE_FACTOR_16(ADC_HTR_V_MON_FIXED_SCALE),
+			   ADC_HTR_V_MON_FIXED_OFFSET,
+			   ANALOG_INPUT_3,
+			   NO_OVER_TRIP,
+			   NO_UNDER_TRIP,
+			   ADC_HTR_V_MON_RELATIVE_TRIP_SCALE,
+			   ADC_HTR_V_MON_RELATIVE_TRIP_FLOOR,
+			   ADC_HTR_V_MON_RELATIVE_TRIP_COUNT,
+			   NO_ABSOLUTE_COUNTER);
+
+  ETMAnalogInitializeInput(&global_data_A36772.input_htr_i_mon,
+			   MACRO_DEC_TO_SCALE_FACTOR_16(ADC_HTR_I_MON_FIXED_SCALE),
+			   ADC_HTR_I_MON_FIXED_OFFSET,
+			   ANALOG_INPUT_4,
+			   ADC_HTR_I_MON_OVER_LIMIT_ABSOLUTE,
+			   ADC_HTR_I_MON_UNDER_LIMIT_ABSOLUTE,
+			   NO_TRIP_SCALE,
+			   NO_FLOOR,
+			   NO_RELATIVE_COUNTER,
+			   ADC_HTR_I_MON_ABSOLUTE_TRIP_TIME);
+
+  ETMAnalogInitializeInput(&global_data_A36772.input_top_v_mon,
+			   MACRO_DEC_TO_SCALE_FACTOR_16(ADC_TOP_V_MON_FIXED_SCALE),
+			   ADC_TOP_V_MON_FIXED_OFFSET,
+			   ANALOG_INPUT_5,
+			   NO_OVER_TRIP,
+			   NO_UNDER_TRIP,
+			   ADC_TOP_V_MON_RELATIVE_TRIP_SCALE,
+			   ADC_TOP_V_MON_RELATIVE_TRIP_FLOOR,
+			   ADC_TOP_V_MON_RELATIVE_TRIP_TIME,
+			   NO_ABSOLUTE_COUNTER);
+
+  ETMAnalogInitializeInput(&global_data_A36772.input_bias_v_mon,
+			   MACRO_DEC_TO_SCALE_FACTOR_16(ADC_BIAS_V_MON_FIXED_SCALE),
+			   ADC_BIAS_V_MON_FIXED_OFFSET,
+			   ANALOG_INPUT_6,
+			   ADC_BIAS_V_MON_OVER_LIMIT_ABSOLUTE,
+			   ADC_BIAS_V_MON_UNDER_LIMIT_ABSOLUTE,
+			   NO_TRIP_SCALE,
+			   NO_FLOOR,
+			   NO_RELATIVE_COUNTER,
+			   ADC_BIAS_V_MON_ABSOLUTE_TRIP_TIME);
+
+  ETMAnalogInitializeInput(&global_data_A36772.input_24_v_mon,
+			   MACRO_DEC_TO_SCALE_FACTOR_16(ADC_24_V_MON_FIXED_SCALE),
+			   ADC_24_V_MON_FIXED_OFFSET,
+			   ANALOG_INPUT_7,
+			   NO_OVER_TRIP,
+			   NO_UNDER_TRIP,
+			   NO_TRIP_SCALE,
+			   NO_FLOOR,
+			   NO_RELATIVE_COUNTER,
+			   NO_ABSOLUTE_COUNTER);
+
+  ETMAnalogInitializeInput(&global_data_A36772.input_temperature_mon,
+			   MACRO_DEC_TO_SCALE_FACTOR_16(ADC_TEMPERATURE_MON_FIXED_SCALE),
+			   ADC_TEMPERATURE_MON_FIXED_OFFSET,
+			   ANALOG_INPUT_8,
+			   NO_OVER_TRIP,
+			   NO_UNDER_TRIP,
+			   NO_TRIP_SCALE,
+			   NO_FLOOR,
+			   NO_RELATIVE_COUNTER,
+			   NO_ABSOLUTE_COUNTER);
+
+  ETMAnalogInitializeInput(&global_data_A36772.input_dac_monitor,
+			   MACRO_DEC_TO_SCALE_FACTOR_16(1),
+			   0,
+			   ANALOG_INPUT_NO_CALIBRATION,
+			   NO_OVER_TRIP,
+			   NO_UNDER_TRIP,
+			   NO_TRIP_SCALE,
+			   NO_FLOOR,
+			   NO_RELATIVE_COUNTER,
+			   NO_ABSOLUTE_COUNTER);
+
+
+
+  // ----------------- Initialize PIC's internal ADC Inputs --------------------- //
+
+  ETMAnalogInitializeInput(&global_data_A36772.pot_htr,
+			   MACRO_DEC_TO_SCALE_FACTOR_16(POT_HTR_FIXED_SCALE),
+			   POT_HTR_FIXED_OFFSET,
+			   ANALOG_INPUT_9,
+			   NO_OVER_TRIP,
+			   NO_UNDER_TRIP,
+			   NO_TRIP_SCALE,
+			   NO_FLOOR,
+			   NO_RELATIVE_COUNTER,
+			   NO_ABSOLUTE_COUNTER);
+
+
+  ETMAnalogInitializeInput(&global_data_A36772.pot_vtop,
+			   MACRO_DEC_TO_SCALE_FACTOR_16(POT_VTOP_FIXED_SCALE),
+			   POT_VTOP_FIXED_OFFSET,
+			   ANALOG_INPUT_A,
+			   NO_OVER_TRIP,
+			   NO_UNDER_TRIP,
+			   NO_TRIP_SCALE,
+			   NO_FLOOR,
+			   NO_RELATIVE_COUNTER,
+			   NO_ABSOLUTE_COUNTER);
+
+  ETMAnalogInitializeInput(&global_data_A36772.pot_ek,
+			   MACRO_DEC_TO_SCALE_FACTOR_16(POT_EK_FIXED_SCALE),
+			   POT_EK_FIXED_OFFSET,
+			   ANALOG_INPUT_B,
+			   NO_OVER_TRIP,
+			   NO_UNDER_TRIP,
+			   NO_TRIP_SCALE,
+			   NO_FLOOR,
+			   NO_RELATIVE_COUNTER,
+			   NO_ABSOLUTE_COUNTER);
+
+
+  ETMAnalogInitializeInput(&global_data_A36772.ref_htr,
+			   MACRO_DEC_TO_SCALE_FACTOR_16(REF_HTR_FIXED_SCALE),
+			   REF_HTR_FIXED_OFFSET,
+			   ANALOG_INPUT_9,
+			   NO_OVER_TRIP,
+			   NO_UNDER_TRIP,
+			   NO_TRIP_SCALE,
+			   NO_FLOOR,
+			   NO_RELATIVE_COUNTER,
+			   NO_ABSOLUTE_COUNTER);
+
+
+  ETMAnalogInitializeInput(&global_data_A36772.ref_vtop,
+			   MACRO_DEC_TO_SCALE_FACTOR_16(REF_VTOP_FIXED_SCALE),
+			   REF_VTOP_FIXED_OFFSET,
+			   ANALOG_INPUT_A,
+			   NO_OVER_TRIP,
+			   NO_UNDER_TRIP,
+			   NO_TRIP_SCALE,
+			   NO_FLOOR,
+			   NO_RELATIVE_COUNTER,
+			   NO_ABSOLUTE_COUNTER);
+
+  ETMAnalogInitializeInput(&global_data_A36772.ref_ek,
+			   MACRO_DEC_TO_SCALE_FACTOR_16(REF_EK_FIXED_SCALE),
+			   REF_EK_FIXED_OFFSET,
+			   ANALOG_INPUT_B,
+			   NO_OVER_TRIP,
+			   NO_UNDER_TRIP,
+			   NO_TRIP_SCALE,
+			   NO_FLOOR,
+			   NO_RELATIVE_COUNTER,
+			   NO_ABSOLUTE_COUNTER);
+
+
+
+
+
+
+  // ------------- Initialize Converter Logic Board DAC Outputs ------------------------------ //
+  ETMAnalogInitializeOutput(&global_data_A36772.analog_output_high_voltage,
+			    MACRO_DEC_TO_SCALE_FACTOR_16(DAC_HIGH_VOLTAGE_FIXED_SCALE),
+			    DAC_HIGH_VOLTAGE_FIXED_OFFSET,
+			    ANALOG_OUTPUT_0,
+			    HIGH_VOLTAGE_MAX_SET_POINT,
+			    HIGH_VOLTAGE_MIN_SET_POINT,
+			    0);
+
+  ETMAnalogInitializeOutput(&global_data_A36772.analog_output_top_voltage,
+			    MACRO_DEC_TO_SCALE_FACTOR_16(DAC_TOP_VOLTAGE_FIXED_SCALE),
+			    DAC_TOP_VOLTAGE_FIXED_OFFSET,
+			    ANALOG_OUTPUT_1,
+			    TOP_VOLTAGE_MAX_SET_POINT,
+			    TOP_VOLTAGE_MIN_SET_POINT,
+			    0);
+  
+  ETMAnalogInitializeOutput(&global_data_A36772.analog_output_heater_voltage,
+			    MACRO_DEC_TO_SCALE_FACTOR_16(DAC_HEATER_VOLTAGE_FIXED_SCALE),
+			    DAC_HEATER_VOLTAGE_FIXED_OFFSET,
+			    ANALOG_OUTPUT_2,
+			    HEATER_VOLTAGE_MAX_SET_POINT,
+			    HEATER_VOLTAGE_MIN_SET_POINT,
+			    0);
+
+
+  // ----------------------- Initialize on Board DAC Outputs ---------------------------- //  
+  ETMAnalogInitializeOutput(&global_data_A36772.monitor_heater_voltage,
+			    MACRO_DEC_TO_SCALE_FACTOR_16(DAC_MONITOR_HEATER_VOLTAGE_FIXED_SCALE),
+			    DAC_MONITOR_HEATER_VOLTAGE_FIXED_OFFSET,
+			    ANALOG_OUTPUT_3,
+			    0xFFFF,
+			    0,
+			    0);
+  
+  ETMAnalogInitializeOutput(&global_data_A36772.monitor_heater_current,
+			    MACRO_DEC_TO_SCALE_FACTOR_16(DAC_MONITOR_HEATER_CURRENT_FIXED_SCALE),
+			    DAC_MONITOR_HEATER_CURRENT_FIXED_OFFSET,
+			    ANALOG_OUTPUT_4,
+			    0xFFFF,
+			    0,
+			    0);
+
+  ETMAnalogInitializeOutput(&global_data_A36772.monitor_cathode_voltage,
+			    MACRO_DEC_TO_SCALE_FACTOR_16(DAC_MONITOR_CATHODE_VOLTAGE_FIXED_SCALE),
+			    DAC_MONITOR_CATHODE_VOLTAGE_FIXED_OFFSET,
+			    ANALOG_OUTPUT_5,
+			    0xFFFF,
+			    0,
+			    0);
+
+  ETMAnalogInitializeOutput(&global_data_A36772.monitor_grid_voltage,
+			    MACRO_DEC_TO_SCALE_FACTOR_16(DAC_MONITOR_GRID_VOLTAGE_FIXED_SCALE),
+			    DAC_MONITOR_GRID_VOLTAGE_FIXED_OFFSET,
+			    ANALOG_OUTPUT_6,
+			    0xFFFF,
+			    0,
+			    0);
+
+  global_data_A36772.monitor_heater_voltage.enabled = 1;
+  global_data_A36772.monitor_heater_current.enabled = 1;
+  global_data_A36772.monitor_grid_voltage.enabled = 1;
+  global_data_A36772.monitor_cathode_voltage.enabled = 1;
+
+  //ResetAllFaultInfo();
+}
+
+
 void DoStartupLEDs(void) {
   switch (((global_data_A36772.run_time_counter >> 4) & 0b11)) {
     
@@ -369,6 +714,132 @@ void DoStartupLEDs(void) {
 }
 
 
+void ResetAllFaultInfo(void) {
+  _FAULT_FPGA_FIRMWARE_MAJOR_REV_MISMATCH = 0;
+  _FAULT_ADC_HV_V_MON_OVER_RELATIVE = 0;
+  _FAULT_ADC_HV_V_MON_UNDER_RELATIVE = 0;
+  _FAULT_ADC_HTR_V_MON_OVER_RELATIVE = 0;
+  _FAULT_ADC_HTR_V_MON_UNDER_RELATIVE = 0;
+  _FAULT_ADC_HTR_I_MON_OVER_ABSOLUTE = 0;
+  _FAULT_ADC_HTR_I_MON_UNDER_ABSOLUTE = 0;
+  _FAULT_ADC_TOP_V_MON_OVER_RELATIVE = 0;
+  _FAULT_ADC_TOP_V_MON_UNDER_RELATIVE = 0;
+  _FAULT_ADC_BIAS_V_MON_OVER_ABSOLUTE = 0;
+  _FAULT_ADC_BIAS_V_MON_UNDER_ABSOLUTE = 0;
+  _FAULT_ADC_DIGITAL_WATCHDOG = 0;
+  _FAULT_ADC_DIGITAL_ARC = 0;
+  _FAULT_ADC_DIGITAL_OVER_TEMP = 0;
+  _FAULT_ADC_DIGITAL_PULSE_WIDTH_DUTY = 0;
+  _FAULT_ADC_DIGITAL_GRID = 0;
+  _FAULT_CONVERTER_LOGIC_ADC_READ_FAILURE = 0;
+  _FAULT_HEATER_RAMP_TIMEOUT = 0;
+  
+  _STATUS_CUSTOMER_HV_ON = 0;
+  _STATUS_CUSTOMER_BEAM_ENABLE = 0;
+  _STATUS_ADC_DIGITAL_HEATER_NOT_READY = 0;
+  _STATUS_DAC_WRITE_FAILURE = 0;
+
+  _FPGA_CONVERTER_LOGIC_PCB_REV_MISMATCH         = 0;
+  _FPGA_FIRMWARE_MINOR_REV_MISMATCH              = 0;
+  _FPGA_ARC_COUNTER_GREATER_ZERO                 = 0;
+  _FPGA_ARC_HIGH_VOLTAGE_INHIBIT_ACTIVE          = 0;
+  _FPGA_HEATER_VOLTAGE_LESS_THAN_4_5_VOLTS       = 0;
+  _FPGA_MODULE_TEMP_GREATER_THAN_65_C            = 0;
+  _FPGA_MODULE_TEMP_GREATER_THAN_75_C            = 0;
+  _FPGA_PULSE_WIDTH_LIMITING                     = 0;
+  _FPGA_PRF_FAULT                                = 0;
+  _FPGA_CURRENT_MONITOR_PULSE_WIDTH_FAULT        = 0;
+  _FPGA_GRID_MODULE_HARDWARE_FAULT               = 0;
+  _FPGA_GRID_MODULE_OVER_VOLTAGE_FAULT           = 0;
+  _FPGA_GRID_MODULE_UNDER_VOLTAGE_FAULT          = 0;
+  _FPGA_GRID_MODULE_BIAS_VOLTAGE_FAULT           = 0;
+  _FPGA_HV_REGULATION_WARNING                    = 0;
+  _FPGA_DIPSWITCH_1_ON                           = 0;
+  _FPGA_TEST_MODE_TOGGLE_SWITCH_TEST_MODE        = 0;
+  _FPGA_LOCAL_MODE_TOGGLE_SWITCH_LOCAL_MODE      = 0;
+
+
+  // Initialize Digital Input Filters for FPGA Status
+  ETMDigitalInitializeInput(&global_data_A36772.fpga_coverter_logic_pcb_rev_mismatch       , 0, 30);   
+  ETMDigitalInitializeInput(&global_data_A36772.fpga_firmware_major_rev_mismatch           , 0, 30);   
+  ETMDigitalInitializeInput(&global_data_A36772.fpga_firmware_minor_rev_mismatch           , 0, 30);   
+  ETMDigitalInitializeInput(&global_data_A36772.fpga_arc                                   , 0, 5);
+  ETMDigitalInitializeInput(&global_data_A36772.fpga_arc_high_voltage_inihibit_active      , 0, 0);
+  ETMDigitalInitializeInput(&global_data_A36772.fpga_heater_voltage_less_than_4_5_volts    , 0, 30);
+  ETMDigitalInitializeInput(&global_data_A36772.fpga_module_temp_greater_than_65_C         , 0, 30); 
+  ETMDigitalInitializeInput(&global_data_A36772.fpga_module_temp_greater_than_75_C         , 0, 30);
+  ETMDigitalInitializeInput(&global_data_A36772.fpga_pulse_width_limiting_active           , 0, 30);
+  ETMDigitalInitializeInput(&global_data_A36772.fpga_prf_fault                             , 0, 30);
+  ETMDigitalInitializeInput(&global_data_A36772.fpga_current_monitor_pulse_width_fault     , 0, 30);
+  ETMDigitalInitializeInput(&global_data_A36772.fpga_grid_module_hardware_fault            , 0, 30);
+  ETMDigitalInitializeInput(&global_data_A36772.fpga_grid_module_over_voltage_fault        , 0, 30);
+  ETMDigitalInitializeInput(&global_data_A36772.fpga_grid_module_under_voltage_fault       , 0, 30);
+  ETMDigitalInitializeInput(&global_data_A36772.fpga_grid_module_bias_voltage_fault        , 0, 30);
+  ETMDigitalInitializeInput(&global_data_A36772.fpga_hv_regulation_warning                 , 0, 30);
+  ETMDigitalInitializeInput(&global_data_A36772.fpga_dipswitch_1_on                        , 0, 30);
+  ETMDigitalInitializeInput(&global_data_A36772.fpga_test_mode_toggle_switch_set_to_test   , 0, 30);
+  ETMDigitalInitializeInput(&global_data_A36772.fpga_local_mode_toggle_switch_set_to_local , 0, 30);
+
+  // Initialize Digital Input Filters For ADC "Digital" Inputs
+  ETMDigitalInitializeInput(&global_data_A36772.adc_digital_warmup_flt                     , 1, 30);
+  ETMDigitalInitializeInput(&global_data_A36772.adc_digital_watchdog_flt                   , 1, 30);
+  ETMDigitalInitializeInput(&global_data_A36772.adc_digital_arc_flt                        , 1, 30);
+  ETMDigitalInitializeInput(&global_data_A36772.adc_digital_over_temp_flt                  , 1, 30);
+  ETMDigitalInitializeInput(&global_data_A36772.adc_digital_pulse_width_duty_flt           , 1, 30);
+  ETMDigitalInitializeInput(&global_data_A36772.adc_digital_grid_flt                       , 1, 30);
+
+  // Reset all the Analog input fault counters
+  ETMAnalogClearFaultCounters(&global_data_A36772.input_adc_temperature);
+  ETMAnalogClearFaultCounters(&global_data_A36772.input_hv_v_mon);
+  ETMAnalogClearFaultCounters(&global_data_A36772.input_hv_i_mon);
+  ETMAnalogClearFaultCounters(&global_data_A36772.input_gun_i_peak);
+  ETMAnalogClearFaultCounters(&global_data_A36772.input_htr_v_mon);
+  ETMAnalogClearFaultCounters(&global_data_A36772.input_htr_i_mon);
+  ETMAnalogClearFaultCounters(&global_data_A36772.input_top_v_mon);
+  ETMAnalogClearFaultCounters(&global_data_A36772.input_bias_v_mon);
+  ETMAnalogClearFaultCounters(&global_data_A36772.input_24_v_mon);
+  ETMAnalogClearFaultCounters(&global_data_A36772.input_dac_monitor);
+
+  ETMAnalogClearFaultCounters(&global_data_A36772.pot_htr);
+  ETMAnalogClearFaultCounters(&global_data_A36772.pot_vtop);
+  ETMAnalogClearFaultCounters(&global_data_A36772.pot_ek);
+  ETMAnalogClearFaultCounters(&global_data_A36772.ref_htr);
+  ETMAnalogClearFaultCounters(&global_data_A36772.ref_vtop);
+  ETMAnalogClearFaultCounters(&global_data_A36772.ref_ek);
+  ETMAnalogClearFaultCounters(&global_data_A36772.pos_15v_mon);
+  ETMAnalogClearFaultCounters(&global_data_A36772.neg_15v_mon);
+
+  global_data_A36772.adc_read_error_test = 0;
+  global_data_A36772.adc_read_error_count = 0;
+  global_data_A36772.adc_read_ok = 1;
+
+  global_data_A36772.dac_write_error_count = 0;
+  global_data_A36772.dac_write_failure = 0;
+  global_data_A36772.dac_write_failure_count = 0;
+}
+
+
+unsigned int CheckHeaterFault(void) {
+  unsigned int fault = 0;
+  fault  = _FAULT_FPGA_FIRMWARE_MAJOR_REV_MISMATCH;
+  fault |= _FAULT_ADC_HTR_V_MON_OVER_RELATIVE;
+  fault |= _FAULT_ADC_HTR_V_MON_UNDER_RELATIVE;
+  fault |= _FAULT_HEATER_VOLTAGE_CURRENT_LIMITED;
+  fault |= _FAULT_ADC_HTR_I_MON_OVER_ABSOLUTE;
+  fault |= _FAULT_ADC_HTR_I_MON_UNDER_ABSOLUTE;
+  fault |= _FAULT_ADC_DIGITAL_WATCHDOG;
+  fault |= _FAULT_ADC_DIGITAL_OVER_TEMP;
+  fault |= _FAULT_ADC_DIGITAL_GRID;
+  fault |= _FAULT_CONVERTER_LOGIC_ADC_READ_FAILURE;
+  fault |= _FAULT_HEATER_RAMP_TIMEOUT;
+  if (fault) {
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
+
 unsigned int CheckFault(void) {
   unsigned int fault = 0;
   fault  = _FAULT_ADC_HV_V_MON_OVER_RELATIVE;
@@ -379,7 +850,6 @@ unsigned int CheckFault(void) {
   fault |= _FAULT_ADC_BIAS_V_MON_UNDER_ABSOLUTE;
   fault |= _FAULT_ADC_DIGITAL_ARC;
   fault |= _FAULT_ADC_DIGITAL_PULSE_WIDTH_DUTY;
-  
   if (fault) {
     return 1;
   } else {
@@ -387,25 +857,6 @@ unsigned int CheckFault(void) {
   }
 }
 
-unsigned int CheckHeaterFault(void) {
-  unsigned int fault = 0;
-  fault  = _FAULT_FPGA_FIRMWARE_MAJOR_REV_MISMATCH;
-  fault |= _FAULT_ADC_HTR_V_MON_OVER_RELATIVE;
-  fault |= _FAULT_ADC_HTR_V_MON_UNDER_RELATIVE;
-  fault |= _FAULT_ADC_HTR_I_MON_OVER_ABSOLUTE;
-  fault |= _FAULT_ADC_HTR_I_MON_UNDER_ABSOLUTE;
-  fault |= _FAULT_ADC_DIGITAL_WATCHDOG;
-  fault |= _FAULT_ADC_DIGITAL_OVER_TEMP;
-  fault |= _FAULT_ADC_DIGITAL_GRID;
-  fault |= _FAULT_CONVERTER_LOGIC_ADC_READ_FAILURE;
-  fault |= _FAULT_HEATER_RAMP_TIMEOUT;
-
-  if (fault) {
-    return 1;
-  } else {
-    return 0;
-  }
-}
 
 void DoA36772(void) {
   
@@ -443,7 +894,6 @@ void DoA36772(void) {
   _STATUS_CUSTOMER_HV_ON = !_SYNC_CONTROL_PULSE_SYNC_DISABLE_HV;
   _STATUS_CUSTOMER_BEAM_ENABLE = !_SYNC_CONTROL_PULSE_SYNC_DISABLE_XRAY;
 #endif
-
 
   if (_T2IF) {
     // Run once every 10ms
@@ -838,17 +1288,60 @@ void UpdateFaults(void) {
 }
 
 
-void EnableBeam(void) {
-  global_data_A36772.dac_digital_trigger_enable = DAC_DIGITAL_ON;
-  DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_G, global_data_A36772.dac_digital_trigger_enable);
-  PIN_CPU_BEAM_ENABLE = OLL_PIN_CPU_BEAM_ENABLE_BEAM_ENABLED;
-}
-
-
-void DisableBeam(void) {
-  global_data_A36772.dac_digital_trigger_enable = DAC_DIGITAL_OFF;
-  DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_G, global_data_A36772.dac_digital_trigger_enable);
-  PIN_CPU_BEAM_ENABLE = !OLL_PIN_CPU_BEAM_ENABLE_BEAM_ENABLED;
+void UpdateLEDandStatusOutuputs(void) {
+  // Warmup status
+  if ((global_data_A36772.control_state >= STATE_START_UP) && (global_data_A36772.control_state <= STATE_HEATER_WARM_UP)) {
+    PIN_LED_WARMUP = OLL_LED_ON;
+    PIN_CPU_WARMUP_STATUS = OLL_STATUS_ACTIVE;
+  } else {
+    PIN_LED_WARMUP = !OLL_LED_ON;
+    PIN_CPU_WARMUP_STATUS = !OLL_STATUS_ACTIVE;
+  }
+  
+  // Standby Status
+  if (global_data_A36772.control_state == STATE_HEATER_WARM_UP_DONE) {
+    PIN_LED_STANDBY = OLL_LED_ON;
+    PIN_CPU_STANDBY_STATUS = OLL_STATUS_ACTIVE;
+  } else {
+    PIN_LED_STANDBY = !OLL_LED_ON;
+    PIN_CPU_STANDBY_STATUS = !OLL_STATUS_ACTIVE;
+  }
+  
+  // HV ON Status
+  if (global_data_A36772.control_state == STATE_POWER_SUPPLY_RAMP_UP) {
+    // FLASH THE HV ON LED
+    if (global_data_A36772.run_time_counter & 0x0010) {
+      PIN_LED_HV_ON = OLL_LED_ON;
+      PIN_CPU_HV_ON_STATUS = OLL_STATUS_ACTIVE;
+    } else {
+      PIN_LED_HV_ON = !OLL_LED_ON;
+      PIN_CPU_HV_ON_STATUS = !OLL_STATUS_ACTIVE;
+    }
+  } else if (global_data_A36772.control_state >= STATE_HV_ON) {
+    PIN_LED_HV_ON = OLL_LED_ON;
+    PIN_CPU_HV_ON_STATUS = OLL_STATUS_ACTIVE;
+  } else {
+    PIN_LED_HV_ON = !OLL_LED_ON;
+    PIN_CPU_HV_ON_STATUS = !OLL_STATUS_ACTIVE;
+  }
+  
+  // Beam enabled Status
+  if (global_data_A36772.control_state == STATE_BEAM_ENABLE) {
+    PIN_LED_BEAM_ENABLE = OLL_LED_ON;
+    PIN_CPU_BEAM_ENABLE_STATUS = OLL_STATUS_ACTIVE;
+  } else {
+    PIN_LED_BEAM_ENABLE = !OLL_LED_ON;
+    PIN_CPU_BEAM_ENABLE_STATUS = !OLL_STATUS_ACTIVE;
+    }
+  
+  // System OK Status
+  if (global_data_A36772.control_state <= STATE_FAULT_HEATER_ON) {
+    PIN_CPU_SYSTEM_OK_STATUS = !OLL_STATUS_ACTIVE;
+    PIN_LED_SYSTEM_OK = !OLL_LED_ON;
+  } else {
+    PIN_CPU_SYSTEM_OK_STATUS = OLL_STATUS_ACTIVE;
+    PIN_LED_SYSTEM_OK = OLL_LED_ON;
+  }
 }
 
 
@@ -873,6 +1366,7 @@ void DisableHeater(void) {
   DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_E, global_data_A36772.dac_digital_heater_enable);
 }
 
+
 void EnableHighVoltage(void) {
   /*
     Set the HVPS reference
@@ -888,6 +1382,7 @@ void EnableHighVoltage(void) {
   //DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_F, global_data_A36772.dac_digital_top_enable);
   PIN_CPU_HV_ENABLE = OLL_PIN_CPU_HV_ENABLE_HV_ENABLED;
 }
+
 
 void DisableHighVoltage(void) {
   /*
@@ -906,6 +1401,19 @@ void DisableHighVoltage(void) {
 }
 
 
+void EnableBeam(void) {
+  global_data_A36772.dac_digital_trigger_enable = DAC_DIGITAL_ON;
+  DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_G, global_data_A36772.dac_digital_trigger_enable);
+  PIN_CPU_BEAM_ENABLE = OLL_PIN_CPU_BEAM_ENABLE_BEAM_ENABLED;
+}
+
+
+void DisableBeam(void) {
+  global_data_A36772.dac_digital_trigger_enable = DAC_DIGITAL_OFF;
+  DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_G, global_data_A36772.dac_digital_trigger_enable);
+  PIN_CPU_BEAM_ENABLE = !OLL_PIN_CPU_BEAM_ENABLE_BEAM_ENABLED;
+}
+
 
 void ResetFPGA(void) {
   PIN_CS_FPGA = OLL_PIN_CS_FPGA_SELECTED;
@@ -918,7 +1426,6 @@ void ResetFPGA(void) {
   PIN_CS_ADC  = !OLL_PIN_CS_ADC_SELECTED;
   __delay32(DELAY_FPGA_CABLE_DELAY);
 }
-
 
 
 void ADCConfigure(void) {
@@ -940,6 +1447,7 @@ void ADCConfigure(void) {
   PIN_CS_ADC  = !OLL_PIN_CS_ADC_SELECTED;
   __delay32(DELAY_FPGA_CABLE_DELAY);
 }
+
 
 void ADCStartAcquisition(void) {
   /* 
@@ -1170,7 +1678,6 @@ void DACWriteChannel(unsigned int command_word, unsigned int data_word) {
 }
 
 
-
 typedef struct {
   unsigned converter_logic_pcb_rev:6;
   unsigned fpga_firmware_major_rev:4;
@@ -1388,7 +1895,6 @@ void FPGAReadData(void) {
 }
 
 
-
 unsigned char SPICharInvertered(unsigned char transmit_byte) {
   unsigned int transmit_word;
   unsigned int receive_word;
@@ -1399,349 +1905,50 @@ unsigned char SPICharInvertered(unsigned char transmit_byte) {
 }
 
 
-
-void InitializeA36772(void) {
- 
-  // Initialize the status register and load the inhibit and fault masks
-  _FAULT_REGISTER = 0;
-  _CONTROL_REGISTER = 0;
-  etm_can_status_register.data_word_A = 0x0000;
-  etm_can_status_register.data_word_B = 0x0000;
-
-  etm_can_my_configuration.firmware_major_rev = FIRMWARE_AGILE_REV;
-  etm_can_my_configuration.firmware_branch = FIRMWARE_BRANCH;
-  etm_can_my_configuration.firmware_minor_rev = FIRMWARE_MINOR_REV;
-
-
-  // --------- BEGIN IO PIN CONFIGURATION ------------------
-
-  // Initialize Ouput Pin Latches BEFORE setting the pins to Output
-  PIN_CS_DAC = !OLL_PIN_CS_DAC_SELECTED;
-  PIN_CS_ADC = !OLL_PIN_CS_ADC_SELECTED;
-  PIN_CS_FPGA = !OLL_PIN_CS_FPGA_SELECTED;
-	  
-  // ---- Configure the dsPIC ADC Module Analog Inputs------------ //
-  ADPCFG = 0xFFFF;             // all are digital I/O
- 
-  // Initialize all I/O Registers
-  TRISA = A36772_TRISA_VALUE;
-  TRISB = A36772_TRISB_VALUE;
-  TRISC = A36772_TRISC_VALUE;
-  TRISD = A36772_TRISD_VALUE;
-  TRISF = A36772_TRISF_VALUE;
-  TRISG = A36772_TRISG_VALUE;
-
-  // Config SPI1 for Gun Driver
-  ConfigureSPI(ETM_SPI_PORT_1, A36772_SPI1CON_VALUE, 0, A36772_SPI1STAT_VALUE, SPI_CLK_1_MBIT, FCY_CLK);  
-  
-
-  // ---------- Configure Timers ----------------- //
-
-  // Initialize TMR2
-  PR2   = A36772_PR2_VALUE;
-  TMR2  = 0;
-  _T2IF = 0;
-  _T2IP = 5;
-  T2CON = A36772_T2CON_VALUE;
-
-  // Configure on-board DAC
-  SetupLTC265X(&U32_LTC2654, ETM_SPI_PORT_2, FCY_CLK, LTC265X_SPI_2_5_M_BIT, _PIN_RG15, _PIN_RC1);
-
-
-  // ------------- Configure Internal ADC --------- //
-  ADCON1 = ADCON1_SETTING;             // Configure the high speed ADC module based on H file parameters
-  ADCON2 = ADCON2_SETTING;             // Configure the high speed ADC module based on H file parameters
-  ADCON3 = ADCON3_SETTING;             // Configure the high speed ADC module based on H file parameters
-  ADCHS  = ADCHS_SETTING;              // Configure the high speed ADC module based on H file parameters
-  
-  ADPCFG = ADPCFG_SETTING;             // Set which pins are analog and which are digital I/O
-  ADCSSL = ADCSSL_SETTING;             // Set which analog pins are scanned
-
-  _ADIF = 0;
-  _ADIP = 6; // This needs to be higher priority than the CAN interrupt (Which defaults to 4)
-  _ADIE = 1;
-  _ADON = 1;
-
-#ifdef __CAN_ENABLED
-  // Initialize the Can module
-  ETMCanSlaveInitialize(FCY_CLK, ETM_CAN_ADDR_GUN_DRIVER_BOARD, _PIN_RC3, 4);
-  ETMCanSlaveLoadConfiguration(36772, 000, FIRMWARE_AGILE_REV, FIRMWARE_BRANCH, FIRMWARE_MINOR_REV);
-#endif
-
-  ADCConfigure();
-  
-  if (!ETMAnalogCheckEEPromInitialized()) {
-    ETMAnalogLoadDefaultCalibration();
+void ETMDigitalInitializeInput(TYPE_DIGITAL_INPUT* input, unsigned int initial_value, unsigned int filter_time) {
+  if (filter_time > 0x7000) {
+    filter_time = 0x7000;
   }
-
-  // Initialize off board ADC Inputs
-  ETMAnalogInitializeInput(&global_data_A36772.input_adc_temperature,
-			   MACRO_DEC_TO_SCALE_FACTOR_16(ADC_TEMPERATURE_SENSOR_FIXED_SCALE),
-			   ADC_TEMPERATURE_SENSOR_FIXED_OFFSET,
-			   ANALOG_INPUT_NO_CALIBRATION,
-			   NO_OVER_TRIP,
-			   NO_UNDER_TRIP,
-			   NO_TRIP_SCALE,
-			   NO_FLOOR,
-			   NO_RELATIVE_COUNTER,
-			   NO_ABSOLUTE_COUNTER);
-
-
-  ETMAnalogInitializeInput(&global_data_A36772.input_hv_v_mon,
-			   MACRO_DEC_TO_SCALE_FACTOR_16(ADC_HV_VMON_FIXED_SCALE),
-			   ADC_HV_VMON_FIXED_OFFSET,
-			   ANALOG_INPUT_0,
-			   NO_OVER_TRIP,
-			   NO_UNDER_TRIP,
-			   ADC_HV_VMON_RELATIVE_TRIP_SCALE,
-			   ADC_HV_VMON_RELATIVE_TRIP_FLOOR,
-			   ADC_HV_VMON_RELATIVE_TRIP_COUNT,
-			   NO_ABSOLUTE_COUNTER);
-
-  ETMAnalogInitializeInput(&global_data_A36772.input_hv_i_mon,
-			   MACRO_DEC_TO_SCALE_FACTOR_16(ADC_HV_IMON_FIXED_SCALE),
-			   ADC_HV_IMON_FIXED_OFFSET,
-			   ANALOG_INPUT_1,
-			   NO_OVER_TRIP,
-			   NO_UNDER_TRIP,
-			   NO_TRIP_SCALE,
-			   NO_FLOOR,
-			   NO_RELATIVE_COUNTER,
-			   NO_ABSOLUTE_COUNTER);
-  
-
-  ETMAnalogInitializeInput(&global_data_A36772.input_gun_i_peak,
-			   MACRO_DEC_TO_SCALE_FACTOR_16(ADC_GUN_I_PEAK_FIXED_SCALE),
-			   ADC_GUN_I_PEAK_FIXED_OFFSET,
-			   ANALOG_INPUT_2,
-			   NO_OVER_TRIP,
-			   NO_UNDER_TRIP,
-			   NO_TRIP_SCALE,
-			   NO_FLOOR,
-			   NO_RELATIVE_COUNTER,
-			   NO_ABSOLUTE_COUNTER);
-
-  ETMAnalogInitializeInput(&global_data_A36772.input_htr_v_mon,
-			   MACRO_DEC_TO_SCALE_FACTOR_16(ADC_HTR_V_MON_FIXED_SCALE),
-			   ADC_HTR_V_MON_FIXED_OFFSET,
-			   ANALOG_INPUT_3,
-			   NO_OVER_TRIP,
-			   NO_UNDER_TRIP,
-			   ADC_HTR_V_MON_RELATIVE_TRIP_SCALE,
-			   ADC_HTR_V_MON_RELATIVE_TRIP_FLOOR,
-			   ADC_HTR_V_MON_RELATIVE_TRIP_COUNT,
-			   NO_ABSOLUTE_COUNTER);
-
-  ETMAnalogInitializeInput(&global_data_A36772.input_htr_i_mon,
-			   MACRO_DEC_TO_SCALE_FACTOR_16(ADC_HTR_I_MON_FIXED_SCALE),
-			   ADC_HTR_I_MON_FIXED_OFFSET,
-			   ANALOG_INPUT_4,
-			   ADC_HTR_I_MON_OVER_LIMIT_ABSOLUTE,
-			   ADC_HTR_I_MON_UNDER_LIMIT_ABSOLUTE,
-			   NO_TRIP_SCALE,
-			   NO_FLOOR,
-			   NO_RELATIVE_COUNTER,
-			   ADC_HTR_I_MON_ABSOLUTE_TRIP_TIME);
-
-  ETMAnalogInitializeInput(&global_data_A36772.input_top_v_mon,
-			   MACRO_DEC_TO_SCALE_FACTOR_16(ADC_TOP_V_MON_FIXED_SCALE),
-			   ADC_TOP_V_MON_FIXED_OFFSET,
-			   ANALOG_INPUT_5,
-			   NO_OVER_TRIP,
-			   NO_UNDER_TRIP,
-			   ADC_TOP_V_MON_RELATIVE_TRIP_SCALE,
-			   ADC_TOP_V_MON_RELATIVE_TRIP_FLOOR,
-			   ADC_TOP_V_MON_RELATIVE_TRIP_TIME,
-			   NO_ABSOLUTE_COUNTER);
-
-  ETMAnalogInitializeInput(&global_data_A36772.input_bias_v_mon,
-			   MACRO_DEC_TO_SCALE_FACTOR_16(ADC_BIAS_V_MON_FIXED_SCALE),
-			   ADC_BIAS_V_MON_FIXED_OFFSET,
-			   ANALOG_INPUT_6,
-			   ADC_BIAS_V_MON_OVER_LIMIT_ABSOLUTE,
-			   ADC_BIAS_V_MON_UNDER_LIMIT_ABSOLUTE,
-			   NO_TRIP_SCALE,
-			   NO_FLOOR,
-			   NO_RELATIVE_COUNTER,
-			   ADC_BIAS_V_MON_ABSOLUTE_TRIP_TIME);
-
-  ETMAnalogInitializeInput(&global_data_A36772.input_24_v_mon,
-			   MACRO_DEC_TO_SCALE_FACTOR_16(ADC_24_V_MON_FIXED_SCALE),
-			   ADC_24_V_MON_FIXED_OFFSET,
-			   ANALOG_INPUT_7,
-			   NO_OVER_TRIP,
-			   NO_UNDER_TRIP,
-			   NO_TRIP_SCALE,
-			   NO_FLOOR,
-			   NO_RELATIVE_COUNTER,
-			   NO_ABSOLUTE_COUNTER);
-
-  ETMAnalogInitializeInput(&global_data_A36772.input_temperature_mon,
-			   MACRO_DEC_TO_SCALE_FACTOR_16(ADC_TEMPERATURE_MON_FIXED_SCALE),
-			   ADC_TEMPERATURE_MON_FIXED_OFFSET,
-			   ANALOG_INPUT_8,
-			   NO_OVER_TRIP,
-			   NO_UNDER_TRIP,
-			   NO_TRIP_SCALE,
-			   NO_FLOOR,
-			   NO_RELATIVE_COUNTER,
-			   NO_ABSOLUTE_COUNTER);
-
-  ETMAnalogInitializeInput(&global_data_A36772.input_dac_monitor,
-			   MACRO_DEC_TO_SCALE_FACTOR_16(1),
-			   0,
-			   ANALOG_INPUT_NO_CALIBRATION,
-			   NO_OVER_TRIP,
-			   NO_UNDER_TRIP,
-			   NO_TRIP_SCALE,
-			   NO_FLOOR,
-			   NO_RELATIVE_COUNTER,
-			   NO_ABSOLUTE_COUNTER);
-
-
-
-  // ----------------- Initialize PIC's internal ADC Inputs --------------------- //
-
-  ETMAnalogInitializeInput(&global_data_A36772.pot_htr,
-			   MACRO_DEC_TO_SCALE_FACTOR_16(POT_HTR_FIXED_SCALE),
-			   POT_HTR_FIXED_OFFSET,
-			   ANALOG_INPUT_9,
-			   NO_OVER_TRIP,
-			   NO_UNDER_TRIP,
-			   NO_TRIP_SCALE,
-			   NO_FLOOR,
-			   NO_RELATIVE_COUNTER,
-			   NO_ABSOLUTE_COUNTER);
-
-
-  ETMAnalogInitializeInput(&global_data_A36772.pot_vtop,
-			   MACRO_DEC_TO_SCALE_FACTOR_16(POT_VTOP_FIXED_SCALE),
-			   POT_VTOP_FIXED_OFFSET,
-			   ANALOG_INPUT_A,
-			   NO_OVER_TRIP,
-			   NO_UNDER_TRIP,
-			   NO_TRIP_SCALE,
-			   NO_FLOOR,
-			   NO_RELATIVE_COUNTER,
-			   NO_ABSOLUTE_COUNTER);
-
-  ETMAnalogInitializeInput(&global_data_A36772.pot_ek,
-			   MACRO_DEC_TO_SCALE_FACTOR_16(POT_EK_FIXED_SCALE),
-			   POT_EK_FIXED_OFFSET,
-			   ANALOG_INPUT_B,
-			   NO_OVER_TRIP,
-			   NO_UNDER_TRIP,
-			   NO_TRIP_SCALE,
-			   NO_FLOOR,
-			   NO_RELATIVE_COUNTER,
-			   NO_ABSOLUTE_COUNTER);
-
-
-  ETMAnalogInitializeInput(&global_data_A36772.ref_htr,
-			   MACRO_DEC_TO_SCALE_FACTOR_16(REF_HTR_FIXED_SCALE),
-			   REF_HTR_FIXED_OFFSET,
-			   ANALOG_INPUT_9,
-			   NO_OVER_TRIP,
-			   NO_UNDER_TRIP,
-			   NO_TRIP_SCALE,
-			   NO_FLOOR,
-			   NO_RELATIVE_COUNTER,
-			   NO_ABSOLUTE_COUNTER);
-
-
-  ETMAnalogInitializeInput(&global_data_A36772.ref_vtop,
-			   MACRO_DEC_TO_SCALE_FACTOR_16(REF_VTOP_FIXED_SCALE),
-			   REF_VTOP_FIXED_OFFSET,
-			   ANALOG_INPUT_A,
-			   NO_OVER_TRIP,
-			   NO_UNDER_TRIP,
-			   NO_TRIP_SCALE,
-			   NO_FLOOR,
-			   NO_RELATIVE_COUNTER,
-			   NO_ABSOLUTE_COUNTER);
-
-  ETMAnalogInitializeInput(&global_data_A36772.ref_ek,
-			   MACRO_DEC_TO_SCALE_FACTOR_16(REF_EK_FIXED_SCALE),
-			   REF_EK_FIXED_OFFSET,
-			   ANALOG_INPUT_B,
-			   NO_OVER_TRIP,
-			   NO_UNDER_TRIP,
-			   NO_TRIP_SCALE,
-			   NO_FLOOR,
-			   NO_RELATIVE_COUNTER,
-			   NO_ABSOLUTE_COUNTER);
-
-
-
-
-
-
-  // ------------- Initialize Converter Logic Board DAC Outputs ------------------------------ //
-  ETMAnalogInitializeOutput(&global_data_A36772.analog_output_high_voltage,
-			    MACRO_DEC_TO_SCALE_FACTOR_16(DAC_HIGH_VOLTAGE_FIXED_SCALE),
-			    DAC_HIGH_VOLTAGE_FIXED_OFFSET,
-			    ANALOG_OUTPUT_0,
-			    HIGH_VOLTAGE_MAX_SET_POINT,
-			    HIGH_VOLTAGE_MIN_SET_POINT,
-			    0);
-
-  ETMAnalogInitializeOutput(&global_data_A36772.analog_output_top_voltage,
-			    MACRO_DEC_TO_SCALE_FACTOR_16(DAC_TOP_VOLTAGE_FIXED_SCALE),
-			    DAC_TOP_VOLTAGE_FIXED_OFFSET,
-			    ANALOG_OUTPUT_1,
-			    TOP_VOLTAGE_MAX_SET_POINT,
-			    TOP_VOLTAGE_MIN_SET_POINT,
-			    0);
-  
-  ETMAnalogInitializeOutput(&global_data_A36772.analog_output_heater_voltage,
-			    MACRO_DEC_TO_SCALE_FACTOR_16(DAC_HEATER_VOLTAGE_FIXED_SCALE),
-			    DAC_HEATER_VOLTAGE_FIXED_OFFSET,
-			    ANALOG_OUTPUT_2,
-			    HEATER_VOLTAGE_MAX_SET_POINT,
-			    HEATER_VOLTAGE_MIN_SET_POINT,
-			    0);
-
-
-  // ----------------------- Initialize on Board DAC Outputs ---------------------------- //  
-  ETMAnalogInitializeOutput(&global_data_A36772.monitor_heater_voltage,
-			    MACRO_DEC_TO_SCALE_FACTOR_16(DAC_MONITOR_HEATER_VOLTAGE_FIXED_SCALE),
-			    DAC_MONITOR_HEATER_VOLTAGE_FIXED_OFFSET,
-			    ANALOG_OUTPUT_3,
-			    0xFFFF,
-			    0,
-			    0);
-  
-  ETMAnalogInitializeOutput(&global_data_A36772.monitor_heater_current,
-			    MACRO_DEC_TO_SCALE_FACTOR_16(DAC_MONITOR_HEATER_CURRENT_FIXED_SCALE),
-			    DAC_MONITOR_HEATER_CURRENT_FIXED_OFFSET,
-			    ANALOG_OUTPUT_4,
-			    0xFFFF,
-			    0,
-			    0);
-
-  ETMAnalogInitializeOutput(&global_data_A36772.monitor_cathode_voltage,
-			    MACRO_DEC_TO_SCALE_FACTOR_16(DAC_MONITOR_CATHODE_VOLTAGE_FIXED_SCALE),
-			    DAC_MONITOR_CATHODE_VOLTAGE_FIXED_OFFSET,
-			    ANALOG_OUTPUT_5,
-			    0xFFFF,
-			    0,
-			    0);
-
-  ETMAnalogInitializeOutput(&global_data_A36772.monitor_grid_voltage,
-			    MACRO_DEC_TO_SCALE_FACTOR_16(DAC_MONITOR_GRID_VOLTAGE_FIXED_SCALE),
-			    DAC_MONITOR_GRID_VOLTAGE_FIXED_OFFSET,
-			    ANALOG_OUTPUT_6,
-			    0xFFFF,
-			    0,
-			    0);
-
-  global_data_A36772.monitor_heater_voltage.enabled = 1;
-  global_data_A36772.monitor_heater_current.enabled = 1;
-  global_data_A36772.monitor_grid_voltage.enabled = 1;
-  global_data_A36772.monitor_cathode_voltage.enabled = 1;
-
-  //ResetAllFaultInfo();
+  input->filter_time = filter_time;
+  if (initial_value == 0) {
+    input->accumulator = 0;
+    input->filtered_reading = 0;
+  } else {
+    input->accumulator = (filter_time << 1);
+    input->filtered_reading = 1;
+  }
 }
+
+
+void ETMDigitalUpdateInput(TYPE_DIGITAL_INPUT* input, unsigned int current_value) {
+  if (input->filter_time < 2) {
+    input->filtered_reading = current_value;
+  } else {
+    if (current_value) {
+      if (++input->accumulator > (input->filter_time << 1)) {
+	input->accumulator--;
+      }
+    } else {
+      if (input->accumulator) {
+	input->accumulator--;
+      }
+    }
+    if (input->accumulator >= input->filter_time) {
+      if (input->filtered_reading == 0) {
+	// we are changing state from low to high
+	input->accumulator = (input->filter_time << 1);
+      }
+      input->filtered_reading = 1;
+    } else {
+      if (input->filtered_reading == 1) {
+	// we are changing state from high to low
+	input->accumulator = 0;
+      }
+      input->filtered_reading = 0;
+    }
+  }
+}
+
 
 void __attribute__((interrupt, no_auto_psv)) _ADCInterrupt(void) {
   _ADIF = 0;
@@ -1806,209 +2013,6 @@ void __attribute__((interrupt, no_auto_psv)) _ADCInterrupt(void) {
   }
 }
 
-void ETMDigitalInitializeInput(TYPE_DIGITAL_INPUT* input, unsigned int initial_value, unsigned int filter_time) {
-  if (filter_time > 0x7000) {
-    filter_time = 0x7000;
-  }
-  input->filter_time = filter_time;
-  if (initial_value == 0) {
-    input->accumulator = 0;
-    input->filtered_reading = 0;
-  } else {
-    input->accumulator = (filter_time << 1);
-    input->filtered_reading = 1;
-  }
-}
-
-void ETMDigitalUpdateInput(TYPE_DIGITAL_INPUT* input, unsigned int current_value) {
-  if (input->filter_time < 2) {
-    input->filtered_reading = current_value;
-  } else {
-    if (current_value) {
-      if (++input->accumulator > (input->filter_time << 1)) {
-	input->accumulator--;
-      }
-    } else {
-      if (input->accumulator) {
-	input->accumulator--;
-      }
-    }
-    if (input->accumulator >= input->filter_time) {
-      if (input->filtered_reading == 0) {
-	// we are changing state from low to high
-	input->accumulator = (input->filter_time << 1);
-      }
-      input->filtered_reading = 1;
-    } else {
-      if (input->filtered_reading == 1) {
-	// we are changing state from high to low
-	input->accumulator = 0;
-      }
-      input->filtered_reading = 0;
-    }
-  }
-}
-
-void ResetAllFaultInfo(void) {
-  _FAULT_FPGA_FIRMWARE_MAJOR_REV_MISMATCH = 0;
-  _FAULT_ADC_HV_V_MON_OVER_RELATIVE = 0;
-  _FAULT_ADC_HV_V_MON_UNDER_RELATIVE = 0;
-  _FAULT_ADC_HTR_V_MON_OVER_RELATIVE = 0;
-  _FAULT_ADC_HTR_V_MON_UNDER_RELATIVE = 0;
-  _FAULT_ADC_HTR_I_MON_OVER_ABSOLUTE = 0;
-  _FAULT_ADC_HTR_I_MON_UNDER_ABSOLUTE = 0;
-  _FAULT_ADC_TOP_V_MON_OVER_RELATIVE = 0;
-  _FAULT_ADC_TOP_V_MON_UNDER_RELATIVE = 0;
-  _FAULT_ADC_BIAS_V_MON_OVER_ABSOLUTE = 0;
-  _FAULT_ADC_BIAS_V_MON_UNDER_ABSOLUTE = 0;
-  _FAULT_ADC_DIGITAL_WATCHDOG = 0;
-  _FAULT_ADC_DIGITAL_ARC = 0;
-  _FAULT_ADC_DIGITAL_OVER_TEMP = 0;
-  _FAULT_ADC_DIGITAL_PULSE_WIDTH_DUTY = 0;
-  _FAULT_ADC_DIGITAL_GRID = 0;
-  _FAULT_CONVERTER_LOGIC_ADC_READ_FAILURE = 0;
-  _FAULT_HEATER_RAMP_TIMEOUT = 0;
-  
-  _STATUS_CUSTOMER_HV_ON = 0;
-  _STATUS_CUSTOMER_BEAM_ENABLE = 0;
-  _STATUS_ADC_DIGITAL_HEATER_NOT_READY = 0;
-  _STATUS_DAC_WRITE_FAILURE = 0;
-
-  _FPGA_CONVERTER_LOGIC_PCB_REV_MISMATCH         = 0;
-  _FPGA_FIRMWARE_MINOR_REV_MISMATCH              = 0;
-  _FPGA_ARC_COUNTER_GREATER_ZERO                 = 0;
-  _FPGA_ARC_HIGH_VOLTAGE_INHIBIT_ACTIVE          = 0;
-  _FPGA_HEATER_VOLTAGE_LESS_THAN_4_5_VOLTS       = 0;
-  _FPGA_MODULE_TEMP_GREATER_THAN_65_C            = 0;
-  _FPGA_MODULE_TEMP_GREATER_THAN_75_C            = 0;
-  _FPGA_PULSE_WIDTH_LIMITING                     = 0;
-  _FPGA_PRF_FAULT                                = 0;
-  _FPGA_CURRENT_MONITOR_PULSE_WIDTH_FAULT        = 0;
-  _FPGA_GRID_MODULE_HARDWARE_FAULT               = 0;
-  _FPGA_GRID_MODULE_OVER_VOLTAGE_FAULT           = 0;
-  _FPGA_GRID_MODULE_UNDER_VOLTAGE_FAULT          = 0;
-  _FPGA_GRID_MODULE_BIAS_VOLTAGE_FAULT           = 0;
-  _FPGA_HV_REGULATION_WARNING                    = 0;
-  _FPGA_DIPSWITCH_1_ON                           = 0;
-  _FPGA_TEST_MODE_TOGGLE_SWITCH_TEST_MODE        = 0;
-  _FPGA_LOCAL_MODE_TOGGLE_SWITCH_LOCAL_MODE      = 0;
-
-
-  // Initialize Digital Input Filters for FPGA Status
-  ETMDigitalInitializeInput(&global_data_A36772.fpga_coverter_logic_pcb_rev_mismatch       , 0, 30);   
-  ETMDigitalInitializeInput(&global_data_A36772.fpga_firmware_major_rev_mismatch           , 0, 30);   
-  ETMDigitalInitializeInput(&global_data_A36772.fpga_firmware_minor_rev_mismatch           , 0, 30);   
-  ETMDigitalInitializeInput(&global_data_A36772.fpga_arc                                   , 0, 5);
-  ETMDigitalInitializeInput(&global_data_A36772.fpga_arc_high_voltage_inihibit_active      , 0, 0);
-  ETMDigitalInitializeInput(&global_data_A36772.fpga_heater_voltage_less_than_4_5_volts    , 0, 30);
-  ETMDigitalInitializeInput(&global_data_A36772.fpga_module_temp_greater_than_65_C         , 0, 30); 
-  ETMDigitalInitializeInput(&global_data_A36772.fpga_module_temp_greater_than_75_C         , 0, 30);
-  ETMDigitalInitializeInput(&global_data_A36772.fpga_pulse_width_limiting_active           , 0, 30);
-  ETMDigitalInitializeInput(&global_data_A36772.fpga_prf_fault                             , 0, 30);
-  ETMDigitalInitializeInput(&global_data_A36772.fpga_current_monitor_pulse_width_fault     , 0, 30);
-  ETMDigitalInitializeInput(&global_data_A36772.fpga_grid_module_hardware_fault            , 0, 30);
-  ETMDigitalInitializeInput(&global_data_A36772.fpga_grid_module_over_voltage_fault        , 0, 30);
-  ETMDigitalInitializeInput(&global_data_A36772.fpga_grid_module_under_voltage_fault       , 0, 30);
-  ETMDigitalInitializeInput(&global_data_A36772.fpga_grid_module_bias_voltage_fault        , 0, 30);
-  ETMDigitalInitializeInput(&global_data_A36772.fpga_hv_regulation_warning                 , 0, 30);
-  ETMDigitalInitializeInput(&global_data_A36772.fpga_dipswitch_1_on                        , 0, 30);
-  ETMDigitalInitializeInput(&global_data_A36772.fpga_test_mode_toggle_switch_set_to_test   , 0, 30);
-  ETMDigitalInitializeInput(&global_data_A36772.fpga_local_mode_toggle_switch_set_to_local , 0, 30);
-
-  // Initialize Digital Input Filters For ADC "Digital" Inputs
-  ETMDigitalInitializeInput(&global_data_A36772.adc_digital_warmup_flt                     , 1, 30);
-  ETMDigitalInitializeInput(&global_data_A36772.adc_digital_watchdog_flt                   , 1, 30);
-  ETMDigitalInitializeInput(&global_data_A36772.adc_digital_arc_flt                        , 1, 30);
-  ETMDigitalInitializeInput(&global_data_A36772.adc_digital_over_temp_flt                  , 1, 30);
-  ETMDigitalInitializeInput(&global_data_A36772.adc_digital_pulse_width_duty_flt           , 1, 30);
-  ETMDigitalInitializeInput(&global_data_A36772.adc_digital_grid_flt                       , 1, 30);
-
-  // Reset all the Analog input fault counters
-  ETMAnalogClearFaultCounters(&global_data_A36772.input_adc_temperature);
-  ETMAnalogClearFaultCounters(&global_data_A36772.input_hv_v_mon);
-  ETMAnalogClearFaultCounters(&global_data_A36772.input_hv_i_mon);
-  ETMAnalogClearFaultCounters(&global_data_A36772.input_gun_i_peak);
-  ETMAnalogClearFaultCounters(&global_data_A36772.input_htr_v_mon);
-  ETMAnalogClearFaultCounters(&global_data_A36772.input_htr_i_mon);
-  ETMAnalogClearFaultCounters(&global_data_A36772.input_top_v_mon);
-  ETMAnalogClearFaultCounters(&global_data_A36772.input_bias_v_mon);
-  ETMAnalogClearFaultCounters(&global_data_A36772.input_24_v_mon);
-  ETMAnalogClearFaultCounters(&global_data_A36772.input_dac_monitor);
-
-  ETMAnalogClearFaultCounters(&global_data_A36772.pot_htr);
-  ETMAnalogClearFaultCounters(&global_data_A36772.pot_vtop);
-  ETMAnalogClearFaultCounters(&global_data_A36772.pot_ek);
-  ETMAnalogClearFaultCounters(&global_data_A36772.ref_htr);
-  ETMAnalogClearFaultCounters(&global_data_A36772.ref_vtop);
-  ETMAnalogClearFaultCounters(&global_data_A36772.ref_ek);
-  ETMAnalogClearFaultCounters(&global_data_A36772.pos_15v_mon);
-  ETMAnalogClearFaultCounters(&global_data_A36772.neg_15v_mon);
-
-  global_data_A36772.adc_read_error_test = 0;
-  global_data_A36772.adc_read_error_count = 0;
-  global_data_A36772.adc_read_ok = 1;
-
-  global_data_A36772.dac_write_error_count = 0;
-  global_data_A36772.dac_write_failure = 0;
-  global_data_A36772.dac_write_failure_count = 0;
-}
-
-
-void UpdateLEDandStatusOutuputs(void) {
-  // Warmup status
-  if ((global_data_A36772.control_state >= STATE_START_UP) && (global_data_A36772.control_state <= STATE_HEATER_WARM_UP)) {
-    PIN_LED_WARMUP = OLL_LED_ON;
-    PIN_CPU_WARMUP_STATUS = OLL_STATUS_ACTIVE;
-  } else {
-    PIN_LED_WARMUP = !OLL_LED_ON;
-    PIN_CPU_WARMUP_STATUS = !OLL_STATUS_ACTIVE;
-  }
-  
-  // Standby Status
-  if (global_data_A36772.control_state == STATE_HEATER_WARM_UP_DONE) {
-    PIN_LED_STANDBY = OLL_LED_ON;
-    PIN_CPU_STANDBY_STATUS = OLL_STATUS_ACTIVE;
-  } else {
-    PIN_LED_STANDBY = !OLL_LED_ON;
-    PIN_CPU_STANDBY_STATUS = !OLL_STATUS_ACTIVE;
-  }
-  
-  // HV ON Status
-  if (global_data_A36772.control_state == STATE_POWER_SUPPLY_RAMP_UP) {
-    // FLASH THE HV ON LED
-    if (global_data_A36772.run_time_counter & 0x0010) {
-      PIN_LED_HV_ON = OLL_LED_ON;
-      PIN_CPU_HV_ON_STATUS = OLL_STATUS_ACTIVE;
-    } else {
-      PIN_LED_HV_ON = !OLL_LED_ON;
-      PIN_CPU_HV_ON_STATUS = !OLL_STATUS_ACTIVE;
-    }
-  } else if (global_data_A36772.control_state >= STATE_HV_ON) {
-    PIN_LED_HV_ON = OLL_LED_ON;
-    PIN_CPU_HV_ON_STATUS = OLL_STATUS_ACTIVE;
-  } else {
-    PIN_LED_HV_ON = !OLL_LED_ON;
-    PIN_CPU_HV_ON_STATUS = !OLL_STATUS_ACTIVE;
-  }
-  
-  // Beam enabled Status
-  if (global_data_A36772.control_state == STATE_BEAM_ENABLE) {
-    PIN_LED_BEAM_ENABLE = OLL_LED_ON;
-    PIN_CPU_BEAM_ENABLE_STATUS = OLL_STATUS_ACTIVE;
-  } else {
-    PIN_LED_BEAM_ENABLE = !OLL_LED_ON;
-    PIN_CPU_BEAM_ENABLE_STATUS = !OLL_STATUS_ACTIVE;
-    }
-  
-  // System OK Status
-  if (global_data_A36772.control_state <= STATE_FAULT_HEATER_ON) {
-    PIN_CPU_SYSTEM_OK_STATUS = !OLL_STATUS_ACTIVE;
-    PIN_LED_SYSTEM_OK = !OLL_LED_ON;
-  } else {
-    PIN_CPU_SYSTEM_OK_STATUS = OLL_STATUS_ACTIVE;
-    PIN_LED_SYSTEM_OK = OLL_LED_ON;
-  }
-}
 
 void ETMAnalogClearFaultCounters(AnalogInput* ptr_analog_input) {
   ptr_analog_input->absolute_under_counter = 0;
