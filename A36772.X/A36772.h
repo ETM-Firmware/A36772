@@ -158,7 +158,7 @@
 #define OLL_STATUS_ACTIVE                            1
 
 #define PIN_CPU_HV_ENABLE                            _LATD2
-#define PIN_CPU_BEAM_ENABLE                          _LATD8
+#define PIN_CPU_BEAM_ENABLE                          _LATD1
 #define OLL_PIN_CPU_BEAM_ENABLE_BEAM_ENABLED         1
 #define OLL_PIN_CPU_HV_ENABLE_HV_ENABLED             1
 
