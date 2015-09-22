@@ -15,6 +15,14 @@ _FGS(CODE_PROT_OFF);
 _FICD(PGD);
 
 
+void ETMCanSpoofPulseSyncNextPulseLevel();
+void ETMCanSpoofAFCHighSpeedDataLog();
+unsigned int next_pulse_count = 0;
+unsigned int spoof_counter = 0;
+
+
+
+
 void DoStateMachine(void); // This handles the state machine for the interface board
 void InitializeA36772(void); // Initialize the A36772 for operation
 void DoStartupLEDs(void); // Used to flash the LEDs at startup
@@ -900,6 +908,16 @@ void DoA36772(void) {
     _T2IF = 0;
 
 
+    if (_SYNC_CONTROL_HIGH_SPEED_LOGGING) {
+      spoof_counter++;
+      if (spoof_counter >= 10) {
+	spoof_counter = 0;
+	next_pulse_count++;
+	ETMCanSpoofPulseSyncNextPulseLevel();
+	ETMCanSpoofAFCHighSpeedDataLog();
+      }
+    }
+      
 #ifdef __CAN_CONTROLS
     if (_SYNC_CONTROL_RESET_ENABLE) {
       global_data_A36772.reset_active = 1;
@@ -1235,8 +1253,16 @@ void UpdateFaults(void) {
       ETMAnalogClearFaultCounters(&global_data_A36772.input_bias_v_mon);
     }
 
+    
     if (ETMAnalogCheckOverAbsolute(&global_data_A36772.input_htr_i_mon)) {
       _FAULT_ADC_HTR_I_MON_OVER_ABSOLUTE = 1;
+    }
+
+    // Only check for heater under current after the ramp up process is complete
+    if (global_data_A36772.control_state > STATE_HEATER_WARM_UP) {
+      if (ETMAnalogCheckUnderAbsolute(&global_data_A36772.input_htr_i_mon)) {
+	_FAULT_ADC_HTR_I_MON_UNDER_ABSOLUTE = 1;
+      }
     }
 
     if (ETMAnalogCheckOverRelative(&global_data_A36772.input_htr_v_mon)) {
@@ -1245,10 +1271,6 @@ void UpdateFaults(void) {
       
     if (ETMAnalogCheckUnderRelative(&global_data_A36772.input_htr_v_mon)) {
       _FAULT_ADC_HTR_V_MON_UNDER_RELATIVE = 1;
-    }
-    
-    if (ETMAnalogCheckUnderAbsolute(&global_data_A36772.input_htr_i_mon)) {
-      _FAULT_ADC_HTR_I_MON_UNDER_ABSOLUTE = 1;
     }
 
     if (ETMAnalogCheckOverRelative(&global_data_A36772.input_hv_v_mon)) {
@@ -2021,3 +2043,58 @@ void ETMAnalogClearFaultCounters(AnalogInput* ptr_analog_input) {
   ptr_analog_input->under_trip_counter = 0;
 }
 
+
+void ETMCanSpoofPulseSyncNextPulseLevel(void) {
+  ETMCanMessage message;
+  message.identifier = ETM_CAN_MSG_LVL_TX | (ETM_CAN_ADDR_PULSE_SYNC_BOARD << 3); 
+  message.word0      = next_pulse_count;
+  message.word1    = 0xFFFF;
+  ETMCanTXMessage(&message, &C2TX2CON);
+}
+
+
+void ETMCanSpoofAFCHighSpeedDataLog(void) {
+  unsigned int packet_id;
+
+  // Spoof HV Lambda Packet 0x4C
+  ETMCanMessage log_message;
+  
+  packet_id = 0x004C;
+  packet_id <<= 1;
+  packet_id |= 0b0000011000000000;
+  packet_id <<= 2;
+  
+  log_message.identifier = packet_id;
+  log_message.identifier &= 0xFF00;
+  log_message.identifier <<= 3;
+  log_message.identifier |= (packet_id & 0x00FF);
+  
+  log_message.word3 = next_pulse_count-1;
+  log_message.word2 = global_data_A36772.heater_voltage_target;
+  log_message.word1 = global_data_A36772.analog_output_heater_voltage.set_point;
+  log_message.word0 = global_data_A36772.pot_htr.reading_scaled_and_calibrated;
+  
+  ETMCanAddMessageToBuffer(&etm_can_tx_message_buffer, &log_message);
+  MacroETMCanCheckTXBuffer();
+
+  // Spoof Pulse Sync Packet 0x3C
+  
+  packet_id = 0x003C;
+  packet_id <<= 1;
+  packet_id |= 0b0000011000000000;
+  packet_id <<= 2;
+  
+  log_message.identifier = packet_id;
+  log_message.identifier &= 0xFF00;
+  log_message.identifier <<= 3;
+  log_message.identifier |= (packet_id & 0x00FF);
+  
+  log_message.word3 = next_pulse_count-1;//local_debug_data.debug_4;
+  log_message.word2 = global_data_A36772.control_state;
+  log_message.word1 = global_data_A36772.input_htr_v_mon.reading_scaled_and_calibrated;
+  log_message.word0 = global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated;
+  
+  ETMCanAddMessageToBuffer(&etm_can_tx_message_buffer, &log_message);
+  MacroETMCanCheckTXBuffer();
+
+}

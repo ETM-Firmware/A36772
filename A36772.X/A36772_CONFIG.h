@@ -78,7 +78,7 @@
 
 // ----------- Timers configurations - ALL Times are in 10ms Units --------------------
 #define LED_STARTUP_FLASH_TIME                500      // Time LEDs will flash at startup
-#define MAX_HEATER_RAMP_UP_TIME               12000    // If the heater does not reach it's programed voltage in this time a fault will be generated
+#define MAX_HEATER_RAMP_UP_TIME               24000    // If the heater does not reach it's programed voltage in this time a fault will be generated
 #define HEATER_AUTO_RESTART_TIME              500      // Time delay between a heater fault and when the heater gets restarted
 #define HEATER_RAMP_UP_TIME_PERIOD            5        // Durring heater ramp up, the heater voltage will be increased every N 10ms (see HEATER_RAMP_UP_INCREMENT)
 #define GUN_DRIVER_POWER_SUPPLY_STATUP_TIME   100      // Wait this long between enabling High Voltage / Pulse Top / Bias and cheching that they are at correct values
@@ -99,7 +99,7 @@
 #ifdef __CAN_CONTROLS
 #define HEATER_WARM_UP_TIME 100 //18000     // In Can control mode the heater warm up time is enforced by the ECB
 #else
-#define HEATER_WARM_UP_TIME 18000 //18000 // 3 minutes
+#define HEATER_WARM_UP_TIME 12000 // 2 minutes
 #endif
 
 
