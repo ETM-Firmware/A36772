@@ -15,8 +15,8 @@ _FGS(CODE_PROT_OFF);
 _FICD(PGD);
 
 
-void ETMCanSpoofPulseSyncNextPulseLevel();
-void ETMCanSpoofAFCHighSpeedDataLog();
+//void ETMCanSpoofPulseSyncNextPulseLevel();
+//void ETMCanSpoofAFCHighSpeedDataLog();
 unsigned int next_pulse_count = 0;
 unsigned int spoof_counter = 0;
 
@@ -329,6 +329,7 @@ void DoStateMachine(void) {
     DisableHighVoltage();
     DisableHeater();
     DisableBeam();
+    _FAULT_HEATER_STARTUP_FAILURE = 1;
     while (global_data_A36772.control_state == STATE_FAULT_HEATER_FAILURE) {
       // Can't leave this state without power cycle
       DoA36772();
@@ -349,12 +350,14 @@ void InitializeA36772(void) {
   // Initialize the status register and load the inhibit and fault masks
   _FAULT_REGISTER = 0;
   _CONTROL_REGISTER = 0;
-  etm_can_status_register.data_word_A = 0x0000;
-  etm_can_status_register.data_word_B = 0x0000;
+  _WARNING_REGISTER = 0;
+  _NOT_LOGGED_REGISTER = 0;
 
-  etm_can_my_configuration.firmware_major_rev = FIRMWARE_AGILE_REV;
-  etm_can_my_configuration.firmware_branch = FIRMWARE_BRANCH;
-  etm_can_my_configuration.firmware_minor_rev = FIRMWARE_MINOR_REV;
+  //etm_can_status_register.data_word_A = 0x0000;
+  //etm_can_status_register.data_word_B = 0x0000;
+
+#define SERIAL_NUMBER   101
+#define AGILE_REV       10
 
 
   // --------- BEGIN IO PIN CONFIGURATION ------------------
@@ -408,8 +411,8 @@ void InitializeA36772(void) {
 
 #ifdef __CAN_ENABLED
   // Initialize the Can module
-  ETMCanSlaveInitialize(FCY_CLK, ETM_CAN_ADDR_GUN_DRIVER_BOARD, _PIN_RC3, 4);
-  ETMCanSlaveLoadConfiguration(36772, 000, FIRMWARE_AGILE_REV, FIRMWARE_BRANCH, FIRMWARE_MINOR_REV);
+  ETMCanSlaveInitialize(CAN_PORT_1, FCY_CLK, ETM_CAN_ADDR_GUN_DRIVER_BOARD, _PIN_RC3, 4);
+  ETMCanSlaveLoadConfiguration(36772, 000, AGILE_REV, FIRMWARE_AGILE_REV, FIRMWARE_BRANCH, FIRMWARE_MINOR_REV, SERIAL_NUMBER);
 #endif
 
   ADCConfigure();
@@ -741,6 +744,7 @@ void ResetAllFaultInfo(void) {
   _FAULT_ADC_DIGITAL_GRID = 0;
   _FAULT_CONVERTER_LOGIC_ADC_READ_FAILURE = 0;
   _FAULT_HEATER_RAMP_TIMEOUT = 0;
+  _FAULT_HEATER_STARTUP_FAILURE = 0;
   
   _STATUS_CUSTOMER_HV_ON = 0;
   _STATUS_CUSTOMER_BEAM_ENABLE = 0;
@@ -840,6 +844,7 @@ unsigned int CheckHeaterFault(void) {
   fault |= _FAULT_ADC_DIGITAL_GRID;
   fault |= _FAULT_CONVERTER_LOGIC_ADC_READ_FAILURE;
   fault |= _FAULT_HEATER_RAMP_TIMEOUT;
+  fault |= _FAULT_HEATER_STARTUP_FAILURE;
   if (fault) {
     return 1;
   } else {
@@ -907,8 +912,8 @@ void DoA36772(void) {
     // Run once every 10ms
     _T2IF = 0;
 
-
-    if (_SYNC_CONTROL_HIGH_SPEED_LOGGING) {
+    /*
+    if (ETMCanSlaveGetSyncMsgHighSpeedLogging()) {
       spoof_counter++;
       if (spoof_counter >= 10) {
 	spoof_counter = 0;
@@ -917,7 +922,7 @@ void DoA36772(void) {
 	ETMCanSpoofAFCHighSpeedDataLog();
       }
     }
-      
+    */
 #ifdef __CAN_CONTROLS
     if (_SYNC_CONTROL_RESET_ENABLE) {
       global_data_A36772.reset_active = 1;
@@ -999,14 +1004,18 @@ void DoA36772(void) {
     //local_debug_data.debug_D = global_data_A36772.ref_htr.reading_scaled_and_calibrated;
     //local_debug_data.debug_E = global_data_A36772.ref_vtop.reading_scaled_and_calibrated;
     //local_debug_data.debug_F = global_data_A36772.ref_ek.reading_scaled_and_calibrated;
-    local_debug_data.debug_A = global_data_A36772.run_time_counter;
-    local_debug_data.debug_B = global_data_A36772.fault_restart_remaining;
-    local_debug_data.debug_C = global_data_A36772.power_supply_startup_remaining;
-    local_debug_data.debug_D = global_data_A36772.heater_warm_up_time_remaining;
-    local_debug_data.debug_E = global_data_A36772.heater_ramp_up_time;
-    local_debug_data.debug_F = global_data_A36772.control_state;
-    
-    
+    //local_debug_data.debug_A = global_data_A36772.run_time_counter;
+    //local_debug_data.debug_B = global_data_A36772.fault_restart_remaining;
+    //local_debug_data.debug_C = global_data_A36772.power_supply_startup_remaining;
+    //local_debug_data.debug_D = global_data_A36772.heater_warm_up_time_remaining;
+    //local_debug_data.debug_E = global_data_A36772.heater_ramp_up_time;
+    //local_debug_data.debug_F = global_data_A36772.control_state;
+    ETMCanSlaveSetDebugRegister(0xA, global_data_A36772.run_time_counter);
+    ETMCanSlaveSetDebugRegister(0xB, global_data_A36772.fault_restart_remaining);
+    ETMCanSlaveSetDebugRegister(0xC, global_data_A36772.power_supply_startup_remaining);
+    ETMCanSlaveSetDebugRegister(0xD, global_data_A36772.heater_warm_up_time_remaining);
+    ETMCanSlaveSetDebugRegister(0xE, global_data_A36772.heater_ramp_up_time);
+    ETMCanSlaveSetDebugRegister(0xF, global_data_A36772.control_state);
     
 
     
@@ -1024,7 +1033,8 @@ void DoA36772(void) {
     local_debug_data.debug_8 = global_data_A36772.input_temperature_mon.reading_scaled_and_calibrated;
     local_debug_data.debug_9 = global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated;
     */
-    local_debug_data.debug_7 = global_data_A36772.dac_write_failure_count;
+    //local_debug_data.debug_7 = global_data_A36772.dac_write_failure_count;
+    ETMCanSlaveSetDebugRegister(7, global_data_A36772.dac_write_failure_count);
 
 #ifdef __POT_REFERENCE
     // The set points should be based on the pots
@@ -1100,49 +1110,56 @@ void DoA36772(void) {
       case 0:
 	WriteLTC265X(&U32_LTC2654, LTC265X_WRITE_AND_UPDATE_DAC_A, global_data_A36772.monitor_heater_voltage.dac_setting_scaled_and_calibrated);
 	DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_A, global_data_A36772.analog_output_high_voltage.dac_setting_scaled_and_calibrated);
-	local_debug_data.debug_0 = global_data_A36772.analog_output_high_voltage.dac_setting_scaled_and_calibrated;
+	//local_debug_data.debug_0 = global_data_A36772.analog_output_high_voltage.dac_setting_scaled_and_calibrated;
+        ETMCanSlaveSetDebugRegister(0, global_data_A36772.analog_output_high_voltage.dac_setting_scaled_and_calibrated);
 	break;
 	
 
       case 1:
 	WriteLTC265X(&U32_LTC2654, LTC265X_WRITE_AND_UPDATE_DAC_B, global_data_A36772.monitor_heater_current.dac_setting_scaled_and_calibrated);
 	DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_B, global_data_A36772.analog_output_top_voltage.dac_setting_scaled_and_calibrated);
-	local_debug_data.debug_1 = global_data_A36772.analog_output_top_voltage.dac_setting_scaled_and_calibrated;
+	//local_debug_data.debug_1 = global_data_A36772.analog_output_top_voltage.dac_setting_scaled_and_calibrated;
+        ETMCanSlaveSetDebugRegister(1, global_data_A36772.analog_output_top_voltage.dac_setting_scaled_and_calibrated);
 	break;
 
     
       case 2:
 	WriteLTC265X(&U32_LTC2654, LTC265X_WRITE_AND_UPDATE_DAC_C, global_data_A36772.monitor_cathode_voltage.dac_setting_scaled_and_calibrated);
 	DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_C, global_data_A36772.analog_output_heater_voltage.dac_setting_scaled_and_calibrated);
-	local_debug_data.debug_2 = global_data_A36772.analog_output_heater_voltage.dac_setting_scaled_and_calibrated;
+	//local_debug_data.debug_2 = global_data_A36772.analog_output_heater_voltage.dac_setting_scaled_and_calibrated;
+        ETMCanSlaveSetDebugRegister(2, global_data_A36772.analog_output_heater_voltage.dac_setting_scaled_and_calibrated);
 	break;
 
       
       case 3:
 	WriteLTC265X(&U32_LTC2654, LTC265X_WRITE_AND_UPDATE_DAC_D, global_data_A36772.monitor_grid_voltage.dac_setting_scaled_and_calibrated);
 	DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_D, global_data_A36772.dac_digital_hv_enable);
-	local_debug_data.debug_3 = global_data_A36772.dac_digital_hv_enable;
+	//local_debug_data.debug_3 = global_data_A36772.dac_digital_hv_enable;
+        ETMCanSlaveSetDebugRegister(3, global_data_A36772.dac_digital_hv_enable);
 	break;
 
 
       case 4:
 	WriteLTC265X(&U32_LTC2654, LTC265X_WRITE_AND_UPDATE_DAC_A, global_data_A36772.monitor_heater_voltage.dac_setting_scaled_and_calibrated);
 	DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_E, global_data_A36772.dac_digital_heater_enable);
-	local_debug_data.debug_4 = global_data_A36772.dac_digital_heater_enable;
+	//local_debug_data.debug_4 = global_data_A36772.dac_digital_heater_enable;
+        ETMCanSlaveSetDebugRegister(4, global_data_A36772.dac_digital_heater_enable);
 	break;
 
       
       case 5:
 	WriteLTC265X(&U32_LTC2654, LTC265X_WRITE_AND_UPDATE_DAC_B, global_data_A36772.monitor_heater_current.dac_setting_scaled_and_calibrated);
 	DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_F, global_data_A36772.dac_digital_top_enable);
-	local_debug_data.debug_5 = global_data_A36772.dac_digital_top_enable;
+	//local_debug_data.debug_5 = global_data_A36772.dac_digital_top_enable;
+        ETMCanSlaveSetDebugRegister(5, global_data_A36772.dac_digital_top_enable);
 	break;
 
     
       case 6:
 	WriteLTC265X(&U32_LTC2654, LTC265X_WRITE_AND_UPDATE_DAC_C, global_data_A36772.monitor_cathode_voltage.dac_setting_scaled_and_calibrated);
 	DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_G, global_data_A36772.dac_digital_trigger_enable);
-	local_debug_data.debug_6 = global_data_A36772.dac_digital_trigger_enable;
+	//local_debug_data.debug_6 = global_data_A36772.dac_digital_trigger_enable;
+        ETMCanSlaveSetDebugRegister(6, global_data_A36772.dac_digital_trigger_enable);
 	break;
     
   
@@ -2044,57 +2061,94 @@ void ETMAnalogClearFaultCounters(AnalogInput* ptr_analog_input) {
 }
 
 
-void ETMCanSpoofPulseSyncNextPulseLevel(void) {
-  ETMCanMessage message;
-  message.identifier = ETM_CAN_MSG_LVL_TX | (ETM_CAN_ADDR_PULSE_SYNC_BOARD << 3); 
-  message.word0      = next_pulse_count;
-  message.word1    = 0xFFFF;
-  ETMCanTXMessage(&message, &C2TX2CON);
-}
+//void ETMCanSpoofPulseSyncNextPulseLevel(void) {
+//  ETMCanMessage message;
+//  message.identifier = ETM_CAN_MSG_LVL_TX | (ETM_CAN_ADDR_PULSE_SYNC_BOARD << 3);
+//  message.word0      = next_pulse_count;
+//  message.word1    = 0xFFFF;
+//  ETMCanTXMessage(&message, &C2TX2CON);
+//}
+//
+//
+//void ETMCanSpoofAFCHighSpeedDataLog(void) {
+//  unsigned int packet_id;
+//
+//  // Spoof HV Lambda Packet 0x4C
+//  ETMCanMessage log_message;
+//  //HWANETICK - Added temporarily 3 lines below
+//  //unsigned int *CXTX0CON_ptr;
+//  //ETMCanMessageBuffer etm_can_tx_message_buffer;
+//  //ETMCanBufferInitialize(&etm_can_tx_message_buffer);
+//
+//  packet_id = 0x004C;
+//  packet_id <<= 1;
+//  packet_id |= 0b0000011000000000;
+//  packet_id <<= 2;
+//
+//  log_message.identifier = packet_id;
+//  log_message.identifier &= 0xFF00;
+//  log_message.identifier <<= 3;
+//  log_message.identifier |= (packet_id & 0x00FF);
+//
+//  log_message.word3 = next_pulse_count-1;
+//  log_message.word2 = global_data_A36772.heater_voltage_target;
+//  log_message.word1 = global_data_A36772.analog_output_heater_voltage.set_point;
+//  log_message.word0 = global_data_A36772.pot_htr.reading_scaled_and_calibrated;
+//
+//  ETMCanAddMessageToBuffer(&etm_can_tx_message_buffer, &log_message);
+//  MacroETMCanCheckTXBuffer();
+//
+//  // Spoof Pulse Sync Packet 0x3C
+//
+//  packet_id = 0x003C;
+//  packet_id <<= 1;
+//  packet_id |= 0b0000011000000000;
+//  packet_id <<= 2;
+//
+//  log_message.identifier = packet_id;
+//  log_message.identifier &= 0xFF00;
+//  log_message.identifier <<= 3;
+//  log_message.identifier |= (packet_id & 0x00FF);
+//
+//  log_message.word3 = next_pulse_count-1;//local_debug_data.debug_4;
+//  log_message.word2 = global_data_A36772.control_state;
+//  log_message.word1 = global_data_A36772.input_htr_v_mon.reading_scaled_and_calibrated;
+//  log_message.word0 = global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated;
+//
+//  ETMCanAddMessageToBuffer(&etm_can_tx_message_buffer, &log_message);
+//  MacroETMCanCheckTXBuffer();
+//
+//}
+void ETMCanSlaveExecuteCMDBoardSpecific(ETMCanMessage* message_ptr) {
+  unsigned int index_word;
+  //unsigned int value;
 
+  index_word = message_ptr->word3;
+  switch (index_word)
+    {
+      /*
+	Place all board specific commands here
+      */
+      /*
+    case ETM_CAN_REGISTER_GUN_DRIVER_SET_1_GRID_TOP_SET_POINT:
+      value = ETMScaleFactor16(message_ptr->word1, CAN_scale_table[CAN_SET_EGSET].fixed_scale, 0);
+      SetEg(value);
+      // word0 for low Eg, not used
+      _CONTROL_NOT_CONFIGURED = AreAnyReferenceNotConfigured();
+      break;
 
-void ETMCanSpoofAFCHighSpeedDataLog(void) {
-  unsigned int packet_id;
+    case ETM_CAN_REGISTER_GUN_DRIVER_SET_1_HEATER_CATHODE_SET_POINT:
+      value = ETMScaleFactor16(message_ptr->word1, CAN_scale_table[CAN_SET_EKSET].fixed_scale, 0);
+      SetEk(value);
+      value = ETMScaleFactor16(message_ptr->word0, CAN_scale_table[CAN_SET_EFSET].fixed_scale, 0);
+      SetEf(value);
+      _CONTROL_NOT_CONFIGURED = AreAnyReferenceNotConfigured();
+      break;
 
-  // Spoof HV Lambda Packet 0x4C
-  ETMCanMessage log_message;
-  
-  packet_id = 0x004C;
-  packet_id <<= 1;
-  packet_id |= 0b0000011000000000;
-  packet_id <<= 2;
-  
-  log_message.identifier = packet_id;
-  log_message.identifier &= 0xFF00;
-  log_message.identifier <<= 3;
-  log_message.identifier |= (packet_id & 0x00FF);
-  
-  log_message.word3 = next_pulse_count-1;
-  log_message.word2 = global_data_A36772.heater_voltage_target;
-  log_message.word1 = global_data_A36772.analog_output_heater_voltage.set_point;
-  log_message.word0 = global_data_A36772.pot_htr.reading_scaled_and_calibrated;
-  
-  ETMCanAddMessageToBuffer(&etm_can_tx_message_buffer, &log_message);
-  MacroETMCanCheckTXBuffer();
-
-  // Spoof Pulse Sync Packet 0x3C
-  
-  packet_id = 0x003C;
-  packet_id <<= 1;
-  packet_id |= 0b0000011000000000;
-  packet_id <<= 2;
-  
-  log_message.identifier = packet_id;
-  log_message.identifier &= 0xFF00;
-  log_message.identifier <<= 3;
-  log_message.identifier |= (packet_id & 0x00FF);
-  
-  log_message.word3 = next_pulse_count-1;//local_debug_data.debug_4;
-  log_message.word2 = global_data_A36772.control_state;
-  log_message.word1 = global_data_A36772.input_htr_v_mon.reading_scaled_and_calibrated;
-  log_message.word0 = global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated;
-  
-  ETMCanAddMessageToBuffer(&etm_can_tx_message_buffer, &log_message);
-  MacroETMCanCheckTXBuffer();
+    default:
+      local_can_errors.invalid_index++;
+      break;
+      */
+    }
 
 }

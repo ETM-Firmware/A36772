@@ -11,14 +11,15 @@
 #ifndef __A36772_H
 #define __A36772_H
 
+
 #include <xc.h>
 #include <libpic30.h>
 #include <adc12.h>
 #include <timer.h>
 #include <spi.h>
+#include "FIRMWARE_VERSION.h"
 #include "ETM.h"
 #include "P1395_CAN_SLAVE.h"
-#include "FIRMWARE_VERSION.h"
 //#include "faults.h"
 
 #define FCY_CLK                    10000000
@@ -372,31 +373,6 @@ extern TYPE_GLOBAL_DATA_A36772 global_data_A36772;
 // ---------------------- FAULT & STATUS   CONFIGURATION ---------------------------- //
 
 
-#define _FPGA_CONVERTER_LOGIC_PCB_REV_MISMATCH         _STATUS_7
-#define _FPGA_FIRMWARE_MINOR_REV_MISMATCH              _STATUS_7
-#define _FPGA_ARC_COUNTER_GREATER_ZERO                 _STATUS_7
-#define _FPGA_ARC_HIGH_VOLTAGE_INHIBIT_ACTIVE          _STATUS_7
-#define _FPGA_HEATER_VOLTAGE_LESS_THAN_4_5_VOLTS       _STATUS_7
-#define _FPGA_MODULE_TEMP_GREATER_THAN_65_C            _STATUS_7
-#define _FPGA_MODULE_TEMP_GREATER_THAN_75_C            _STATUS_7
-#define _FPGA_PULSE_WIDTH_LIMITING                     _STATUS_6
-#define _FPGA_PRF_FAULT                                _STATUS_7
-#define _FPGA_CURRENT_MONITOR_PULSE_WIDTH_FAULT        _STATUS_7
-#define _FPGA_GRID_MODULE_HARDWARE_FAULT               _STATUS_7
-#define _FPGA_GRID_MODULE_OVER_VOLTAGE_FAULT           _STATUS_7
-#define _FPGA_GRID_MODULE_UNDER_VOLTAGE_FAULT          _STATUS_7
-#define _FPGA_GRID_MODULE_BIAS_VOLTAGE_FAULT           _STATUS_7
-#define _FPGA_HV_REGULATION_WARNING                    _STATUS_6
-#define _FPGA_DIPSWITCH_1_ON                           _STATUS_6
-#define _FPGA_TEST_MODE_TOGGLE_SWITCH_TEST_MODE        _STATUS_6
-#define _FPGA_LOCAL_MODE_TOGGLE_SWITCH_LOCAL_MODE      _STATUS_6
-
-
-#define _STATUS_CUSTOMER_HV_ON                         _STATUS_0
-#define _STATUS_CUSTOMER_BEAM_ENABLE                   _STATUS_1
-#define _STATUS_ADC_DIGITAL_HEATER_NOT_READY           _STATUS_2
-#define _STATUS_DAC_WRITE_FAILURE                      _STATUS_3
-
 
 
 #define _FAULT_FPGA_FIRMWARE_MAJOR_REV_MISMATCH        _FAULT_0 // CHECKED_DP// Heater Fault
@@ -419,7 +395,34 @@ extern TYPE_GLOBAL_DATA_A36772 global_data_A36772;
 #define _FAULT_ADC_DIGITAL_GRID                        _FAULT_C  // CHECKED_DP// This requires a FPGA Reset (Goto Heater Off State)
 #define _FAULT_CONVERTER_LOGIC_ADC_READ_FAILURE        _FAULT_D  // CHECKED_DP// Heater Fault
 #define _FAULT_HEATER_RAMP_TIMEOUT                     _FAULT_E  // CHECKED_DP// Heater Fault
-// UNUSED                                              _FAULT_F
+#define _FAULT_HEATER_STARTUP_FAILURE                  _FAULT_F
+
+
+#define _STATUS_CUSTOMER_HV_ON                         _WARNING_0
+#define _STATUS_CUSTOMER_BEAM_ENABLE                   _WARNING_1
+#define _STATUS_ADC_DIGITAL_HEATER_NOT_READY           _WARNING_2
+#define _STATUS_DAC_WRITE_FAILURE                      _WARNING_3
+//UNUSED                                               _WARNING_4
+//UNUSED                                               _WARNING_5
+#define _FPGA_CONVERTER_LOGIC_PCB_REV_MISMATCH         _WARNING_6
+#define _FPGA_FIRMWARE_MINOR_REV_MISMATCH              _WARNING_6
+#define _FPGA_ARC_COUNTER_GREATER_ZERO                 _WARNING_7
+#define _FPGA_ARC_HIGH_VOLTAGE_INHIBIT_ACTIVE          _WARNING_7
+#define _FPGA_MODULE_TEMP_GREATER_THAN_65_C            _WARNING_8
+#define _FPGA_MODULE_TEMP_GREATER_THAN_75_C            _WARNING_8
+#define _FPGA_PULSE_WIDTH_LIMITING                     _WARNING_9
+#define _FPGA_PRF_FAULT                                _WARNING_9
+#define _FPGA_CURRENT_MONITOR_PULSE_WIDTH_FAULT        _WARNING_A
+#define _FPGA_GRID_MODULE_HARDWARE_FAULT               _WARNING_B
+#define _FPGA_GRID_MODULE_OVER_VOLTAGE_FAULT           _WARNING_B
+#define _FPGA_GRID_MODULE_UNDER_VOLTAGE_FAULT          _WARNING_B
+#define _FPGA_GRID_MODULE_BIAS_VOLTAGE_FAULT           _WARNING_B
+#define _FPGA_HV_REGULATION_WARNING                    _WARNING_C
+#define _FPGA_DIPSWITCH_1_ON                           _WARNING_D
+#define _FPGA_TEST_MODE_TOGGLE_SWITCH_TEST_MODE        _WARNING_E
+#define _FPGA_LOCAL_MODE_TOGGLE_SWITCH_LOCAL_MODE      _WARNING_F
+#define _FPGA_HEATER_VOLTAGE_LESS_THAN_4_5_VOLTS       _NOT_LOGGED_0
+
 
 
 
