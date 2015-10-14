@@ -411,7 +411,7 @@ void InitializeA36772(void) {
 
 #ifdef __CAN_ENABLED
   // Initialize the Can module
-  ETMCanSlaveInitialize(CAN_PORT_1, FCY_CLK, ETM_CAN_ADDR_GUN_DRIVER_BOARD, _PIN_RC3, 4);
+  ETMCanSlaveInitialize(CAN_PORT_2, FCY_CLK, ETM_CAN_ADDR_GUN_DRIVER_BOARD, _PIN_RC3, 4);
   ETMCanSlaveLoadConfiguration(36772, 000, AGILE_REV, FIRMWARE_AGILE_REV, FIRMWARE_BRANCH, FIRMWARE_MINOR_REV, SERIAL_NUMBER);
 #endif
 
@@ -1017,7 +1017,22 @@ void DoA36772(void) {
     ETMCanSlaveSetDebugRegister(0xE, global_data_A36772.heater_ramp_up_time);
     ETMCanSlaveSetDebugRegister(0xF, global_data_A36772.control_state);
     
-
+    slave_board_data.log_data[0] = global_data_A36772.input_gun_i_peak.reading_scaled_and_calibrated;
+    slave_board_data.log_data[1] = global_data_A36772.input_hv_v_mon.reading_scaled_and_calibrated;
+    slave_board_data.log_data[2] = global_data_A36772.input_top_v_mon.reading_scaled_and_calibrated;    //gdoc says low energy
+    slave_board_data.log_data[3] = global_data_A36772.input_top_v_mon.reading_scaled_and_calibrated;    //gdoc says high energy
+    slave_board_data.log_data[4] = global_data_A36772.input_temperature_mon.reading_scaled_and_calibrated;
+    slave_board_data.log_data[5] = global_data_A36772.heater_warm_up_time_remaining;
+    slave_board_data.log_data[6] = global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated;
+    slave_board_data.log_data[7] = global_data_A36772.input_htr_v_mon.reading_scaled_and_calibrated;
+    slave_board_data.log_data[8] = global_data_A36772.analog_output_high_voltage.set_point;
+    slave_board_data.log_data[9] = global_data_A36772.heater_voltage_target;
+    slave_board_data.log_data[10] = global_data_A36772.analog_output_top_voltage.set_point;       //gdoc says low energy
+    slave_board_data.log_data[11] = global_data_A36772.analog_output_top_voltage.set_point;       //gdoc says high energy
+    slave_board_data.log_data[12] = global_data_A36772.input_bias_v_mon.reading_scaled_and_calibrated;
+    slave_board_data.log_data[13] = global_data_A36772.control_state;
+    slave_board_data.log_data[14] = global_data_A36772.adc_read_error_count;
+    //slave_board_data.log_data[15] = FPGA ASDR 16bit reg
     
     // Scale and Calibrate the external ADC Readings
 

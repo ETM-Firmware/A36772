@@ -24,10 +24,10 @@
 
  */
 
-//#define __MODE_CAN_INTERFACE
-#define __MODE_POT_INTERFACE
+#define __MODE_CAN_INTERFACE        //used to be commentted out
+//#define __MODE_POT_INTERFACE      //used to not be commentted out
 //#define __MODE_DISCRETE_INTERFACE
-#define __OPTION_ENABLE_CAN
+//#define __OPTION_ENABLE_CAN       //used to not be commentted out
 
 // Make sure that at least more mode is selected
 #ifndef __MODE_CAN_INTERFACE
