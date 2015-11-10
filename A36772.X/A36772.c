@@ -901,11 +901,11 @@ void DoA36772(void) {
 #endif
   
 #ifdef __CAN_CONTROLS
-  global_data_A36772.request_hv_enable   = !_SYNC_CONTROL_PULSE_SYNC_DISABLE_HV;
-  global_data_A36772.request_beam_enable = !_SYNC_CONTROL_PULSE_SYNC_DISABLE_XRAY;
+  global_data_A36772.request_hv_enable   = !ETMCanSlaveGetSyncMsgPulseSyncDisableHV();
+  global_data_A36772.request_beam_enable = !ETMCanSlaveGetSyncMsgPulseSyncDisableXray();
   
-  _STATUS_CUSTOMER_HV_ON = !_SYNC_CONTROL_PULSE_SYNC_DISABLE_HV;
-  _STATUS_CUSTOMER_BEAM_ENABLE = !_SYNC_CONTROL_PULSE_SYNC_DISABLE_XRAY;
+  _STATUS_CUSTOMER_HV_ON = !ETMCanSlaveGetSyncMsgPulseSyncDisableHV();
+  _STATUS_CUSTOMER_BEAM_ENABLE = !ETMCanSlaveGetSyncMsgPulseSyncDisableXray();
 #endif
 
   if (_T2IF) {
@@ -924,7 +924,7 @@ void DoA36772(void) {
     }
     */
 #ifdef __CAN_CONTROLS
-    if (_SYNC_CONTROL_RESET_ENABLE) {
+    if (ETMCanSlaveGetSyncMsgResetEnable()) {
       global_data_A36772.reset_active = 1;
     } else {
       global_data_A36772.reset_active = 0;
