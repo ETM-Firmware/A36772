@@ -144,9 +144,11 @@ void DoStateMachine(void) {
     while (global_data_A36772.control_state == STATE_WAIT_FOR_CONFIG) {
       DoA36772();
       DoStartupLEDs();
+//      _CONTROL_NOT_CONFIGURED = 0;  //added for debug HKW
       if ((global_data_A36772.run_time_counter >= LED_STARTUP_FLASH_TIME) && (_CONTROL_NOT_CONFIGURED == 0)) {
 	global_data_A36772.control_state = STATE_RESET_FPGA;
       }
+
     }
     break;
     
@@ -414,8 +416,8 @@ void InitializeA36772(void) {
 
 #ifdef __CAN_ENABLED
   // Initialize the Can module
-  ETMCanSlaveInitialize(CAN_PORT_2, FCY_CLK, ETM_CAN_ADDR_GUN_DRIVER_BOARD, _PIN_RC3, 4);
-  ETMCanSlaveLoadConfiguration(36772, 000, AGILE_REV, FIRMWARE_AGILE_REV, FIRMWARE_BRANCH, FIRMWARE_MINOR_REV, SERIAL_NUMBER);
+  ETMCanSlaveInitialize(CAN_PORT_2, FCY_CLK, ETM_CAN_ADDR_AFC_CONTROL_BOARD, _PIN_RC3, 4, _PIN_RC3, _PIN_RC3);
+  ETMCanSlaveLoadConfiguration(36772, 000, FIRMWARE_AGILE_REV, FIRMWARE_BRANCH, FIRMWARE_MINOR_REV);
 #endif
 
   ADCConfigure();
@@ -2140,7 +2142,7 @@ void ETMAnalogClearFaultCounters(AnalogInput* ptr_analog_input) {
 void ETMCanSlaveExecuteCMDBoardSpecific(ETMCanMessage* message_ptr) {
   unsigned int index_word;
 //  unsigned int value;
-
+  Nop();
   index_word = message_ptr->word3;
   switch (index_word)
     {
