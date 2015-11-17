@@ -20,6 +20,8 @@ _FICD(PGD);
 unsigned int next_pulse_count = 0;
 unsigned int spoof_counter = 0;
 
+volatile unsigned char control_config = 0;
+
 
 
 
@@ -94,8 +96,8 @@ unsigned char SPICharInvertered(unsigned char transmit_byte);
 
 
 // Digital Input Functions (NEEDS and ETM Module)
-void ETMDigitalInitializeInput(TYPE_DIGITAL_INPUT* input, unsigned int initial_value, unsigned int filter_time);
-void ETMDigitalUpdateInput(TYPE_DIGITAL_INPUT* input, unsigned int current_value);
+//void ETMDigitalInitializeInput(TYPE_DIGITAL_INPUT* input, unsigned int initial_value, unsigned int filter_time);
+//void ETMDigitalUpdateInput(TYPE_DIGITAL_INPUT* input, unsigned int current_value);
 
 
 
@@ -120,6 +122,7 @@ void DoStateMachine(void) {
     
   case STATE_START_UP:
     InitializeA36772();
+    ResetFPGA();    //added for debug HKW
     DisableBeam();
     DisableHighVoltage();
     DisableHeater();
@@ -1959,49 +1962,49 @@ unsigned char SPICharInvertered(unsigned char transmit_byte) {
 }
 
 
-void ETMDigitalInitializeInput(TYPE_DIGITAL_INPUT* input, unsigned int initial_value, unsigned int filter_time) {
-  if (filter_time > 0x7000) {
-    filter_time = 0x7000;
-  }
-  input->filter_time = filter_time;
-  if (initial_value == 0) {
-    input->accumulator = 0;
-    input->filtered_reading = 0;
-  } else {
-    input->accumulator = (filter_time << 1);
-    input->filtered_reading = 1;
-  }
-}
-
-
-void ETMDigitalUpdateInput(TYPE_DIGITAL_INPUT* input, unsigned int current_value) {
-  if (input->filter_time < 2) {
-    input->filtered_reading = current_value;
-  } else {
-    if (current_value) {
-      if (++input->accumulator > (input->filter_time << 1)) {
-	input->accumulator--;
-      }
-    } else {
-      if (input->accumulator) {
-	input->accumulator--;
-      }
-    }
-    if (input->accumulator >= input->filter_time) {
-      if (input->filtered_reading == 0) {
-	// we are changing state from low to high
-	input->accumulator = (input->filter_time << 1);
-      }
-      input->filtered_reading = 1;
-    } else {
-      if (input->filtered_reading == 1) {
-	// we are changing state from high to low
-	input->accumulator = 0;
-      }
-      input->filtered_reading = 0;
-    }
-  }
-}
+//void ETMDigitalInitializeInput(TYPE_DIGITAL_INPUT* input, unsigned int initial_value, unsigned int filter_time) {
+//  if (filter_time > 0x7000) {
+//    filter_time = 0x7000;
+//  }
+//  input->filter_time = filter_time;
+//  if (initial_value == 0) {
+//    input->accumulator = 0;
+//    input->filtered_reading = 0;
+//  } else {
+//    input->accumulator = (filter_time << 1);
+//    input->filtered_reading = 1;
+//  }
+//}
+//
+//
+//void ETMDigitalUpdateInput(TYPE_DIGITAL_INPUT* input, unsigned int current_value) {
+//  if (input->filter_time < 2) {
+//    input->filtered_reading = current_value;
+//  } else {
+//    if (current_value) {
+//      if (++input->accumulator > (input->filter_time << 1)) {
+//	input->accumulator--;
+//      }
+//    } else {
+//      if (input->accumulator) {
+//	input->accumulator--;
+//      }
+//    }
+//    if (input->accumulator >= input->filter_time) {
+//      if (input->filtered_reading == 0) {
+//	// we are changing state from low to high
+//	input->accumulator = (input->filter_time << 1);
+//      }
+//      input->filtered_reading = 1;
+//    } else {
+//      if (input->filtered_reading == 1) {
+//	// we are changing state from high to low
+//	input->accumulator = 0;
+//      }
+//      input->filtered_reading = 0;
+//    }
+//  }
+//}
 
 
 void __attribute__((interrupt, no_auto_psv)) _ADCInterrupt(void) {
@@ -2136,7 +2139,7 @@ void ETMAnalogClearFaultCounters(AnalogInput* ptr_analog_input) {
 //}
 void ETMCanSlaveExecuteCMDBoardSpecific(ETMCanMessage* message_ptr) {
   unsigned int index_word;
-  //unsigned int value;
+//  unsigned int value;
 
   index_word = message_ptr->word3;
   switch (index_word)
@@ -2144,26 +2147,37 @@ void ETMCanSlaveExecuteCMDBoardSpecific(ETMCanMessage* message_ptr) {
       /*
 	Place all board specific commands here
       */
-      /*
+      //code below was commented out
     case ETM_CAN_REGISTER_GUN_DRIVER_SET_1_GRID_TOP_SET_POINT:
-      value = ETMScaleFactor16(message_ptr->word1, CAN_scale_table[CAN_SET_EGSET].fixed_scale, 0);
-      SetEg(value);
-      // word0 for low Eg, not used
-      _CONTROL_NOT_CONFIGURED = AreAnyReferenceNotConfigured();
+//      value = ETMScaleFactor16(message_ptr->word1, CAN_scale_table[CAN_SET_EGSET].fixed_scale, 0);
+      global_data_A36772.can_pulse_top_set_point = message_ptr->word1;
+//      SetEg(value);
+//      // word0 for low Eg, not used
+//      _CONTROL_NOT_CONFIGURED = AreAnyReferenceNotConfigured();
+      control_config |= 1;
+      if (control_config == 3){
+      _CONTROL_NOT_CONFIGURED = 0;
+      }
       break;
-
+//
     case ETM_CAN_REGISTER_GUN_DRIVER_SET_1_HEATER_CATHODE_SET_POINT:
-      value = ETMScaleFactor16(message_ptr->word1, CAN_scale_table[CAN_SET_EKSET].fixed_scale, 0);
-      SetEk(value);
-      value = ETMScaleFactor16(message_ptr->word0, CAN_scale_table[CAN_SET_EFSET].fixed_scale, 0);
-      SetEf(value);
-      _CONTROL_NOT_CONFIGURED = AreAnyReferenceNotConfigured();
+//      value = ETMScaleFactor16(message_ptr->word1, CAN_scale_table[CAN_SET_EKSET].fixed_scale, 0);
+      global_data_A36772.can_high_voltage_set_point = message_ptr->word1;
+//      SetEk(value);
+//      value = ETMScaleFactor16(message_ptr->word0, CAN_scale_table[CAN_SET_EFSET].fixed_scale, 0);
+      global_data_A36772.can_heater_voltage_set_point = message_ptr->word0;
+//      SetEf(value);
+//      _CONTROL_NOT_CONFIGURED = AreAnyReferenceNotConfigured();
+      control_config |= 2;
+      if (control_config == 3){
+      _CONTROL_NOT_CONFIGURED = 0;
+      }
       break;
 
     default:
-      local_can_errors.invalid_index++;
+//      local_can_errors.invalid_index++;
       break;
-      */
+      
     }
 
 }

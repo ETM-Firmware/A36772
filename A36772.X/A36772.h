@@ -247,12 +247,12 @@
 #define MAX1230_RESET_BYTE                           0b00010000
 
 
-
-typedef struct {
-  unsigned int filtered_reading;
-  unsigned int accumulator;
-  unsigned int filter_time;
-} TYPE_DIGITAL_INPUT;
+//
+//typedef struct {
+//  unsigned int filtered_reading;
+//  unsigned int accumulator;
+//  unsigned int filter_time;
+//} TYPE_DIGITAL_INPUT;
 
 
 
