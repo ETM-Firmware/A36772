@@ -358,13 +358,6 @@ void InitializeA36772(void) {
   _WARNING_REGISTER = 0;
   _NOT_LOGGED_REGISTER = 0;
 
-  //etm_can_status_register.data_word_A = 0x0000;
-  //etm_can_status_register.data_word_B = 0x0000;
-
-#define SERIAL_NUMBER   101
-#define AGILE_REV       10
-
-
   // --------- BEGIN IO PIN CONFIGURATION ------------------
 
   // Initialize Ouput Pin Latches BEFORE setting the pins to Output
@@ -416,16 +409,12 @@ void InitializeA36772(void) {
 
 #ifdef __CAN_ENABLED
   // Initialize the Can module
-  ETMCanSlaveInitialize(CAN_PORT_2, FCY_CLK, ETM_CAN_ADDR_AFC_CONTROL_BOARD, _PIN_RC3, 4, _PIN_RC3, _PIN_RC3);
+  ETMCanSlaveInitialize(CAN_PORT_2, FCY_CLK, ETM_CAN_ADDR_GUN_DRIVER_BOARD, _PIN_RC3, 4, _PIN_RC3, _PIN_RC3);
   ETMCanSlaveLoadConfiguration(36772, 000, FIRMWARE_AGILE_REV, FIRMWARE_BRANCH, FIRMWARE_MINOR_REV);
 #endif
 
   ADCConfigure();
   
-  if (!ETMAnalogCheckEEPromInitialized()) {
-    ETMAnalogLoadDefaultCalibration();
-  }
-
   // Initialize off board ADC Inputs
   ETMAnalogInitializeInput(&global_data_A36772.input_adc_temperature,
 			   MACRO_DEC_TO_SCALE_FACTOR_16(ADC_TEMPERATURE_SENSOR_FIXED_SCALE),
