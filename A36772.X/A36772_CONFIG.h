@@ -138,7 +138,7 @@
 
 #define ADC_HTR_I_MON_FIXED_SCALE             .10419
 #define ADC_HTR_I_MON_FIXED_OFFSET            0
-#define ADC_HTR_I_MON_OVER_LIMIT_ABSOLUTE     1750                              // 1.750 Amps
+#define ADC_HTR_I_MON_OVER_LIMIT_ABSOLUTE     1750                              // 1.750 Amps  
 #define ADC_HTR_I_MON_UNDER_LIMIT_ABSOLUTE    200                               // 0.200 Amps
 #define ADC_HTR_I_MON_ABSOLUTE_TRIP_TIME      50                                // 500mS
 

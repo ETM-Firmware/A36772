@@ -21,6 +21,8 @@ unsigned int next_pulse_count = 0;
 unsigned int spoof_counter = 0;
 
 volatile unsigned char control_config = 0;
+volatile unsigned int debug_count = 0;
+volatile unsigned int global_first_value;
 
 
 
@@ -122,7 +124,7 @@ void DoStateMachine(void) {
     
   case STATE_START_UP:
     InitializeA36772();
-    ResetFPGA();    //added for debug HKW
+    //ResetFPGA();    //added for debug HKW
     DisableBeam();
     DisableHighVoltage();
     DisableHeater();
@@ -392,7 +394,9 @@ void InitializeA36772(void) {
   // Configure on-board DAC
   SetupLTC265X(&U32_LTC2654, ETM_SPI_PORT_2, FCY_CLK, LTC265X_SPI_2_5_M_BIT, _PIN_RG15, _PIN_RC1);
 
+  //Configure EEPROM  testing -HKW
 
+  ETMEEPromConfigureExternalDevice(EEPROM_SIZE_8K_BYTES, FCY_CLK, 400000, EEPROM_I2C_ADDRESS_0, 1);
   // ------------- Configure Internal ADC --------- //
   ADCON1 = ADCON1_SETTING;             // Configure the high speed ADC module based on H file parameters
   ADCON2 = ADCON2_SETTING;             // Configure the high speed ADC module based on H file parameters
@@ -972,6 +976,11 @@ void DoA36772(void) {
     // Start the next acquisition from the external ADC
     ADCStartAcquisition();
 
+    if (debug_count < 60){
+        global_first_value =  global_data_A36772.input_24_v_mon.reading_scaled_and_calibrated;
+        debug_count++;
+    }
+
     if (global_data_A36772.watchdog_counter >= 3) {
       global_data_A36772.watchdog_counter = 0;
       if (global_data_A36772.dac_digital_watchdog_oscillator < ((WATCHDOG_HIGH >> 1) + (WATCHDOG_LOW >> 1))) {
@@ -1004,12 +1013,34 @@ void DoA36772(void) {
     //local_debug_data.debug_D = global_data_A36772.heater_warm_up_time_remaining;
     //local_debug_data.debug_E = global_data_A36772.heater_ramp_up_time;
     //local_debug_data.debug_F = global_data_A36772.control_state;
-    ETMCanSlaveSetDebugRegister(0xA, global_data_A36772.run_time_counter);
-    ETMCanSlaveSetDebugRegister(0xB, global_data_A36772.fault_restart_remaining);
-    ETMCanSlaveSetDebugRegister(0xC, global_data_A36772.power_supply_startup_remaining);
-    ETMCanSlaveSetDebugRegister(0xD, global_data_A36772.heater_warm_up_time_remaining);
-    ETMCanSlaveSetDebugRegister(0xE, global_data_A36772.heater_ramp_up_time);
-    ETMCanSlaveSetDebugRegister(0xF, global_data_A36772.control_state);
+
+    //changing temporarily - HKW
+//    ETMCanSlaveSetDebugRegister(0xA, global_data_A36772.run_time_counter);
+//    ETMCanSlaveSetDebugRegister(0xB, global_data_A36772.fault_restart_remaining);
+//    ETMCanSlaveSetDebugRegister(0xC, global_data_A36772.power_supply_startup_remaining);
+//    ETMCanSlaveSetDebugRegister(0xD, global_data_A36772.heater_warm_up_time_remaining);
+//    ETMCanSlaveSetDebugRegister(0xE, global_data_A36772.heater_ramp_up_time);
+//    ETMCanSlaveSetDebugRegister(0xF, global_data_A36772.control_state);
+    
+    ETMCanSlaveSetDebugRegister(0xA, global_data_A36772.input_bias_v_mon.reading_scaled_and_calibrated);
+    ETMCanSlaveSetDebugRegister(0xB, global_data_A36772.input_top_v_mon.reading_scaled_and_calibrated);
+    ETMCanSlaveSetDebugRegister(0xC, global_data_A36772.input_gun_i_peak.reading_scaled_and_calibrated);
+    ETMCanSlaveSetDebugRegister(0xD, global_data_A36772.input_htr_v_mon.reading_scaled_and_calibrated);
+    ETMCanSlaveSetDebugRegister(0xE, global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated);
+    ETMCanSlaveSetDebugRegister(0xF, global_data_A36772.input_24_v_mon.reading_scaled_and_calibrated);
+//
+//  fault  = _FAULT_FPGA_FIRMWARE_MAJOR_REV_MISMATCH;
+//  fault |= _FAULT_ADC_HTR_V_MON_OVER_RELATIVE;
+//  fault |= _FAULT_ADC_HTR_V_MON_UNDER_RELATIVE;
+//  fault |= _FAULT_HEATER_VOLTAGE_CURRENT_LIMITED;
+//  fault |= _FAULT_ADC_HTR_I_MON_OVER_ABSOLUTE;
+//  fault |= _FAULT_ADC_HTR_I_MON_UNDER_ABSOLUTE;
+//  fault |= _FAULT_ADC_DIGITAL_WATCHDOG;
+//  fault |= _FAULT_ADC_DIGITAL_OVER_TEMP;
+//  fault |= _FAULT_ADC_DIGITAL_GRID;
+//  fault |= _FAULT_CONVERTER_LOGIC_ADC_READ_FAILURE;
+//  fault |= _FAULT_HEATER_RAMP_TIMEOUT;
+//  fault |= _FAULT_HEATER_STARTUP_FAILURE;
     
     slave_board_data.log_data[0] = global_data_A36772.input_gun_i_peak.reading_scaled_and_calibrated;
     slave_board_data.log_data[1] = global_data_A36772.input_hv_v_mon.reading_scaled_and_calibrated;
@@ -1568,7 +1599,12 @@ void UpdateADCResults(void) {
   read_error |= read_data[15];
   read_error |= read_data[16];
   read_error  &= 0xF000;
-  
+
+//  if (debug_count < 60){
+//    global_first_value = read_data[4];
+//    debug_count++;
+//  }
+
   if (read_data[8] < 0x0200) {
     // The 24V supply is less than the minimum needed to operate
     read_error = 1;
