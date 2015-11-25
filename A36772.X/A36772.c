@@ -209,7 +209,11 @@ void DoStateMachine(void) {
       if (global_data_A36772.request_hv_enable) {
 	global_data_A36772.control_state = STATE_POWER_SUPPLY_RAMP_UP;
       }
-      if (CheckHeaterFault()) {
+// Is fixed? -hkw
+//      if (CheckHeaterFault()) {
+//	 global_data_A36772.control_state = STATE_FAULT_HEATER_ON;
+//      }
+      if (CheckFault()) {
 	global_data_A36772.control_state = STATE_FAULT_HEATER_ON;
       }
       if (CheckHeaterFault()) {
@@ -1001,47 +1005,24 @@ void DoA36772(void) {
     ETMAnalogScaleCalibrateADCReading(&global_data_A36772.pos_15v_mon);
     ETMAnalogScaleCalibrateADCReading(&global_data_A36772.neg_15v_mon);
 
-    //local_debug_data.debug_A = global_data_A36772.pot_htr.reading_scaled_and_calibrated;
-    //local_debug_data.debug_B = global_data_A36772.pot_vtop.reading_scaled_and_calibrated;
-    //local_debug_data.debug_C = global_data_A36772.pot_ek.reading_scaled_and_calibrated;
-    //local_debug_data.debug_D = global_data_A36772.ref_htr.reading_scaled_and_calibrated;
-    //local_debug_data.debug_E = global_data_A36772.ref_vtop.reading_scaled_and_calibrated;
-    //local_debug_data.debug_F = global_data_A36772.ref_ek.reading_scaled_and_calibrated;
-    //local_debug_data.debug_A = global_data_A36772.run_time_counter;
-    //local_debug_data.debug_B = global_data_A36772.fault_restart_remaining;
-    //local_debug_data.debug_C = global_data_A36772.power_supply_startup_remaining;
-    //local_debug_data.debug_D = global_data_A36772.heater_warm_up_time_remaining;
-    //local_debug_data.debug_E = global_data_A36772.heater_ramp_up_time;
-    //local_debug_data.debug_F = global_data_A36772.control_state;
+    //ETMCanSlaveSetDebugRegister(0xA, global_data_A36772.pot_htr.reading_scaled_and_calibrated);
+    //ETMCanSlaveSetDebugRegister(0xB, global_data_A36772.pot_vtop.reading_scaled_and_calibrated);
+    //ETMCanSlaveSetDebugRegister(0xC, global_data_A36772.pot_ek.reading_scaled_and_calibrated);
+    //ETMCanSlaveSetDebugRegister(0xD, global_data_A36772.ref_htr.reading_scaled_and_calibrated);
+    //ETMCanSlaveSetDebugRegister(0xE, global_data_A36772.ref_vtop.reading_scaled_and_calibrated);
+    //ETMCanSlaveSetDebugRegister(0xF, global_data_A36772.ref_ek.reading_scaled_and_calibrated);
 
-    //changing temporarily - HKW
-//    ETMCanSlaveSetDebugRegister(0xA, global_data_A36772.run_time_counter);
-//    ETMCanSlaveSetDebugRegister(0xB, global_data_A36772.fault_restart_remaining);
-//    ETMCanSlaveSetDebugRegister(0xC, global_data_A36772.power_supply_startup_remaining);
-//    ETMCanSlaveSetDebugRegister(0xD, global_data_A36772.heater_warm_up_time_remaining);
-//    ETMCanSlaveSetDebugRegister(0xE, global_data_A36772.heater_ramp_up_time);
-//    ETMCanSlaveSetDebugRegister(0xF, global_data_A36772.control_state);
     
-    ETMCanSlaveSetDebugRegister(0xA, global_data_A36772.input_bias_v_mon.reading_scaled_and_calibrated);
-    ETMCanSlaveSetDebugRegister(0xB, global_data_A36772.input_top_v_mon.reading_scaled_and_calibrated);
-    ETMCanSlaveSetDebugRegister(0xC, global_data_A36772.input_gun_i_peak.reading_scaled_and_calibrated);
-    ETMCanSlaveSetDebugRegister(0xD, global_data_A36772.input_htr_v_mon.reading_scaled_and_calibrated);
-    ETMCanSlaveSetDebugRegister(0xE, global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated);
-    ETMCanSlaveSetDebugRegister(0xF, global_data_A36772.input_24_v_mon.reading_scaled_and_calibrated);
-//
-//  fault  = _FAULT_FPGA_FIRMWARE_MAJOR_REV_MISMATCH;
-//  fault |= _FAULT_ADC_HTR_V_MON_OVER_RELATIVE;
-//  fault |= _FAULT_ADC_HTR_V_MON_UNDER_RELATIVE;
-//  fault |= _FAULT_HEATER_VOLTAGE_CURRENT_LIMITED;
-//  fault |= _FAULT_ADC_HTR_I_MON_OVER_ABSOLUTE;
-//  fault |= _FAULT_ADC_HTR_I_MON_UNDER_ABSOLUTE;
-//  fault |= _FAULT_ADC_DIGITAL_WATCHDOG;
-//  fault |= _FAULT_ADC_DIGITAL_OVER_TEMP;
-//  fault |= _FAULT_ADC_DIGITAL_GRID;
-//  fault |= _FAULT_CONVERTER_LOGIC_ADC_READ_FAILURE;
-//  fault |= _FAULT_HEATER_RAMP_TIMEOUT;
-//  fault |= _FAULT_HEATER_STARTUP_FAILURE;
+
+    ETMCanSlaveSetDebugRegister(0xA, global_data_A36772.run_time_counter);
+    ETMCanSlaveSetDebugRegister(0xB, global_data_A36772.fault_restart_remaining);
+    ETMCanSlaveSetDebugRegister(0xC, global_data_A36772.power_supply_startup_remaining);
+    ETMCanSlaveSetDebugRegister(0xD, global_data_A36772.heater_warm_up_time_remaining);
+    ETMCanSlaveSetDebugRegister(0xE, global_data_A36772.heater_ramp_up_time);
+    ETMCanSlaveSetDebugRegister(0xF, global_data_A36772.control_state);
     
+
+
     slave_board_data.log_data[0] = global_data_A36772.input_gun_i_peak.reading_scaled_and_calibrated;
     slave_board_data.log_data[1] = global_data_A36772.input_hv_v_mon.reading_scaled_and_calibrated;
     slave_board_data.log_data[2] = global_data_A36772.input_top_v_mon.reading_scaled_and_calibrated;    //gdoc says low energy
@@ -1073,7 +1054,7 @@ void DoA36772(void) {
     local_debug_data.debug_8 = global_data_A36772.input_temperature_mon.reading_scaled_and_calibrated;
     local_debug_data.debug_9 = global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated;
     */
-    //local_debug_data.debug_7 = global_data_A36772.dac_write_failure_count;
+
     ETMCanSlaveSetDebugRegister(7, global_data_A36772.dac_write_failure_count);
 
 #ifdef __POT_REFERENCE
@@ -1150,7 +1131,7 @@ void DoA36772(void) {
       case 0:
 	WriteLTC265X(&U32_LTC2654, LTC265X_WRITE_AND_UPDATE_DAC_A, global_data_A36772.monitor_heater_voltage.dac_setting_scaled_and_calibrated);
 	DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_A, global_data_A36772.analog_output_high_voltage.dac_setting_scaled_and_calibrated);
-	//local_debug_data.debug_0 = global_data_A36772.analog_output_high_voltage.dac_setting_scaled_and_calibrated;
+	
         ETMCanSlaveSetDebugRegister(0, global_data_A36772.analog_output_high_voltage.dac_setting_scaled_and_calibrated);
 	break;
 	
@@ -1158,7 +1139,7 @@ void DoA36772(void) {
       case 1:
 	WriteLTC265X(&U32_LTC2654, LTC265X_WRITE_AND_UPDATE_DAC_B, global_data_A36772.monitor_heater_current.dac_setting_scaled_and_calibrated);
 	DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_B, global_data_A36772.analog_output_top_voltage.dac_setting_scaled_and_calibrated);
-	//local_debug_data.debug_1 = global_data_A36772.analog_output_top_voltage.dac_setting_scaled_and_calibrated;
+	
         ETMCanSlaveSetDebugRegister(1, global_data_A36772.analog_output_top_voltage.dac_setting_scaled_and_calibrated);
 	break;
 
@@ -1166,7 +1147,7 @@ void DoA36772(void) {
       case 2:
 	WriteLTC265X(&U32_LTC2654, LTC265X_WRITE_AND_UPDATE_DAC_C, global_data_A36772.monitor_cathode_voltage.dac_setting_scaled_and_calibrated);
 	DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_C, global_data_A36772.analog_output_heater_voltage.dac_setting_scaled_and_calibrated);
-	//local_debug_data.debug_2 = global_data_A36772.analog_output_heater_voltage.dac_setting_scaled_and_calibrated;
+	
         ETMCanSlaveSetDebugRegister(2, global_data_A36772.analog_output_heater_voltage.dac_setting_scaled_and_calibrated);
 	break;
 
@@ -1174,7 +1155,7 @@ void DoA36772(void) {
       case 3:
 	WriteLTC265X(&U32_LTC2654, LTC265X_WRITE_AND_UPDATE_DAC_D, global_data_A36772.monitor_grid_voltage.dac_setting_scaled_and_calibrated);
 	DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_D, global_data_A36772.dac_digital_hv_enable);
-	//local_debug_data.debug_3 = global_data_A36772.dac_digital_hv_enable;
+	
         ETMCanSlaveSetDebugRegister(3, global_data_A36772.dac_digital_hv_enable);
 	break;
 
@@ -1182,7 +1163,7 @@ void DoA36772(void) {
       case 4:
 	WriteLTC265X(&U32_LTC2654, LTC265X_WRITE_AND_UPDATE_DAC_A, global_data_A36772.monitor_heater_voltage.dac_setting_scaled_and_calibrated);
 	DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_E, global_data_A36772.dac_digital_heater_enable);
-	//local_debug_data.debug_4 = global_data_A36772.dac_digital_heater_enable;
+	
         ETMCanSlaveSetDebugRegister(4, global_data_A36772.dac_digital_heater_enable);
 	break;
 
@@ -1190,7 +1171,7 @@ void DoA36772(void) {
       case 5:
 	WriteLTC265X(&U32_LTC2654, LTC265X_WRITE_AND_UPDATE_DAC_B, global_data_A36772.monitor_heater_current.dac_setting_scaled_and_calibrated);
 	DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_F, global_data_A36772.dac_digital_top_enable);
-	//local_debug_data.debug_5 = global_data_A36772.dac_digital_top_enable;
+	
         ETMCanSlaveSetDebugRegister(5, global_data_A36772.dac_digital_top_enable);
 	break;
 
@@ -1198,7 +1179,7 @@ void DoA36772(void) {
       case 6:
 	WriteLTC265X(&U32_LTC2654, LTC265X_WRITE_AND_UPDATE_DAC_C, global_data_A36772.monitor_cathode_voltage.dac_setting_scaled_and_calibrated);
 	DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_G, global_data_A36772.dac_digital_trigger_enable);
-	//local_debug_data.debug_6 = global_data_A36772.dac_digital_trigger_enable;
+	
         ETMCanSlaveSetDebugRegister(6, global_data_A36772.dac_digital_trigger_enable);
 	break;
     
@@ -1471,9 +1452,11 @@ void DisableHighVoltage(void) {
     Clear the grid top enable control voltage
   */
   global_data_A36772.analog_output_high_voltage.enabled = 0;
+//  global_data_A36772.analog_output_top_voltage.enabled = 1;
   global_data_A36772.analog_output_top_voltage.enabled = 0;
   global_data_A36772.dac_digital_hv_enable = DAC_DIGITAL_OFF;
   global_data_A36772.dac_digital_top_enable = DAC_DIGITAL_OFF;
+//  global_data_A36772.dac_digital_top_enable = DAC_DIGITAL_ON;
   DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_D, global_data_A36772.dac_digital_hv_enable);
   DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_F, global_data_A36772.dac_digital_top_enable);
   PIN_CPU_HV_ENABLE = !OLL_PIN_CPU_HV_ENABLE_HV_ENABLED;
