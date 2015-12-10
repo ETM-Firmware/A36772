@@ -179,7 +179,7 @@ void DoStateMachine(void) {
       }
     }
     break;
-    
+  
 
   case STATE_HEATER_WARM_UP:
     _CONTROL_NOT_READY = 1;
@@ -1014,7 +1014,7 @@ void DoA36772(void) {
 
     
 
-    ETMCanSlaveSetDebugRegister(0xA, global_data_A36772.run_time_counter);
+    ETMCanSlaveSetDebugRegister(0xA, global_data_A36772.input_htr_v_mon.reading_scaled_and_calibrated);//run_time_counter);
     ETMCanSlaveSetDebugRegister(0xB, global_data_A36772.fault_restart_remaining);
     ETMCanSlaveSetDebugRegister(0xC, global_data_A36772.power_supply_startup_remaining);
     ETMCanSlaveSetDebugRegister(0xD, global_data_A36772.heater_warm_up_time_remaining);
@@ -1038,7 +1038,8 @@ void DoA36772(void) {
     slave_board_data.log_data[12] = global_data_A36772.input_bias_v_mon.reading_scaled_and_calibrated;
     slave_board_data.log_data[13] = global_data_A36772.control_state;
     slave_board_data.log_data[14] = global_data_A36772.adc_read_error_count;
-    //slave_board_data.log_data[15] = FPGA ASDR 16bit reg
+    slave_board_data.log_data[15] = GUN_DRIVER_LOAD_TYPE;
+//    slave_board_data.log_data[15] = //FPGA ASDR 16bit reg
     
     // Scale and Calibrate the external ADC Readings
 
@@ -1107,6 +1108,10 @@ void DoA36772(void) {
       global_data_A36772.analog_output_heater_voltage.set_point = global_data_A36772.heater_voltage_target;
     }
 
+//    if ((global_data_A36772.analog_output_heater_voltage.set_point < global_data_A36772.heater_voltage_target) && ((global_data_A36772.control_state == 70) || (global_data_A36772.control_state == 90))) {
+//      global_data_A36772.control_state = STATE_HEATER_RAMP_UP;
+//    }         //added for test -hkw
+
     // update the DAC programs based on the new set points.
     ETMAnalogScaleCalibrateDACSetting(&global_data_A36772.analog_output_high_voltage);
     ETMAnalogScaleCalibrateDACSetting(&global_data_A36772.analog_output_top_voltage);
@@ -1125,11 +1130,14 @@ void DoA36772(void) {
     // Send out Data to local DAC and offboard.  Each channel will be updated once every 40mS
     // Do not send out while in state "STATE_WAIT_FOR_CONFIG" because the module is not ready to recieve data and
     // you will just get data transfer errors
+
+    // Commented out local DAC communication because monitor signals are not used on the A36772-250Z board
+
     if (global_data_A36772.control_state != STATE_WAIT_FOR_CONFIG) {
       switch ((global_data_A36772.run_time_counter & 0b111)) {
 	
       case 0:
-	WriteLTC265X(&U32_LTC2654, LTC265X_WRITE_AND_UPDATE_DAC_A, global_data_A36772.monitor_heater_voltage.dac_setting_scaled_and_calibrated);
+//	WriteLTC265X(&U32_LTC2654, LTC265X_WRITE_AND_UPDATE_DAC_A, global_data_A36772.monitor_heater_voltage.dac_setting_scaled_and_calibrated);
 	DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_A, global_data_A36772.analog_output_high_voltage.dac_setting_scaled_and_calibrated);
 	
         ETMCanSlaveSetDebugRegister(0, global_data_A36772.analog_output_high_voltage.dac_setting_scaled_and_calibrated);
@@ -1137,7 +1145,7 @@ void DoA36772(void) {
 	
 
       case 1:
-	WriteLTC265X(&U32_LTC2654, LTC265X_WRITE_AND_UPDATE_DAC_B, global_data_A36772.monitor_heater_current.dac_setting_scaled_and_calibrated);
+//	WriteLTC265X(&U32_LTC2654, LTC265X_WRITE_AND_UPDATE_DAC_B, global_data_A36772.monitor_heater_current.dac_setting_scaled_and_calibrated);
 	DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_B, global_data_A36772.analog_output_top_voltage.dac_setting_scaled_and_calibrated);
 	
         ETMCanSlaveSetDebugRegister(1, global_data_A36772.analog_output_top_voltage.dac_setting_scaled_and_calibrated);
@@ -1145,7 +1153,7 @@ void DoA36772(void) {
 
     
       case 2:
-	WriteLTC265X(&U32_LTC2654, LTC265X_WRITE_AND_UPDATE_DAC_C, global_data_A36772.monitor_cathode_voltage.dac_setting_scaled_and_calibrated);
+//	WriteLTC265X(&U32_LTC2654, LTC265X_WRITE_AND_UPDATE_DAC_C, global_data_A36772.monitor_cathode_voltage.dac_setting_scaled_and_calibrated);
 	DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_C, global_data_A36772.analog_output_heater_voltage.dac_setting_scaled_and_calibrated);
 	
         ETMCanSlaveSetDebugRegister(2, global_data_A36772.analog_output_heater_voltage.dac_setting_scaled_and_calibrated);
@@ -1153,7 +1161,7 @@ void DoA36772(void) {
 
       
       case 3:
-	WriteLTC265X(&U32_LTC2654, LTC265X_WRITE_AND_UPDATE_DAC_D, global_data_A36772.monitor_grid_voltage.dac_setting_scaled_and_calibrated);
+//	WriteLTC265X(&U32_LTC2654, LTC265X_WRITE_AND_UPDATE_DAC_D, global_data_A36772.monitor_grid_voltage.dac_setting_scaled_and_calibrated);
 	DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_D, global_data_A36772.dac_digital_hv_enable);
 	
         ETMCanSlaveSetDebugRegister(3, global_data_A36772.dac_digital_hv_enable);
@@ -1161,7 +1169,7 @@ void DoA36772(void) {
 
 
       case 4:
-	WriteLTC265X(&U32_LTC2654, LTC265X_WRITE_AND_UPDATE_DAC_A, global_data_A36772.monitor_heater_voltage.dac_setting_scaled_and_calibrated);
+//	WriteLTC265X(&U32_LTC2654, LTC265X_WRITE_AND_UPDATE_DAC_A, global_data_A36772.monitor_heater_voltage.dac_setting_scaled_and_calibrated);
 	DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_E, global_data_A36772.dac_digital_heater_enable);
 	
         ETMCanSlaveSetDebugRegister(4, global_data_A36772.dac_digital_heater_enable);
@@ -1169,7 +1177,7 @@ void DoA36772(void) {
 
       
       case 5:
-	WriteLTC265X(&U32_LTC2654, LTC265X_WRITE_AND_UPDATE_DAC_B, global_data_A36772.monitor_heater_current.dac_setting_scaled_and_calibrated);
+//	WriteLTC265X(&U32_LTC2654, LTC265X_WRITE_AND_UPDATE_DAC_B, global_data_A36772.monitor_heater_current.dac_setting_scaled_and_calibrated);
 	DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_F, global_data_A36772.dac_digital_top_enable);
 	
         ETMCanSlaveSetDebugRegister(5, global_data_A36772.dac_digital_top_enable);
@@ -1177,7 +1185,7 @@ void DoA36772(void) {
 
     
       case 6:
-	WriteLTC265X(&U32_LTC2654, LTC265X_WRITE_AND_UPDATE_DAC_C, global_data_A36772.monitor_cathode_voltage.dac_setting_scaled_and_calibrated);
+//	WriteLTC265X(&U32_LTC2654, LTC265X_WRITE_AND_UPDATE_DAC_C, global_data_A36772.monitor_cathode_voltage.dac_setting_scaled_and_calibrated);
 	DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_G, global_data_A36772.dac_digital_trigger_enable);
 	
         ETMCanSlaveSetDebugRegister(6, global_data_A36772.dac_digital_trigger_enable);
@@ -1185,7 +1193,7 @@ void DoA36772(void) {
     
   
       case 7:
-	WriteLTC265X(&U32_LTC2654, LTC265X_WRITE_AND_UPDATE_DAC_D, global_data_A36772.monitor_grid_voltage.dac_setting_scaled_and_calibrated);
+//	WriteLTC265X(&U32_LTC2654, LTC265X_WRITE_AND_UPDATE_DAC_D, global_data_A36772.monitor_grid_voltage.dac_setting_scaled_and_calibrated);
 	break;
       }
     }

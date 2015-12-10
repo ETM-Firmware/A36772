@@ -73,18 +73,60 @@
 #define __CAN_ENABLED
 #endif
 
+// ----------- Gun Driver Load Specific Parameters ----------------------
+//#define __LOAD_LINAC_GUN
+#define __LOAD_RESISTIVE
+//#define __LOAD_TEST_GUN
+
+#ifndef __LOAD_LINAC_GUN
+#ifndef __LOAD_RESISTIVE
+#ifndef __LOAD_TEST_GUN
+#error "No Load Selected"
+#endif
+#endif
+#endif
+
+#ifdef __LOAD_LINAC_GUN
+#ifdef  __LOAD_RESISTIVE
+#error "Multiple Loads Selected"
+#endif
+#ifdef  __LOAD_TEST_GUN
+#error "Multiple Loads Selected"
+#endif
+#define HEATER_RAMP_TIME                 24000
+#define MAX_RAMP_HTR_I                   1600           // 1.600 Amps
+#define HTR_OC_ABS                       1750           // 1.750 Amps
+#define GUN_DRIVER_LOAD_TYPE             0
+#endif
+
+#ifdef __LOAD_RESISTIVE
+#ifdef  __LOAD_TEST_GUN
+#error "Multiple Loads Selected"
+#endif
+#define HEATER_RAMP_TIME                 24000
+#define MAX_RAMP_HTR_I                   1600           // 1.600 Amps
+#define HTR_OC_ABS                       1750           // 1.750 Amps
+#define GUN_DRIVER_LOAD_TYPE             1
+#endif
+
+#ifdef __LOAD_TEST_GUN
+#define HEATER_RAMP_TIME                 60000
+#define MAX_RAMP_HTR_I                   3000           // 3.000 Amps
+#define HTR_OC_ABS                       3200           // 3.200 Amps
+#define GUN_DRIVER_LOAD_TYPE             2
+#endif
 
 
 
 // ----------- Timers configurations - ALL Times are in 10ms Units --------------------
 #define LED_STARTUP_FLASH_TIME                500      // Time LEDs will flash at startup
-#define MAX_HEATER_RAMP_UP_TIME               24000    // If the heater does not reach it's programed voltage in this time a fault will be generated
+#define MAX_HEATER_RAMP_UP_TIME               HEATER_RAMP_TIME    // If the heater does not reach it's programed voltage in this time a fault will be generated
 #define HEATER_AUTO_RESTART_TIME              500      // Time delay between a heater fault and when the heater gets restarted
 #define HEATER_RAMP_UP_TIME_PERIOD            5        // Durring heater ramp up, the heater voltage will be increased every N 10ms (see HEATER_RAMP_UP_INCREMENT)
 #define GUN_DRIVER_POWER_SUPPLY_STATUP_TIME   100      // Wait this long between enabling High Voltage / Pulse Top / Bias and cheching that they are at correct values
 
 // System control Parameters
-#define MAX_HEATER_CURRENT_DURING_RAMP_UP     1600     // mA Units.  Whenever the heater voltage is increased (ramp-up or increasing the set point).  The voltage will be current limited by this current
+#define MAX_HEATER_CURRENT_DURING_RAMP_UP     MAX_RAMP_HTR_I     // mA Units.  Whenever the heater voltage is increased (ramp-up or increasing the set point).  The voltage will be current limited by this current
 #define MAX_CONVERTER_LOGIC_ADC_READ_ERRORS   20       // If the ADC read exceeds this number a fault will be created
 #define MAX_HEATER_START_UP_ATTEMPTS          5        // If the heater ramp up process does not succeed in this many attempts, a fault will be generated that requires power cycle
 #define MAX_DAC_TX_ATTEMPTS                   10       // The pic will attempt to write to the Converter Logic DAC this many times before giving up
@@ -138,7 +180,7 @@
 
 #define ADC_HTR_I_MON_FIXED_SCALE             .10419
 #define ADC_HTR_I_MON_FIXED_OFFSET            0
-#define ADC_HTR_I_MON_OVER_LIMIT_ABSOLUTE     1750                              // 1.750 Amps  
+#define ADC_HTR_I_MON_OVER_LIMIT_ABSOLUTE     HTR_OC_ABS                        // 1.750 Amps
 #define ADC_HTR_I_MON_UNDER_LIMIT_ABSOLUTE    200                               // 0.200 Amps
 #define ADC_HTR_I_MON_ABSOLUTE_TRIP_TIME      50                                // 500mS
 
