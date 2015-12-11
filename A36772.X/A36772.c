@@ -146,7 +146,6 @@ void DoStateMachine(void) {
     while (global_data_A36772.control_state == STATE_WAIT_FOR_CONFIG) {
       DoA36772();
       DoStartupLEDs();
-//      _CONTROL_NOT_CONFIGURED = 0;  //added for debug HKW
       if ((global_data_A36772.run_time_counter >= LED_STARTUP_FLASH_TIME) && (_CONTROL_NOT_CONFIGURED == 0)) {
 	global_data_A36772.control_state = STATE_RESET_FPGA;
       }
@@ -245,35 +244,32 @@ void DoStateMachine(void) {
     }
     break;
 
+//  case STATE_HV_ON:
+//    DisableBeam();
+//    _CONTROL_NOT_READY = 1;
+//    while (global_data_A36772.control_state == STATE_HV_ON) {
+//      DoA36772();
+//      if (global_data_A36772.request_beam_enable) {
+//	global_data_A36772.control_state = STATE_BEAM_ENABLE;
+//      }
+//      if (!global_data_A36772.request_hv_enable) {
+//	global_data_A36772.control_state = STATE_HEATER_WARM_UP_DONE;
+//      }
+//      if (CheckFault()) {
+//	global_data_A36772.control_state = STATE_FAULT_HEATER_ON;
+//      }
+//      if (CheckHeaterFault()) {
+//	global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
+//      }
+//    }
+//    break;
+
+
   case STATE_HV_ON:
-    DisableBeam();
-    _CONTROL_NOT_READY = 1;
-    while (global_data_A36772.control_state == STATE_HV_ON) {
-      DoA36772();
-      if (global_data_A36772.request_beam_enable) {
-	global_data_A36772.control_state = STATE_BEAM_ENABLE;
-      }
-      if (!global_data_A36772.request_hv_enable) {
-	global_data_A36772.control_state = STATE_HEATER_WARM_UP_DONE;
-      }
-      if (CheckFault()) {
-	global_data_A36772.control_state = STATE_FAULT_HEATER_ON;
-      }
-      if (CheckHeaterFault()) {
-	global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
-      }
-    }
-    break;
-
-
-  case STATE_BEAM_ENABLE:
     EnableBeam();
     _CONTROL_NOT_READY = 0;
-    while (global_data_A36772.control_state == STATE_BEAM_ENABLE) {
+    while (global_data_A36772.control_state == STATE_HV_ON) {
       DoA36772();
-      if (!global_data_A36772.request_beam_enable) {
-	global_data_A36772.control_state = STATE_HV_ON;
-      }
       if (!global_data_A36772.request_hv_enable) {
 	global_data_A36772.control_state = STATE_HEATER_WARM_UP_DONE;
       }
@@ -285,6 +281,27 @@ void DoStateMachine(void) {
       }
     }
     break;
+
+
+//  case STATE_BEAM_ENABLE:
+//    EnableBeam();
+//    _CONTROL_NOT_READY = 0;
+//    while (global_data_A36772.control_state == STATE_BEAM_ENABLE) {
+//      DoA36772();
+////      if (!global_data_A36772.request_beam_enable) {
+////	global_data_A36772.control_state = STATE_HV_ON;
+////      }
+//      if (!global_data_A36772.request_hv_enable) {
+//	global_data_A36772.control_state = STATE_HEATER_WARM_UP_DONE;
+//      }
+//      if (CheckFault()) {
+//	global_data_A36772.control_state = STATE_FAULT_HEATER_ON;
+//      }
+//      if (CheckHeaterFault()) {
+//	global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
+//      }
+//    }
+//    break;
 
     
   case STATE_FAULT_HEATER_ON:
@@ -747,6 +764,7 @@ void ResetAllFaultInfo(void) {
   _FAULT_CONVERTER_LOGIC_ADC_READ_FAILURE = 0;
   _FAULT_HEATER_RAMP_TIMEOUT = 0;
   _FAULT_HEATER_STARTUP_FAILURE = 0;
+  _FAULT_CAN_COMMUNICATION = 0;
   
   _STATUS_CUSTOMER_HV_ON = 0;
   _STATUS_CUSTOMER_BEAM_ENABLE = 0;
@@ -847,6 +865,7 @@ unsigned int CheckHeaterFault(void) {
   fault |= _FAULT_CONVERTER_LOGIC_ADC_READ_FAILURE;
   fault |= _FAULT_HEATER_RAMP_TIMEOUT;
   fault |= _FAULT_HEATER_STARTUP_FAILURE;
+  fault |= _FAULT_CAN_COMMUNICATION;
   if (fault) {
     return 1;
   } else {
@@ -903,11 +922,14 @@ void DoA36772(void) {
 #endif
   
 #ifdef __CAN_CONTROLS
+//  global_data_A36772.can_com_timeout     = ETMCanSlaveGetComFaultStatus();
   global_data_A36772.request_hv_enable   = !ETMCanSlaveGetSyncMsgPulseSyncDisableHV();
-  global_data_A36772.request_beam_enable = !ETMCanSlaveGetSyncMsgPulseSyncDisableXray();
-  
+  //global_data_A36772.request_beam_enable = !ETMCanSlaveGetSyncMsgPulseSyncDisableXray();
+
+  _FAULT_CAN_COMMUNICATION = ETMCanSlaveGetComFaultStatus();
   _STATUS_CUSTOMER_HV_ON = !ETMCanSlaveGetSyncMsgPulseSyncDisableHV();
-  _STATUS_CUSTOMER_BEAM_ENABLE = !ETMCanSlaveGetSyncMsgPulseSyncDisableXray();
+  //_STATUS_CUSTOMER_BEAM_ENABLE = !ETMCanSlaveGetSyncMsgPulseSyncDisableXray();
+  _STATUS_CUSTOMER_BEAM_ENABLE = !ETMCanSlaveGetSyncMsgPulseSyncDisableHV();
 #endif
 
   if (_T2IF) {
@@ -1394,13 +1416,20 @@ void UpdateLEDandStatusOutuputs(void) {
   }
   
   // Beam enabled Status
-  if (global_data_A36772.control_state == STATE_BEAM_ENABLE) {
+//  if (global_data_A36772.control_state == STATE_BEAM_ENABLE) {
+//    PIN_LED_BEAM_ENABLE = OLL_LED_ON;
+//    PIN_CPU_BEAM_ENABLE_STATUS = OLL_STATUS_ACTIVE;
+//  } else {
+//    PIN_LED_BEAM_ENABLE = !OLL_LED_ON;
+//    PIN_CPU_BEAM_ENABLE_STATUS = !OLL_STATUS_ACTIVE;
+//    }
+  if (global_data_A36772.control_state == STATE_HV_ON) {
     PIN_LED_BEAM_ENABLE = OLL_LED_ON;
     PIN_CPU_BEAM_ENABLE_STATUS = OLL_STATUS_ACTIVE;
   } else {
     PIN_LED_BEAM_ENABLE = !OLL_LED_ON;
     PIN_CPU_BEAM_ENABLE_STATUS = !OLL_STATUS_ACTIVE;
-    }
+  }
   
   // System OK Status
   if (global_data_A36772.control_state <= STATE_FAULT_HEATER_ON) {
