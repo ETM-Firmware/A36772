@@ -223,6 +223,14 @@
 #define A36772_PR2_VALUE_US    10000   // 10mS
 #define A36772_PR2_VALUE       ((FCY_CLK/1000000)*A36772_PR2_VALUE_US/8)
 
+/*
+  --- Timer3 Setup ---
+  Period of 1S
+*/
+#define A36772_T3CON_VALUE     (T3_ON & T3_IDLE_CON & T3_GATE_OFF & T3_PS_1_256 & T3_SOURCE_INT)
+#define A36772_PR3_VALUE_US    1000000   // 1s
+#define A36772_PR3_VALUE       ((FCY_CLK/1000000)*A36772_PR3_VALUE_US/256)
+
  
 // ---- Hard Coded Delays ---- //
 #define DELAY_FPGA_CABLE_DELAY 10
@@ -440,7 +448,8 @@ extern TYPE_GLOBAL_DATA_A36772 global_data_A36772;
 #define STATE_HEATER_WARM_UP_DONE            90
 #define STATE_POWER_SUPPLY_RAMP_UP           100
 #define STATE_HV_ON                          110
-#define STATE_BEAM_ENABLE                    120
+#define STATE_TOP_ON                         120
+#define STATE_BEAM_ENABLE                    130
 
 
 

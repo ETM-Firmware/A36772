@@ -19,11 +19,7 @@ _FICD(PGD);
 //void ETMCanSpoofAFCHighSpeedDataLog();
 unsigned int next_pulse_count = 0;
 unsigned int spoof_counter = 0;
-
 volatile unsigned char control_config = 0;
-volatile unsigned int debug_count = 0;
-volatile unsigned int global_first_value;
-
 
 
 
@@ -50,6 +46,7 @@ void EnableHeater(void);
 void DisableHeater(void);
 void EnableHighVoltage(void);
 void DisableHighVoltage(void);
+void EnableTopSupply(void);
 void EnableBeam(void);
 void DisableBeam(void);
 
@@ -124,7 +121,6 @@ void DoStateMachine(void) {
     
   case STATE_START_UP:
     InitializeA36772();
-    //ResetFPGA();    //added for debug HKW
     DisableBeam();
     DisableHighVoltage();
     DisableHeater();
@@ -149,7 +145,6 @@ void DoStateMachine(void) {
       if ((global_data_A36772.run_time_counter >= LED_STARTUP_FLASH_TIME) && (_CONTROL_NOT_CONFIGURED == 0)) {
 	global_data_A36772.control_state = STATE_RESET_FPGA;
       }
-
     }
     break;
     
@@ -208,10 +203,6 @@ void DoStateMachine(void) {
       if (global_data_A36772.request_hv_enable) {
 	global_data_A36772.control_state = STATE_POWER_SUPPLY_RAMP_UP;
       }
-// Is fixed? -hkw
-//      if (CheckHeaterFault()) {
-//	 global_data_A36772.control_state = STATE_FAULT_HEATER_ON;
-//      }
       if (CheckFault()) {
 	global_data_A36772.control_state = STATE_FAULT_HEATER_ON;
       }
@@ -223,9 +214,9 @@ void DoStateMachine(void) {
     
 
   case STATE_POWER_SUPPLY_RAMP_UP:
+    _CONTROL_NOT_READY = 1;
     DisableBeam();
     EnableHighVoltage();
-    _CONTROL_NOT_READY = 1;
     global_data_A36772.power_supply_startup_remaining = GUN_DRIVER_POWER_SUPPLY_STATUP_TIME;
     while (global_data_A36772.control_state == STATE_POWER_SUPPLY_RAMP_UP) {
       DoA36772();
@@ -266,9 +257,54 @@ void DoStateMachine(void) {
 
 
   case STATE_HV_ON:
+    _CONTROL_NOT_READY = 1;
+    DisableBeam();
+    _T3IF = 0;   //wait 1s before next state
+    while (global_data_A36772.control_state == STATE_HV_ON) {
+      DoA36772();
+      if (!global_data_A36772.request_hv_enable) {
+	global_data_A36772.control_state = STATE_HEATER_WARM_UP_DONE;
+      }
+      if (CheckFault()) {
+	global_data_A36772.control_state = STATE_FAULT_HEATER_ON;
+      }
+      if (CheckHeaterFault()) {
+	global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
+      }
+      if (_T3IF) {
+        global_data_A36772.control_state = STATE_TOP_ON;
+      }
+    }
+    break;
+
+
+  case STATE_TOP_ON:
+    _CONTROL_NOT_READY = 1;
+    DisableBeam();
+    EnableTopSupply();
+    _T3IF = 0;   //wait 1s before next state
+    while (global_data_A36772.control_state == STATE_TOP_ON) {
+      DoA36772();
+      if (!global_data_A36772.request_hv_enable) {
+	global_data_A36772.control_state = STATE_HEATER_WARM_UP_DONE;
+      }
+      if (CheckFault()) {
+	global_data_A36772.control_state = STATE_FAULT_HEATER_ON;
+      }
+      if (CheckHeaterFault()) {
+	global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
+      }
+      if (_T3IF) {
+        global_data_A36772.control_state = STATE_BEAM_ENABLE;
+      }
+    }
+    break;
+
+
+  case STATE_BEAM_ENABLE:
     EnableBeam();
     _CONTROL_NOT_READY = 0;
-    while (global_data_A36772.control_state == STATE_HV_ON) {
+    while (global_data_A36772.control_state == STATE_BEAM_ENABLE) {
       DoA36772();
       if (!global_data_A36772.request_hv_enable) {
 	global_data_A36772.control_state = STATE_HEATER_WARM_UP_DONE;
@@ -305,9 +341,9 @@ void DoStateMachine(void) {
 
     
   case STATE_FAULT_HEATER_ON:
-    DisableHighVoltage();
-    DisableBeam();
     _CONTROL_NOT_READY = 1;
+    DisableBeam();
+    DisableHighVoltage();
     while (global_data_A36772.control_state == STATE_FAULT_HEATER_ON) {
       DoA36772();
       if (global_data_A36772.reset_active) {
@@ -318,11 +354,12 @@ void DoStateMachine(void) {
     }
     break;
 
+
   case STATE_FAULT_HEATER_OFF:
     _CONTROL_NOT_READY = 1;
+    DisableBeam();
     DisableHighVoltage();
     DisableHeater();
-    DisableBeam();
     while (global_data_A36772.control_state == STATE_FAULT_HEATER_OFF) {
       DoA36772();
       if (global_data_A36772.reset_active) {
@@ -335,9 +372,9 @@ void DoStateMachine(void) {
 
   case STATE_FAULT_WARMUP_HEATER_OFF:
     _CONTROL_NOT_READY = 1;
+    DisableBeam();
     DisableHighVoltage();
     DisableHeater();
-    DisableBeam();
     global_data_A36772.fault_restart_remaining = HEATER_AUTO_RESTART_TIME;
     while (global_data_A36772.control_state == STATE_FAULT_WARMUP_HEATER_OFF) {
       DoA36772();
@@ -354,9 +391,9 @@ void DoStateMachine(void) {
 
   case STATE_FAULT_HEATER_FAILURE:
     _CONTROL_NOT_READY = 1;
+    DisableBeam();
     DisableHighVoltage();
     DisableHeater();
-    DisableBeam();
     _FAULT_HEATER_STARTUP_FAILURE = 1;
     while (global_data_A36772.control_state == STATE_FAULT_HEATER_FAILURE) {
       // Can't leave this state without power cycle
@@ -411,6 +448,13 @@ void InitializeA36772(void) {
   _T2IF = 0;
   _T2IP = 5;
   T2CON = A36772_T2CON_VALUE;
+
+    // Initialize TMR3
+  PR3   = A36772_PR3_VALUE;
+  TMR3  = 0;
+  _T3IF = 0;
+  _T3IP = 5;
+  T3CON = A36772_T3CON_VALUE;
 
   // Configure on-board DAC
   SetupLTC265X(&U32_LTC2654, ETM_SPI_PORT_2, FCY_CLK, LTC265X_SPI_2_5_M_BIT, _PIN_RG15, _PIN_RC1);
@@ -922,14 +966,21 @@ void DoA36772(void) {
 #endif
   
 #ifdef __CAN_CONTROLS
+  if ((PIN_CUSTOMER_HV_ON == ILL_PIN_CUSTOMER_HV_ON_ENABLE_HV)&&(!ETMCanSlaveGetSyncMsgPulseSyncDisableHV())) {
+    global_data_A36772.request_hv_enable = 1;
+    _STATUS_CUSTOMER_HV_ON = 1;
+  } else {
+    global_data_A36772.request_hv_enable = 0;
+    _STATUS_CUSTOMER_HV_ON = 0;
+  }
 //  global_data_A36772.can_com_timeout     = ETMCanSlaveGetComFaultStatus();
-  global_data_A36772.request_hv_enable   = !ETMCanSlaveGetSyncMsgPulseSyncDisableHV();
-  //global_data_A36772.request_beam_enable = !ETMCanSlaveGetSyncMsgPulseSyncDisableXray();
+//  global_data_A36772.request_hv_enable   = !ETMCanSlaveGetSyncMsgPulseSyncDisableHV();
+//  global_data_A36772.request_beam_enable = !ETMCanSlaveGetSyncMsgPulseSyncDisableXray();
 
   _FAULT_CAN_COMMUNICATION = ETMCanSlaveGetComFaultStatus();
-  _STATUS_CUSTOMER_HV_ON = !ETMCanSlaveGetSyncMsgPulseSyncDisableHV();
-  //_STATUS_CUSTOMER_BEAM_ENABLE = !ETMCanSlaveGetSyncMsgPulseSyncDisableXray();
-  _STATUS_CUSTOMER_BEAM_ENABLE = !ETMCanSlaveGetSyncMsgPulseSyncDisableHV();
+//  _STATUS_CUSTOMER_HV_ON = !ETMCanSlaveGetSyncMsgPulseSyncDisableHV();
+//  _STATUS_CUSTOMER_BEAM_ENABLE = !ETMCanSlaveGetSyncMsgPulseSyncDisableXray();
+//  _STATUS_CUSTOMER_BEAM_ENABLE = !ETMCanSlaveGetSyncMsgPulseSyncDisableHV();
 #endif
 
   if (_T2IF) {
@@ -1002,10 +1053,6 @@ void DoA36772(void) {
     // Start the next acquisition from the external ADC
     ADCStartAcquisition();
 
-    if (debug_count < 60){
-        global_first_value =  global_data_A36772.input_24_v_mon.reading_scaled_and_calibrated;
-        debug_count++;
-    }
 
     if (global_data_A36772.watchdog_counter >= 3) {
       global_data_A36772.watchdog_counter = 0;
@@ -1043,7 +1090,6 @@ void DoA36772(void) {
     ETMCanSlaveSetDebugRegister(0xE, global_data_A36772.heater_ramp_up_time);
     ETMCanSlaveSetDebugRegister(0xF, global_data_A36772.control_state);
     
-
 
     slave_board_data.log_data[0] = global_data_A36772.input_gun_i_peak.reading_scaled_and_calibrated;
     slave_board_data.log_data[1] = global_data_A36772.input_hv_v_mon.reading_scaled_and_calibrated;
@@ -1416,20 +1462,21 @@ void UpdateLEDandStatusOutuputs(void) {
   }
   
   // Beam enabled Status
-//  if (global_data_A36772.control_state == STATE_BEAM_ENABLE) {
-//    PIN_LED_BEAM_ENABLE = OLL_LED_ON;
-//    PIN_CPU_BEAM_ENABLE_STATUS = OLL_STATUS_ACTIVE;
-//  } else {
-//    PIN_LED_BEAM_ENABLE = !OLL_LED_ON;
-//    PIN_CPU_BEAM_ENABLE_STATUS = !OLL_STATUS_ACTIVE;
-//    }
-  if (global_data_A36772.control_state == STATE_HV_ON) {
+  if (global_data_A36772.control_state == STATE_BEAM_ENABLE) {
     PIN_LED_BEAM_ENABLE = OLL_LED_ON;
     PIN_CPU_BEAM_ENABLE_STATUS = OLL_STATUS_ACTIVE;
   } else {
     PIN_LED_BEAM_ENABLE = !OLL_LED_ON;
     PIN_CPU_BEAM_ENABLE_STATUS = !OLL_STATUS_ACTIVE;
   }
+
+//  if (global_data_A36772.control_state == STATE_HV_ON) {
+//    PIN_LED_BEAM_ENABLE = OLL_LED_ON;
+//    PIN_CPU_BEAM_ENABLE_STATUS = OLL_STATUS_ACTIVE;
+//  } else {
+//    PIN_LED_BEAM_ENABLE = !OLL_LED_ON;
+//    PIN_CPU_BEAM_ENABLE_STATUS = !OLL_STATUS_ACTIVE;
+//  }
   
   // System OK Status
   if (global_data_A36772.control_state <= STATE_FAULT_HEATER_ON) {
@@ -1472,14 +1519,23 @@ void EnableHighVoltage(void) {
     Set the grid top enable control voltage
   */
   global_data_A36772.analog_output_high_voltage.enabled = 1;
-  global_data_A36772.analog_output_top_voltage.enabled = 1;
+//  global_data_A36772.analog_output_top_voltage.enabled = 1;
   global_data_A36772.dac_digital_hv_enable = DAC_DIGITAL_ON;
-  global_data_A36772.dac_digital_top_enable = DAC_DIGITAL_ON;
+//  global_data_A36772.dac_digital_top_enable = DAC_DIGITAL_ON;
   //DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_D, global_data_A36772.dac_digital_hv_enable);
   //DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_F, global_data_A36772.dac_digital_top_enable);
   PIN_CPU_HV_ENABLE = OLL_PIN_CPU_HV_ENABLE_HV_ENABLED;
 }
 
+void EnableTopSupply(void)  {
+  /*
+     Set the grid top reference
+     Set the grid top enable control voltage
+   */
+
+  global_data_A36772.analog_output_top_voltage.enabled = 1;
+  global_data_A36772.dac_digital_top_enable = DAC_DIGITAL_ON;
+}
 
 void DisableHighVoltage(void) {
   /*
@@ -1488,14 +1544,12 @@ void DisableHighVoltage(void) {
     Clear the HVPS enable control voltage
     Clear the grid top enable control voltage
   */
-  global_data_A36772.analog_output_high_voltage.enabled = 0;
-//  global_data_A36772.analog_output_top_voltage.enabled = 1;
   global_data_A36772.analog_output_top_voltage.enabled = 0;
-  global_data_A36772.dac_digital_hv_enable = DAC_DIGITAL_OFF;
+  global_data_A36772.analog_output_high_voltage.enabled = 0;
   global_data_A36772.dac_digital_top_enable = DAC_DIGITAL_OFF;
-//  global_data_A36772.dac_digital_top_enable = DAC_DIGITAL_ON;
-  DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_D, global_data_A36772.dac_digital_hv_enable);
+  global_data_A36772.dac_digital_hv_enable = DAC_DIGITAL_OFF;
   DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_F, global_data_A36772.dac_digital_top_enable);
+  DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_D, global_data_A36772.dac_digital_hv_enable);
   PIN_CPU_HV_ENABLE = !OLL_PIN_CPU_HV_ENABLE_HV_ENABLED;
 }
 
@@ -1619,11 +1673,6 @@ void UpdateADCResults(void) {
   read_error |= read_data[15];
   read_error |= read_data[16];
   read_error  &= 0xF000;
-
-//  if (debug_count < 60){
-//    global_first_value = read_data[4];
-//    debug_count++;
-//  }
 
   if (read_data[8] < 0x0200) {
     // The 24V supply is less than the minimum needed to operate
