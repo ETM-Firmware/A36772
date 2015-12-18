@@ -411,8 +411,8 @@ extern TYPE_GLOBAL_DATA_A36772 global_data_A36772;
 #define _STATUS_CUSTOMER_BEAM_ENABLE                   _WARNING_1
 #define _STATUS_ADC_DIGITAL_HEATER_NOT_READY           _WARNING_2
 #define _STATUS_DAC_WRITE_FAILURE                      _WARNING_3
-//UNUSED                                               _WARNING_4
-//UNUSED                                               _WARNING_5
+#define _STATUS_INTERLOCK_INHIBITING_HV                _WARNING_4
+#define _STATUS_HEATER_AT_OPERATING_VOLTAGE            _WARNING_5
 #define _FPGA_CONVERTER_LOGIC_PCB_REV_MISMATCH         _WARNING_6
 #define _FPGA_FIRMWARE_MINOR_REV_MISMATCH              _WARNING_6
 #define _FPGA_ARC_COUNTER_GREATER_ZERO                 _WARNING_7
