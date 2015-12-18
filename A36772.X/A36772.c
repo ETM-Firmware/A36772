@@ -223,13 +223,10 @@ void DoStateMachine(void) {
     global_data_A36772.power_supply_startup_remaining = GUN_DRIVER_POWER_SUPPLY_STATUP_TIME;
     while (global_data_A36772.control_state == STATE_POWER_SUPPLY_RAMP_UP) {
       DoA36772();
+
       if (global_data_A36772.power_supply_startup_remaining == 0) {
         global_data_A36772.control_state = STATE_HV_ON;
-        if (PIN_CUSTOMER_HV_ON != ILL_PIN_CUSTOMER_HV_ON_ENABLE_HV) {
-          _STATUS_INTERLOCK_INHIBITING_HV = 1;
-          global_data_A36772.control_state = STATE_FAULT_HEATER_ON;     //necessary? -hkw
-        } 
-      }
+      }      
       if (!global_data_A36772.request_hv_enable) {
 	global_data_A36772.control_state = STATE_HEATER_WARM_UP_DONE;
       }
@@ -269,6 +266,16 @@ void DoStateMachine(void) {
     _T3IF = 0;   //wait 1s before next state
     while (global_data_A36772.control_state == STATE_HV_ON) {
       DoA36772();
+
+      if (_FAULT_ADC_HV_V_MON_UNDER_RELATIVE == 0) {
+        global_data_A36772.control_state = STATE_TOP_ON;
+      } else if (_T3IF) {
+        global_data_A36772.control_state = STATE_FAULT_HEATER_ON;
+        if (PIN_CUSTOMER_HV_ON != ILL_PIN_CUSTOMER_HV_ON_ENABLE_HV) {
+          _STATUS_INTERLOCK_INHIBITING_HV = 1;
+        }
+      }
+
       if (!global_data_A36772.request_hv_enable) {
 	global_data_A36772.control_state = STATE_HEATER_WARM_UP_DONE;
       }
@@ -277,9 +284,6 @@ void DoStateMachine(void) {
       }
       if (CheckHeaterFault()) {
 	global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
-      }
-      if (_T3IF) {
-        global_data_A36772.control_state = STATE_TOP_ON;
       }
     }
     break;
@@ -301,8 +305,12 @@ void DoStateMachine(void) {
       if (CheckHeaterFault()) {
 	global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
       }
-      if (_T3IF) {
-        global_data_A36772.control_state = STATE_BEAM_ENABLE;
+      if (_T3IF) {        
+        if ((_FAULT_ADC_TOP_V_MON_UNDER_RELATIVE != 0) || (_FAULT_ADC_TOP_V_MON_OVER_RELATIVE != 0)) {
+          global_data_A36772.control_state = STATE_FAULT_HEATER_ON;
+        } else {
+          global_data_A36772.control_state = STATE_BEAM_ENABLE;  
+        }
       }
     }
     break;
@@ -1432,19 +1440,28 @@ void UpdateFaults(void) {
     if (ETMAnalogCheckOverRelative(&global_data_A36772.input_hv_v_mon)) {
       _FAULT_ADC_HV_V_MON_OVER_RELATIVE = 1;
     }
-    
-    if (ETMAnalogCheckUnderRelative(&global_data_A36772.input_hv_v_mon)) {
-      _FAULT_ADC_HV_V_MON_UNDER_RELATIVE = 1;
+
+    // Only check for HV undervoltage after HV is enabled
+    if (global_data_A36772.control_state >= STATE_POWER_SUPPLY_RAMP_UP) {
+      if (ETMAnalogCheckUnderRelative(&global_data_A36772.input_hv_v_mon)) {
+        _FAULT_ADC_HV_V_MON_UNDER_RELATIVE = 1;
+      }
     }
-    
-    if (ETMAnalogCheckOverRelative(&global_data_A36772.input_top_v_mon)) {
-      _FAULT_ADC_TOP_V_MON_OVER_RELATIVE = 1;
+
+    // Only check for top supply overvoltage after top is enabled
+    if (global_data_A36772.control_state >= STATE_TOP_ON) {
+      if (ETMAnalogCheckOverRelative(&global_data_A36772.input_top_v_mon)) {
+        _FAULT_ADC_TOP_V_MON_OVER_RELATIVE = 1;
+      }
     }
-    
-    if (ETMAnalogCheckUnderRelative(&global_data_A36772.input_top_v_mon)) {
-      _FAULT_ADC_TOP_V_MON_UNDER_RELATIVE = 1;
+
+    // Only check for top supply overvoltage after top is enabled
+    if (global_data_A36772.control_state >= STATE_TOP_ON) {
+      if (ETMAnalogCheckUnderRelative(&global_data_A36772.input_top_v_mon)) {
+        _FAULT_ADC_TOP_V_MON_UNDER_RELATIVE = 1;
+      }
     }
-    
+
     if (ETMAnalogCheckOverAbsolute(&global_data_A36772.input_bias_v_mon)) {
       _FAULT_ADC_BIAS_V_MON_OVER_ABSOLUTE = 1;
     }

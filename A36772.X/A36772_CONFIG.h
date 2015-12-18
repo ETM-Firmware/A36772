@@ -189,8 +189,8 @@
 #define ADC_TOP_V_MON_FIXED_OFFSET            0
 #define ADC_TOP_V_MON_RELATIVE_TRIP_SCALE     MACRO_DEC_TO_CAL_FACTOR_2(.2)
 #define ADC_TOP_V_MON_RELATIVE_TRIP_FLOOR     1000                              // 10 Volts
-//#define ADC_TOP_V_MON_RELATIVE_TRIP_TIME      50                                // 500mS
-#define ADC_TOP_V_MON_RELATIVE_TRIP_TIME      200                               // 2S
+#define ADC_TOP_V_MON_RELATIVE_TRIP_TIME      50                                // 500mS
+//#define ADC_TOP_V_MON_RELATIVE_TRIP_TIME      200                               // 2S
 
 
 #define ADC_BIAS_V_MON_FIXED_SCALE            .34688
