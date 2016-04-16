@@ -25,8 +25,8 @@
  */
 
 //#define __MODE_CAN_INTERFACE
-#define __MODE_POT_INTERFACE
-//#define __MODE_DISCRETE_INTERFACE
+//#define __MODE_POT_INTERFACE
+#define __MODE_DISCRETE_INTERFACE
 #define __OPTION_ENABLE_CAN
 
 // Make sure that at least more mode is selected
@@ -81,7 +81,7 @@
 #define MAX_HEATER_RAMP_UP_TIME               24000    // If the heater does not reach it's programed voltage in this time a fault will be generated
 #define HEATER_AUTO_RESTART_TIME              500      // Time delay between a heater fault and when the heater gets restarted
 #define HEATER_RAMP_UP_TIME_PERIOD            5        // Durring heater ramp up, the heater voltage will be increased every N 10ms (see HEATER_RAMP_UP_INCREMENT)
-#define GUN_DRIVER_POWER_SUPPLY_STATUP_TIME   100      // Wait this long between enabling High Voltage / Pulse Top / Bias and cheching that they are at correct values
+#define GUN_DRIVER_POWER_SUPPLY_STARTUP_TIME  100      // Wait this long between enabling High Voltage / Pulse Top / Bias and cheching that they are at correct values
 
 // System control Parameters
 #define MAX_HEATER_CURRENT_DURING_RAMP_UP     1600     // mA Units.  Whenever the heater voltage is increased (ramp-up or increasing the set point).  The voltage will be current limited by this current
@@ -103,7 +103,7 @@
 #endif
 
 
-
+#define GUN_DRIVER_LOAD_TYPE             0
 
 
 // ------------- Converter Logic Board ADC Input Settings ---------------------
