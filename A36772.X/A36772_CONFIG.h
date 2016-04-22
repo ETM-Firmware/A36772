@@ -91,6 +91,9 @@
 #define HEATER_RAMP_UP_INCREMENT              50       // mV Units.  When ramping up the heater voltage it is increased by this amount each HEATER_RAMP_UP_TIME_PERIOD
 
 
+#define MAX_PROGRAM_HTR_VOLTAGE               7000
+
+
 
 
 #define HEATER_VOLTAGE_CURRENT_LIMITED_FAULT_TIME (500 / HEATER_RAMP_UP_TIME_PERIOD)  // 5 Seconds
@@ -196,13 +199,13 @@
 #define POT_EK_FIXED_SCALE                    .42230
 #define POT_EK_FIXED_OFFSET                   0
 
-#define REF_HTR_FIXED_SCALE                   .15625
+#define REF_HTR_FIXED_SCALE                   .12500
 #define REF_HTR_FIXED_OFFSET                  0
 
-#define REF_VTOP_FIXED_SCALE                  .78125
-#define REF_VTOP_FIXED_OFFSET                 0
+#define REF_VTOP_FIXED_SCALE                  .27778 // For -400Z Board use: .62500
+#define REF_VTOP_FIXED_OFFSET                 -2222  // For -400Z Board use: 0
 
-#define REF_EK_FIXED_SCALE                    .42230
+#define REF_EK_FIXED_SCALE                    .25000 // For -400Z Board use: .33784
 #define REF_EK_FIXED_OFFSET                   0
 
 
@@ -214,10 +217,10 @@
 #define DAC_MONITOR_HEATER_CURRENT_FIXED_SCALE    10.6667
 #define DAC_MONITOR_HEATER_CURRENT_FIXED_OFFSET   0
 
-#define DAC_MONITOR_CATHODE_VOLTAGE_FIXED_SCALE   1.9733
+#define DAC_MONITOR_CATHODE_VOLTAGE_FIXED_SCALE   2.6667 // For -400Z Board use: 1.9733
 #define DAC_MONITOR_CATHODE_VOLTAGE_FIXED_OFFSET  0
 
-#define DAC_MONITOR_GRID_VOLTAGE_FIXED_SCALE      1.0667
+#define DAC_MONITOR_GRID_VOLTAGE_FIXED_SCALE      2.6667 // For -400Z Board use: 1.0667
 #define DAC_MONITOR_GRID_VOLTAGE_FIXED_OFFSET     0
 
 

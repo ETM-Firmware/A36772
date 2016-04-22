@@ -1231,7 +1231,11 @@ void DoA36772(void) {
     //global_data_A36772.analog_output_top_voltage.set_point  = global_data_A36772.can_pulse_top_set_point;
 #endif
 
-    //If current limitting for longer than time limit?
+    //If current limiting for longer than time limit?
+    
+    if (global_data_A36772.heater_voltage_target > MAX_PROGRAM_HTR_VOLTAGE) {
+      global_data_A36772.heater_voltage_target = MAX_PROGRAM_HTR_VOLTAGE;
+    }
     
     // Ramp the heater voltage
     if (global_data_A36772.control_state == STATE_HEATER_RAMP_UP) {
@@ -1272,7 +1276,7 @@ void DoA36772(void) {
     ETMAnalogScaleCalibrateDACSetting(&global_data_A36772.monitor_grid_voltage);
 
     // Send out Data to local DAC and offboard.  Each channel will be updated once every 40mS
-    // Do not send out while in state "STATE_WAIT_FOR_CONFIG" because the module is not ready to recieve data and
+    // Do not send out while in state "STATE_WAIT_FOR_CONFIG" because the module is not ready to receive data and
     // you will just get data transfer errors
     if (global_data_A36772.control_state != STATE_WAIT_FOR_CONFIG) {
       switch ((global_data_A36772.run_time_counter & 0b111)) {
