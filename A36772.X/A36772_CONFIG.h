@@ -172,8 +172,8 @@
 // --------------------- Converter Logic Board DAC output Settings -------------- //
 #define DAC_HIGH_VOLTAGE_FIXED_SCALE          3.0000
 #define DAC_HIGH_VOLTAGE_FIXED_OFFSET         0
-#define HIGH_VOLTAGE_MAX_SET_POINT            20000                             // -20KV
-#define HIGH_VOLTAGE_MIN_SET_POINT            5000                              // -5KV
+#define HIGH_VOLTAGE_MAX_SET_POINT            20000      // -20KV
+#define HIGH_VOLTAGE_MIN_SET_POINT            5000  // -5KV
 
 
 #define DAC_TOP_VOLTAGE_FIXED_SCALE           1.5000
@@ -199,13 +199,13 @@
 #define POT_EK_FIXED_SCALE                    .42230
 #define POT_EK_FIXED_OFFSET                   0
 
-#define REF_HTR_FIXED_SCALE                   .12500
+#define REF_HTR_FIXED_SCALE                   .15625
 #define REF_HTR_FIXED_OFFSET                  0
 
-#define REF_VTOP_FIXED_SCALE                  .27778 // For -400Z Board use: .62500
-#define REF_VTOP_FIXED_OFFSET                 -2222  // For -400Z Board use: 0
+#define REF_VTOP_FIXED_SCALE                  .31250   //.27778 // For -400Z Board use: .62500
+#define REF_VTOP_FIXED_OFFSET                 -6400        //-2000    //-2222  // For -400Z Board use: 0
 
-#define REF_EK_FIXED_SCALE                    .25000 // For -400Z Board use: .33784
+#define REF_EK_FIXED_SCALE                    .31250 // For -400Z Board use: .33784
 #define REF_EK_FIXED_OFFSET                   0
 
 
@@ -221,7 +221,7 @@
 #define DAC_MONITOR_CATHODE_VOLTAGE_FIXED_OFFSET  0
 
 #define DAC_MONITOR_GRID_VOLTAGE_FIXED_SCALE      2.6667 // For -400Z Board use: 1.0667
-#define DAC_MONITOR_GRID_VOLTAGE_FIXED_OFFSET     0
+#define DAC_MONITOR_GRID_VOLTAGE_FIXED_OFFSET     2000   // For -400Z Board use: 0
 
 
 #endif

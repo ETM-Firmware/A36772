@@ -137,7 +137,6 @@ void DoStateMachine(void) {
     global_data_A36772.control_state = STATE_WAIT_FOR_CONFIG;
     break;
 
-
   case STATE_WAIT_FOR_CONFIG:
     DisableBeam();
     DisableHighVoltage();
@@ -355,8 +354,10 @@ void DoStateMachine(void) {
 
   case STATE_FAULT_HEATER_OFF:
     _CONTROL_NOT_READY = 1;
+#ifdef __CAN_REFERENCE
     _CONTROL_NOT_CONFIGURED = 1;
     global_data_A36772.control_config = 0;
+#endif
     DisableBeam();
     DisableHighVoltage();
     DisableHeater();
@@ -375,8 +376,10 @@ void DoStateMachine(void) {
 
   case STATE_FAULT_WARMUP_HEATER_OFF:
     _CONTROL_NOT_READY = 1;
+#ifdef __CAN_REFERENCE
     _CONTROL_NOT_CONFIGURED = 1;
     global_data_A36772.control_config = 0;
+#endif
     DisableBeam();
     DisableHighVoltage();
     DisableHeater();
@@ -1160,11 +1163,11 @@ void DoA36772(void) {
     //ETMCanSlaveSetDebugRegister(0xB, global_data_A36772.pot_vtop.reading_scaled_and_calibrated);
     //ETMCanSlaveSetDebugRegister(0xC, global_data_A36772.pot_ek.reading_scaled_and_calibrated);
     //ETMCanSlaveSetDebugRegister(0xD, global_data_A36772.ref_htr.reading_scaled_and_calibrated);
-    //ETMCanSlaveSetDebugRegister(0xE, global_data_A36772.ref_vtop.reading_scaled_and_calibrated);
+    //ETMCanSlaveSetDebugRegister(0xE, global_data_A36772.ref_vtop.reading_scaled_and_calibrated);//
     //ETMCanSlaveSetDebugRegister(0xF, global_data_A36772.ref_ek.reading_scaled_and_calibrated);
-    ETMCanSlaveSetDebugRegister(0xA, global_data_A36772.run_time_counter);
-    ETMCanSlaveSetDebugRegister(0xB, global_data_A36772.fault_restart_remaining);
-    ETMCanSlaveSetDebugRegister(0xC, global_data_A36772.power_supply_startup_remaining);
+    ETMCanSlaveSetDebugRegister(0xA, global_data_A36772.monitor_grid_voltage.set_point); //run_time_counter);
+    ETMCanSlaveSetDebugRegister(0xB, global_data_A36772.monitor_grid_voltage.dac_setting_scaled_and_calibrated); //fault_restart_remaining);
+    ETMCanSlaveSetDebugRegister(0xC, global_data_A36772.ref_vtop.reading_scaled_and_calibrated); //power_supply_startup_remaining);
     ETMCanSlaveSetDebugRegister(0xD, global_data_A36772.heater_warm_up_time_remaining);
     ETMCanSlaveSetDebugRegister(0xE, global_data_A36772.heater_ramp_up_time);
     ETMCanSlaveSetDebugRegister(0xF, global_data_A36772.control_state);
