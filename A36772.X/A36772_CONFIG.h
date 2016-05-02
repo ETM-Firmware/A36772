@@ -78,13 +78,13 @@
 
 // ----------- Timers configurations - ALL Times are in 10ms Units --------------------
 #define LED_STARTUP_FLASH_TIME                500      // Time LEDs will flash at startup
-#define MAX_HEATER_RAMP_UP_TIME               24000    // If the heater does not reach it's programed voltage in this time a fault will be generated
+#define MAX_HEATER_RAMP_UP_TIME               60000    // If the heater does not reach it's programed voltage in this time a fault will be generated
 #define HEATER_AUTO_RESTART_TIME              500      // Time delay between a heater fault and when the heater gets restarted
 #define HEATER_RAMP_UP_TIME_PERIOD            5        // Durring heater ramp up, the heater voltage will be increased every N 10ms (see HEATER_RAMP_UP_INCREMENT)
 #define GUN_DRIVER_POWER_SUPPLY_STARTUP_TIME  100      // Wait this long between enabling High Voltage / Pulse Top / Bias and cheching that they are at correct values
 
 // System control Parameters
-#define MAX_HEATER_CURRENT_DURING_RAMP_UP     1600     // mA Units.  Whenever the heater voltage is increased (ramp-up or increasing the set point).  The voltage will be current limited by this current
+#define MAX_HEATER_CURRENT_DURING_RAMP_UP     1650     // mA Units.  Whenever the heater voltage is increased (ramp-up or increasing the set point).  The voltage will be current limited by this current
 #define MAX_CONVERTER_LOGIC_ADC_READ_ERRORS   20       // If the ADC read exceeds this number a fault will be created
 #define MAX_HEATER_START_UP_ATTEMPTS          5        // If the heater ramp up process does not succeed in this many attempts, a fault will be generated that requires power cycle
 #define MAX_DAC_TX_ATTEMPTS                   10       // The pic will attempt to write to the Converter Logic DAC this many times before giving up
