@@ -131,6 +131,7 @@ void DoStateMachine(void) {
     _CONTROL_NOT_READY = 1;
     global_data_A36772.heater_start_up_attempts = 0;
     global_data_A36772.run_time_counter = 0;
+    global_data_A36772.fault_holdoff_state = 0;
 #ifndef __CAN_REFERENCE
     _CONTROL_NOT_CONFIGURED = 0;
 #endif
@@ -188,8 +189,18 @@ void DoStateMachine(void) {
     global_data_A36772.current_state_msg = STATE_MESSAGE_HEATER_WARM_UP;
     global_data_A36772.heater_ramp_up_time = 0;
     global_data_A36772.heater_warm_up_time_remaining = HEATER_WARM_UP_TIME;
+    _T3IF = 0;   //set timer
+    global_data_A36772.fault_holdoff_count = 0;
+    global_data_A36772.fault_holdoff_state = FAULT_HOLDOFF_STATE;
     while (global_data_A36772.control_state == STATE_HEATER_WARM_UP) {
       DoA36772();
+      if (_T3IF) {
+        _T3IF = 0;
+        global_data_A36772.fault_holdoff_count++;
+        if (global_data_A36772.fault_holdoff_count >= CURRENT_LIMITED_FAULT_HOLDOFF_TIME) {
+          global_data_A36772.fault_holdoff_state = 0;                 
+        }
+      }
       if (global_data_A36772.heater_warm_up_time_remaining == 0) {
         global_data_A36772.control_state = STATE_HEATER_WARM_UP_DONE;
       }
@@ -211,9 +222,6 @@ void DoStateMachine(void) {
       if (global_data_A36772.request_hv_enable) {
         global_data_A36772.control_state = STATE_POWER_SUPPLY_RAMP_UP;
       }
-//      if (CheckHeaterFault()) {
-//	global_data_A36772.control_state = STATE_FAULT_HEATER_ON;
-//      }
       if (CheckHeaterFault()) {
         global_data_A36772.control_state = STATE_FAULT_WARMUP_HEATER_OFF;
       }
@@ -1103,7 +1111,7 @@ void DoA36772(void) {
     ADCStartAcquisition();
     
     
-        if (global_data_A36772.watchdog_set_mode == WATCHDOG_MODE_0) {
+    if (global_data_A36772.watchdog_set_mode == WATCHDOG_MODE_0) {
       if ((global_data_A36772.input_dac_monitor.filtered_adc_reading > MIN_WD_VALUE_0) &&
             (global_data_A36772.input_dac_monitor.filtered_adc_reading < MAX_WD_VALUE_0)) {
         global_data_A36772.watchdog_counter = 0;
@@ -1190,21 +1198,7 @@ void DoA36772(void) {
     slave_board_data.log_data[14] = global_data_A36772.adc_read_error_count;
     slave_board_data.log_data[15] = GUN_DRIVER_LOAD_TYPE;
 
-    
-    // Scale and Calibrate the external ADC Readings
 
-    /*
-    local_debug_data.debug_0 = global_data_A36772.input_adc_temperature.reading_scaled_and_calibrated;
-    local_debug_data.debug_1 = global_data_A36772.input_hv_v_mon.reading_scaled_and_calibrated;
-    local_debug_data.debug_2 = global_data_A36772.input_hv_i_mon.reading_scaled_and_calibrated;
-    local_debug_data.debug_3 = global_data_A36772.input_gun_i_peak.reading_scaled_and_calibrated;
-    local_debug_data.debug_4 = global_data_A36772.input_htr_v_mon.reading_scaled_and_calibrated;
-    local_debug_data.debug_5 = global_data_A36772.input_top_v_mon.reading_scaled_and_calibrated;
-    local_debug_data.debug_6 = global_data_A36772.input_bias_v_mon.reading_scaled_and_calibrated;
-    local_debug_data.debug_7 = global_data_A36772.input_24_v_mon.reading_scaled_and_calibrated;
-    local_debug_data.debug_8 = global_data_A36772.input_temperature_mon.reading_scaled_and_calibrated;
-    local_debug_data.debug_9 = global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated;
-    */
     ETMCanSlaveSetDebugRegister(7, global_data_A36772.dac_write_failure_count);
 
 #ifdef __POT_REFERENCE
@@ -1234,14 +1228,13 @@ void DoA36772(void) {
     //global_data_A36772.analog_output_top_voltage.set_point  = global_data_A36772.can_pulse_top_set_point;
 #endif
 
-    //If current limiting for longer than time limit?
     
     if (global_data_A36772.heater_voltage_target > MAX_PROGRAM_HTR_VOLTAGE) {
       global_data_A36772.heater_voltage_target = MAX_PROGRAM_HTR_VOLTAGE;
     }
     
     // Ramp the heater voltage
-    if (global_data_A36772.control_state == STATE_HEATER_RAMP_UP) {
+    if ((global_data_A36772.control_state == STATE_HEATER_RAMP_UP)||(global_data_A36772.fault_holdoff_state == FAULT_HOLDOFF_STATE)) {
       global_data_A36772.heater_voltage_current_limited = 0;
     }
     global_data_A36772.heater_ramp_interval++;

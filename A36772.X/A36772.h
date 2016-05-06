@@ -287,6 +287,8 @@ typedef struct {
   unsigned int watchdog_set_mode;               // This is the DAC/ADC test setting for the SPI watchdog
   unsigned int heater_ramp_interval;            // This counts the interval between heater ramp voltage changes
   unsigned int heater_voltage_target;           // This is the targeted heater voltage set point
+  unsigned int fault_holdoff_state;             // This is
+  unsigned int fault_holdoff_count;             // This is
   
   volatile unsigned char control_config;        // This indicates when all set values from the CAN interface have been received
 
@@ -391,54 +393,7 @@ extern TYPE_GLOBAL_DATA_A36772 global_data_A36772;
 // ---------------------- FAULT & STATUS   CONFIGURATION ---------------------------- //
 
 
-//#define _FPGA_CONVERTER_LOGIC_PCB_REV_MISMATCH         _STATUS_7
-//#define _FPGA_FIRMWARE_MINOR_REV_MISMATCH              _STATUS_7
-//#define _FPGA_ARC_COUNTER_GREATER_ZERO                 _STATUS_7
-//#define _FPGA_ARC_HIGH_VOLTAGE_INHIBIT_ACTIVE          _STATUS_7
-//#define _FPGA_HEATER_VOLTAGE_LESS_THAN_4_5_VOLTS       _STATUS_7
-//#define _FPGA_MODULE_TEMP_GREATER_THAN_65_C            _STATUS_7
-//#define _FPGA_MODULE_TEMP_GREATER_THAN_75_C            _STATUS_7
-//#define _FPGA_PULSE_WIDTH_LIMITING                     _STATUS_6
-//#define _FPGA_PRF_FAULT                                _STATUS_7
-//#define _FPGA_CURRENT_MONITOR_PULSE_WIDTH_FAULT        _STATUS_7
-//#define _FPGA_GRID_MODULE_HARDWARE_FAULT               _STATUS_7
-//#define _FPGA_GRID_MODULE_OVER_VOLTAGE_FAULT           _STATUS_7
-//#define _FPGA_GRID_MODULE_UNDER_VOLTAGE_FAULT          _STATUS_7
-//#define _FPGA_GRID_MODULE_BIAS_VOLTAGE_FAULT           _STATUS_7
-//#define _FPGA_HV_REGULATION_WARNING                    _STATUS_6
-//#define _FPGA_DIPSWITCH_1_ON                           _STATUS_6
-//#define _FPGA_TEST_MODE_TOGGLE_SWITCH_TEST_MODE        _STATUS_6
-//#define _FPGA_LOCAL_MODE_TOGGLE_SWITCH_LOCAL_MODE      _STATUS_6
-//
-//
-//#define _STATUS_CUSTOMER_HV_ON                         _STATUS_0
-//#define _STATUS_CUSTOMER_BEAM_ENABLE                   _STATUS_1
-//#define _STATUS_ADC_DIGITAL_HEATER_NOT_READY           _STATUS_2
-//#define _STATUS_DAC_WRITE_FAILURE                      _STATUS_3
-//
-//
-//
-//#define _FAULT_FPGA_FIRMWARE_MAJOR_REV_MISMATCH        _FAULT_0 // CHECKED_DP// Heater Fault
-//#define _FAULT_ADC_HV_V_MON_OVER_RELATIVE              _FAULT_1 // CHECKED_DP
-//#define _FAULT_ADC_HV_V_MON_UNDER_RELATIVE             _FAULT_1 // CHECKED_DP
-//#define _FAULT_ADC_HTR_V_MON_OVER_RELATIVE             _FAULT_2 // CHECKED_DP// Heater Fault
-//#define _FAULT_ADC_HTR_V_MON_UNDER_RELATIVE            _FAULT_2 // CHECKED_DP// Heater Fault
-//#define _FAULT_HEATER_VOLTAGE_CURRENT_LIMITED          _FAULT_2 // CHECKED_DP// Heater Fault
-//#define _FAULT_ADC_HTR_I_MON_OVER_ABSOLUTE             _FAULT_3 // CHECKED_DP// Heater Fault
-//#define _FAULT_ADC_HTR_I_MON_UNDER_ABSOLUTE            _FAULT_4 // CHECKED_DP// Heater Fault
-//#define _FAULT_ADC_TOP_V_MON_OVER_RELATIVE             _FAULT_5 // CHECKED_DP
-//#define _FAULT_ADC_TOP_V_MON_UNDER_RELATIVE            _FAULT_5 // CHECKED_DP
-//#define _FAULT_ADC_BIAS_V_MON_OVER_ABSOLUTE            _FAULT_6 // CHECKED_DP 
-//#define _FAULT_ADC_BIAS_V_MON_UNDER_ABSOLUTE           _FAULT_6 // CHECKED_DP
-//// UNUSED                                              _FAULT_7
-//#define _FAULT_ADC_DIGITAL_WATCHDOG                    _FAULT_8  // CHECKED_DP// This requires a FPGA Reset (Goto Heater Off State)
-//#define _FAULT_ADC_DIGITAL_ARC                         _FAULT_9  // CHECKED_DP// This requires HV OFF
-//#define _FAULT_ADC_DIGITAL_OVER_TEMP                   _FAULT_A  // CHECKED_DP// This requires a FPGA Reset (Goto Heater Off State)
-//#define _FAULT_ADC_DIGITAL_PULSE_WIDTH_DUTY            _FAULT_B  // CHECKED_DP// This requires HV OFF
-//#define _FAULT_ADC_DIGITAL_GRID                        _FAULT_C  // CHECKED_DP// This requires a FPGA Reset (Goto Heater Off State)
-//#define _FAULT_CONVERTER_LOGIC_ADC_READ_FAILURE        _FAULT_D  // CHECKED_DP// Heater Fault
-//#define _FAULT_HEATER_RAMP_TIMEOUT                     _FAULT_E  // CHECKED_DP// Heater Fault
-//// UNUSED                                              _FAULT_F
+
 
 #define _FAULT_FPGA_FIRMWARE_MAJOR_REV_MISMATCH        _FAULT_0 // CHECKED_DP// Heater Fault
 #define _FAULT_ADC_HV_V_MON_OVER_RELATIVE              _FAULT_1 // CHECKED_DP
