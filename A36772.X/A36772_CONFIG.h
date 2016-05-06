@@ -1,83 +1,74 @@
 #ifndef __A36772_CONFIG_H
 #define __A36772_CONFIG_H
 
-/*
-  We have a couple of compile time options
-  __MODE_CAN_INTERFACE        
-    In this mode, the gun driver is controlled over the CAN interface.
-    The descrete digital/analog is not used.
-    R126 and R127 should be installed
+//-----------------------Specific board selections---------------------
 
-  __MODE_POT_INTERFACE
-    In this mode, the gun driver is controlled by discrete fiber or signal lines.
-    The pulse top, high voltage, and heater references are generated from the on board pots
-    R126 and R127 should not be installed 
+//#define __A36772_000
+//#define __A36772_600
+#define __A36772_700
 
-  __MODE_DISCRETE_INTERFACE
-    In this mode, the gun driver is controlled by discrete fiber or signal lines.
-    The pulse top, high voltage, and heater references are generated from the external interface
-    R126 and R127 should not be installed 
 
-  __OPTION_ENABLE_CAN
-    This is only valid for __MODE_POT_INTERFACE and __MODE_DISCRETE_INTERFACE
-    This allows the CAN port to be used for test and debugging while operating in one of these modes
+// Make sure that at least one board is selected
+#ifndef __A36772_000
+#ifndef __A36772_600
+#ifndef __A36772_700
+#error "No Specific Board Selected"
+#endif
+#endif
+#endif
 
- */
+#ifdef __A36772_000
+#define __MODE_MODBUS_INTERFACE
+#define __MODE_POT_INTERFACE  //remove once modbus created
+#define __OPTION_ENABLE_CAN
+#define REF_VTOP_SCALE_SELECTED                 .62500       // 1V = 50V Eg
+#define REF_VTOP_OFFSET_SELECTED                0
+#define REF_EK_SCALE_SELECTED                   .33784       // 0.37V = -1kV Ek
+#define DAC_MON_EK_VOLTAGE_SCALE_SELECTED       1.9733       // 0.37V = -1kV Ek
+#define DAC_MON_TOP_VOLTAGE_SCALE_SELECTED      1.0667       // 1V = 50V Eg
+#define DAC_MON_TOP_VOLTAGE_OFFSET_SELECTED     0
+#ifdef  __A36772_600
+#error "Multiple boards selected"
+#endif
+#ifdef  __A36772_700
+#error "Multiple boards selected"
+#endif
+#endif
 
-//#define __MODE_CAN_INTERFACE
-//#define __MODE_POT_INTERFACE
+#ifdef __A36772_600
+#define __MODE_MODBUS_INTERFACE
 #define __MODE_DISCRETE_INTERFACE
 #define __OPTION_ENABLE_CAN
-
-// Make sure that at least more mode is selected
-#ifndef __MODE_CAN_INTERFACE
-#ifndef __MODE_POT_INTERFACE
-#ifndef __MODE_DISCRETE_INTERFACE
-#error "No reference Source Selected"
-#endif
-#endif
-#endif
-
-
-// Create and check compile time options based on configuration above
-#ifdef __MODE_CAN_INTERFACE
-#define __CAN_CONTROLS
-#define __CAN_ENABLED
-#define __CAN_REFERENCE
-#ifdef __OPTION_ENABLE_CAN
-#error "OPTION_ENABLE_CAN not valid modifier to MODE_CAN_INTERFACE"
+#define REF_VTOP_SCALE_SELECTED                 .31250       // 1V = 20V above -100V Eg
+#define REF_VTOP_OFFSET_SELECTED                -6400
+#define REF_EK_SCALE_SELECTED                   .31250       // 1V = 2kV Ek 
+#define DAC_MON_EK_VOLTAGE_SCALE_SELECTED       2.6667       // 1V = 2kV Ek
+#define DAC_MON_TOP_VOLTAGE_SCALE_SELECTED      2.6667       // 1V = 20V above -100V Eg
+#define DAC_MON_TOP_VOLTAGE_OFFSET_SELECTED     2000
+#ifdef  __A36772_700
+#error "Multiple boards selected"
 #endif
 #endif
 
-
-#ifdef __MODE_DISCRETE_INTERFACE
-#define __DISCRETE_REFERENCE
-#define __DISCRETE_CONTROLS
-#ifdef  __CAN_REFERENCE
-#error "Multiple references selected"
-#endif
-#endif
-
-#ifdef __MODE_POT_INTERFACE
-#define __POT_REFERENCE
-#define __DISCRETE_CONTROLS
-#ifdef  __CAN_REFERENCE
-#error "Multiple references selected"
-#endif
-#ifdef  __DISCRETE_REFERENCE
-#error "Multiple references selected"
-#endif
+#ifdef __A36772_700
+#define __MODE_DISCRETE_INTERFACE
+#define __OPTION_ENABLE_CAN
+#define REF_VTOP_SCALE_SELECTED                 .31250       // 1V = 20V above -100V Eg
+#define REF_VTOP_OFFSET_SELECTED                -6400
+#define REF_EK_SCALE_SELECTED                   .31250       // 1V = -2kV Ek
+#define DAC_MON_EK_VOLTAGE_SCALE_SELECTED       2.6667       // 1V = -2kV Ek
+#define DAC_MON_TOP_VOLTAGE_SCALE_SELECTED      2.6667       // 1V = 20V above -100V Eg
+#define DAC_MON_TOP_VOLTAGE_OFFSET_SELECTED     2000
 #endif
 
-#ifdef __OPTION_ENABLE_CAN
-#define __CAN_ENABLED
-#endif
 
 
 // ----------- Gun Driver Load Specific Parameters ----------------------
+
 //#define __LOAD_LINAC_GUN
 #define __LOAD_TWT
 //#define __LOAD_TEST_GUN
+
 
 #ifndef __LOAD_LINAC_GUN
 #ifndef __LOAD_TWT
@@ -122,6 +113,76 @@
 #define GUN_DRIVER_LOAD_TYPE             2
 #endif
 
+/*----------------------------------------------------------------------*/
+/*
+  We have a couple of compile time options (selected by board option):
+  __MODE_CAN_INTERFACE        
+    In this mode, the gun driver is controlled over the CAN interface.
+    The descrete digital/analog is not used.
+    R126 and R127 should be installed
+
+  __MODE_POT_INTERFACE
+    In this mode, the gun driver is controlled by discrete fiber or signal lines.
+    The pulse top, high voltage, and heater references are generated from the on board pots
+    R126 and R127 should not be installed 
+
+  __MODE_DISCRETE_INTERFACE
+    In this mode, the gun driver is controlled by discrete fiber or signal lines.
+    The pulse top, high voltage, and heater references are generated from the external interface
+    R126 and R127 should not be installed 
+
+  __OPTION_ENABLE_CAN
+    This is only valid for __MODE_POT_INTERFACE and __MODE_DISCRETE_INTERFACE
+    This allows the CAN port to be used for test and debugging while operating in one of these modes
+
+ */
+
+
+// Make sure that at least one mode is selected
+#ifndef __MODE_CAN_INTERFACE
+#ifndef __MODE_POT_INTERFACE
+#ifndef __MODE_DISCRETE_INTERFACE
+#error "No reference Source Selected"
+#endif
+#endif
+#endif
+
+
+// Create and check compile time options based on configuration above
+#ifdef __MODE_CAN_INTERFACE
+#define __CAN_CONTROLS
+#define __CAN_ENABLED
+#define __CAN_REFERENCE
+#ifdef __OPTION_ENABLE_CAN
+#error "OPTION_ENABLE_CAN not valid modifier to MODE_CAN_INTERFACE"
+#endif
+#endif
+
+
+#ifdef __MODE_DISCRETE_INTERFACE
+#define __DISCRETE_REFERENCE
+#define __DISCRETE_CONTROLS
+#ifdef  __CAN_REFERENCE
+#error "Multiple references selected"
+#endif
+#endif
+
+#ifdef __MODE_POT_INTERFACE
+#define __POT_REFERENCE
+#define __DISCRETE_CONTROLS
+#ifdef  __CAN_REFERENCE
+#error "Multiple references selected"
+#endif
+#ifdef  __DISCRETE_REFERENCE
+#error "Multiple references selected"
+#endif
+#endif
+
+#ifdef __OPTION_ENABLE_CAN
+#define __CAN_ENABLED
+#endif
+
+
 
 
 // ----------- Timers configurations - ALL Times are in 10ms Units --------------------
@@ -142,18 +203,17 @@
 
 #define HEATER_VOLTAGE_CURRENT_LIMITED_FAULT_TIME (500 / HEATER_RAMP_UP_TIME_PERIOD)  // 5 Seconds
 
-#define CURRENT_LIMITED_FAULT_HOLDOFF_TIME    10    //10 seconds
+#define CURRENT_LIMITED_FAULT_HOLDOFF_TIME    10      // 10 seconds at the start of heater warmup before current limit fault is timed
 #define FAULT_HOLDOFF_STATE                   22
 
 
 #ifdef __CAN_CONTROLS
-#define HEATER_WARM_UP_TIME 100 //18000     // In Can control mode the heater warm up time is enforced by the ECB
+#define HEATER_WARM_UP_TIME 100       //18000     // In Can control mode the heater warm up time is enforced by the ECB
 #else
-#define HEATER_WARM_UP_TIME 12000 // 2 minutes
+#define HEATER_WARM_UP_TIME 12000     // 2 minutes
 #endif
 
 
-#define GUN_DRIVER_LOAD_TYPE             0
 
 
 // ------------- Converter Logic Board ADC Input Settings ---------------------
@@ -219,8 +279,8 @@
 // --------------------- Converter Logic Board DAC output Settings -------------- //
 #define DAC_HIGH_VOLTAGE_FIXED_SCALE          3.0000
 #define DAC_HIGH_VOLTAGE_FIXED_OFFSET         0
-#define HIGH_VOLTAGE_MAX_SET_POINT            20000      // -20KV
-#define HIGH_VOLTAGE_MIN_SET_POINT            5000  // -5KV
+#define HIGH_VOLTAGE_MAX_SET_POINT            20000                             // -20KV
+#define HIGH_VOLTAGE_MIN_SET_POINT            5000                              // -5KV
 
 
 #define DAC_TOP_VOLTAGE_FIXED_SCALE           1.5000
@@ -246,29 +306,29 @@
 #define POT_EK_FIXED_SCALE                    .42230
 #define POT_EK_FIXED_OFFSET                   0
 
-#define REF_HTR_FIXED_SCALE                   .15625
+#define REF_HTR_FIXED_SCALE                   .15625                            // 1V = -1V Ef
 #define REF_HTR_FIXED_OFFSET                  0
 
-#define REF_VTOP_FIXED_SCALE                  .31250   //.27778 // For -400Z Board use: .62500
-#define REF_VTOP_FIXED_OFFSET                 -6400        //-2000    //-2222  // For -400Z Board use: 0
+#define REF_VTOP_FIXED_SCALE                  REF_VTOP_SCALE_SELECTED
+#define REF_VTOP_FIXED_OFFSET                 REF_VTOP_OFFSET_SELECTED
 
-#define REF_EK_FIXED_SCALE                    .31250   // For -400Z Board use: .33784
+#define REF_EK_FIXED_SCALE                    REF_EK_SCALE_SELECTED
 #define REF_EK_FIXED_OFFSET                   0
 
 
 
 // ------------- A36772 Onboard DAC Output Settings --------------------- //
-#define DAC_MONITOR_HEATER_VOLTAGE_FIXED_SCALE    5.3333
+#define DAC_MONITOR_HEATER_VOLTAGE_FIXED_SCALE    5.3333                        // 1V = -1V Ef
 #define DAC_MONITOR_HEATER_VOLTAGE_FIXED_OFFSET   0
 
-#define DAC_MONITOR_HEATER_CURRENT_FIXED_SCALE    10.6667
+#define DAC_MONITOR_HEATER_CURRENT_FIXED_SCALE    10.6667                       // 1V = 500mA If
 #define DAC_MONITOR_HEATER_CURRENT_FIXED_OFFSET   0
 
-#define DAC_MONITOR_CATHODE_VOLTAGE_FIXED_SCALE   2.6667 // For -400Z Board use: 1.9733
+#define DAC_MONITOR_CATHODE_VOLTAGE_FIXED_SCALE   DAC_MON_EK_VOLTAGE_SCALE_SELECTED
 #define DAC_MONITOR_CATHODE_VOLTAGE_FIXED_OFFSET  0
 
-#define DAC_MONITOR_GRID_VOLTAGE_FIXED_SCALE      2.6667 // For -400Z Board use: 1.0667
-#define DAC_MONITOR_GRID_VOLTAGE_FIXED_OFFSET     2000   // For -400Z Board use: 0
+#define DAC_MONITOR_GRID_VOLTAGE_FIXED_SCALE      DAC_MON_TOP_VOLTAGE_SCALE_SELECTED
+#define DAC_MONITOR_GRID_VOLTAGE_FIXED_OFFSET     DAC_MON_TOP_VOLTAGE_OFFSET_SELECTED
 
 
 #endif

@@ -287,8 +287,8 @@ typedef struct {
   unsigned int watchdog_set_mode;               // This is the DAC/ADC test setting for the SPI watchdog
   unsigned int heater_ramp_interval;            // This counts the interval between heater ramp voltage changes
   unsigned int heater_voltage_target;           // This is the targeted heater voltage set point
-  unsigned int fault_holdoff_state;             // This is
-  unsigned int fault_holdoff_count;             // This is
+  unsigned int fault_holdoff_state;             // This is whether to hold off current limit fault during htr warmup period
+  unsigned int fault_holdoff_count;             // This is a counter for the current limit fault holdoff
   
   volatile unsigned char control_config;        // This indicates when all set values from the CAN interface have been received
 
