@@ -27,6 +27,7 @@
 #define DAC_MON_EK_VOLTAGE_SCALE_SELECTED       1.9733       // 0.37V = -1kV Ek
 #define DAC_MON_TOP_VOLTAGE_SCALE_SELECTED      1.0667       // 1V = 50V Eg
 #define DAC_MON_TOP_VOLTAGE_OFFSET_SELECTED     0
+#define BOARD_DASH_NUMBER                       000
 #ifdef  __A36772_600
 #error "Multiple boards selected"
 #endif
@@ -45,6 +46,7 @@
 #define DAC_MON_EK_VOLTAGE_SCALE_SELECTED       2.6667       // 1V = 2kV Ek
 #define DAC_MON_TOP_VOLTAGE_SCALE_SELECTED      2.6667       // 1V = 20V above -100V Eg
 #define DAC_MON_TOP_VOLTAGE_OFFSET_SELECTED     2000
+#define BOARD_DASH_NUMBER                       600
 #ifdef  __A36772_700
 #error "Multiple boards selected"
 #endif
@@ -59,6 +61,7 @@
 #define DAC_MON_EK_VOLTAGE_SCALE_SELECTED       2.6667       // 1V = -2kV Ek
 #define DAC_MON_TOP_VOLTAGE_SCALE_SELECTED      2.6667       // 1V = 20V above -100V Eg
 #define DAC_MON_TOP_VOLTAGE_OFFSET_SELECTED     2000
+#define BOARD_DASH_NUMBER                       700
 #endif
 
 
