@@ -2956,7 +2956,32 @@ unsigned int checkCRC(unsigned char * ptr, unsigned int size)
 }
 
 
+//-----------------------------------------------------------------------------
+//   UART Interrupts
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+        
+void __attribute__((interrupt, no_auto_psv)) _U1RXInterrupt(void) {
+  _U1RXIF = 0;
+  modbus_receiving_flag = 1;
 
+  while (U1STAbits.URXDA) {
+    BufferByte64WriteByte(&uart1_input_buffer, U1RXREG);
+  }
+}
+
+
+
+void __attribute__((interrupt, no_auto_psv)) _U1TXInterrupt(void) {
+  _U1TXIF = 0;
+  while ((!U1STAbits.UTXBF) && (BufferByte64BytesInBuffer(&uart1_output_buffer))) {
+    /*
+      There is at least one byte available for writing in the output buffer and the transmit buffer is not full.
+      Move a byte from the output buffer into the transmit buffer
+    */
+    U1TXREG = BufferByte64ReadByte(&uart1_output_buffer);
+  }
+}
 
 
 #endif
