@@ -545,6 +545,10 @@ typedef struct {
   unsigned char bit_data[125];
 } MODBUS_MESSAGE;
 
+//extern MODBUS_MESSAGE  current_command_ptr;
+
+#define ETMMODBUS_COMMAND_SIZE_MIN    8
+
 #define SLAVE_BIT_ARRAY_SIZE          64
 #define SLAVE_HOLD_REG_ARRAY_SIZE     64
 #define SLAVE_INPUT_REG_ARRAY_SIZE    64

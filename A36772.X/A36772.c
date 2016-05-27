@@ -56,13 +56,15 @@ unsigned char  ETM_last_modbus_fail = 0;
   
 unsigned char  modbus_slave_invalid_data = 0;
 
-static MODBUS_RESP_SMALL*  ETMmodbus_resp_ptr[ETMMODBUS_CMD_QUEUE_SIZE];
+//static MODBUS_RESP_SMALL*  ETMmodbus_resp_ptr[ETMMODBUS_CMD_QUEUE_SIZE];
 
 BUFFERBYTE64 uart1_input_buffer;   
 BUFFERBYTE64 uart1_output_buffer; 
 
-static unsigned char normal_reply_length;
-static MODBUS_MESSAGE * current_command_ptr;
+MODBUS_MESSAGE  current_command_ptr;
+
+//static unsigned char normal_reply_length;
+
 
 void ETMModbusInit(void);
 void ETMModbusSlaveDoModbus(void);
@@ -128,12 +130,6 @@ unsigned char SPICharInverted(unsigned char transmit_byte);
   and inverts the received data before returning it.
 */
 
-#ifdef __noModbusLibrary
-void ETMmodbus_init(void);
-
-
-
-#endif
 
 // Digital Input Functions (NEEDS and ETM Module)
 void ETMDigitalInitializeInput(TYPE_DIGITAL_INPUT* input, unsigned int initial_value, unsigned int filter_time);
@@ -533,6 +529,11 @@ void InitializeA36772(void) {
   _ADIP = 6; // This needs to be higher priority than the CAN interrupt (Which defaults to 4)
   _ADIE = 1;
   _ADON = 1;
+  
+#ifdef __MODE_MODBUS_INTERFACE
+  ETMModbusInit();
+#endif
+  
 
 #ifdef __CAN_ENABLED
   // Initialize the Can module
@@ -965,7 +966,7 @@ unsigned int CheckHeaterFault(void) {
   fault |= _FAULT_ADC_HTR_I_MON_UNDER_ABSOLUTE;
   fault |= _FAULT_ADC_DIGITAL_OVER_TEMP;
   fault |= _FAULT_ADC_DIGITAL_GRID;
-  fault |= _FAULT_CONVERTER_LOGIC_ADC_READ_FAILURE;
+//  fault |= _FAULT_CONVERTER_LOGIC_ADC_READ_FAILURE;
   fault |= _FAULT_HEATER_RAMP_TIMEOUT;
   if (fault) {
     return 1;
@@ -1635,12 +1636,12 @@ void UpdateFaults(void) {
     }  
   } 
 
-  if (global_data_A36772.adc_read_error_test > MAX_CONVERTER_LOGIC_ADC_READ_ERRORS) {
-    global_data_A36772.adc_read_error_test = MAX_CONVERTER_LOGIC_ADC_READ_ERRORS;
-    _FAULT_CONVERTER_LOGIC_ADC_READ_FAILURE = 1; 
-  } else if (global_data_A36772.reset_active) {
-    _FAULT_CONVERTER_LOGIC_ADC_READ_FAILURE = 0;
-  }
+//  if (global_data_A36772.adc_read_error_test > MAX_CONVERTER_LOGIC_ADC_READ_ERRORS) {
+//    global_data_A36772.adc_read_error_test = MAX_CONVERTER_LOGIC_ADC_READ_ERRORS;
+//    _FAULT_CONVERTER_LOGIC_ADC_READ_FAILURE = 1; 
+//  } else if (global_data_A36772.reset_active) {
+//    _FAULT_CONVERTER_LOGIC_ADC_READ_FAILURE = 0;
+//  }
   
   if ((global_data_A36772.heater_ramp_up_time == 0) && (global_data_A36772.control_state == STATE_HEATER_RAMP_UP)) {
     _FAULT_HEATER_RAMP_TIMEOUT = 1;
@@ -2561,7 +2562,7 @@ void ETMModbusInit(void) {
 	  
   U1MODEbits.UARTEN = 1;	// And turn the peripheral on
       
-  PIN_ENABLE_RS485 = 1;
+  PIN_RS485_ENABLE = 1;
 
   modbus_transmission_needed = 0;
   modbus_receiving_flag = 0;
@@ -2604,7 +2605,7 @@ void ETMModbusSlaveDoModbus(void) {
     
     case MODBUS_STATE_PROCESSING:
       ProcessCommand (&current_command_ptr);
-      modbus_transmission needed = 1;
+      modbus_transmission_needed = 1;
       ETM_modbus_state = MODBUS_STATE_IDLE;
       break;
     
