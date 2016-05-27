@@ -8,6 +8,8 @@
 //#define __A36772_700
 
 
+
+
 // Make sure that at least one board is selected
 #ifndef __A36772_000
 #ifndef __A36772_600
@@ -19,7 +21,6 @@
 
 #ifdef __A36772_000
 #define __MODE_MODBUS_INTERFACE
-#define __MODE_POT_INTERFACE  //remove once modbus created
 #define __OPTION_ENABLE_CAN
 #define REF_VTOP_SCALE_SELECTED                 .62500       // 1V = 50V Eg
 #define REF_VTOP_OFFSET_SELECTED                0
@@ -145,7 +146,9 @@
 #ifndef __MODE_CAN_INTERFACE
 #ifndef __MODE_POT_INTERFACE
 #ifndef __MODE_DISCRETE_INTERFACE
+#ifndef __MODE_MODBUS_INTERFACE
 #error "No reference Source Selected"
+#endif
 #endif
 #endif
 #endif
@@ -168,6 +171,9 @@
 #ifdef  __CAN_REFERENCE
 #error "Multiple references selected"
 #endif
+#ifdef  __MODBUS_REFERENCE
+#error "Multiple references selected"
+#endif
 #endif
 
 #ifdef __MODE_POT_INTERFACE
@@ -180,6 +186,12 @@
 #error "Multiple references selected"
 #endif
 #endif
+
+#ifdef __MODE_MODBUS_INTERFACE
+#define __MODBUS_REFERENCE
+#define __MODBUS_CONTROLS
+#endif
+
 
 #ifdef __OPTION_ENABLE_CAN
 #define __CAN_ENABLED

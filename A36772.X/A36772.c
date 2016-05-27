@@ -42,6 +42,38 @@ void UpdateFaults(void); // Update the fault bits based on analog/digital parame
 void UpdateLEDandStatusOutuputs(void);  // Updates the LED and status outputs based on the system state
 
 void SetStateMessage (unsigned int message);  // Sets bits for modbus state message
+unsigned int GetModbusResetEnable(void);
+
+
+#ifdef __noModbusLibrary
+
+static unsigned char  ETMmodbus_put_index;
+static unsigned char  ETMmodbus_get_index;
+
+unsigned char  modbus_transmission_needed = 0;
+unsigned char  modbus_receiving_flag = 0;
+unsigned char  ETM_last_modbus_fail = 0;
+  
+unsigned char  modbus_slave_invalid_data = 0;
+
+static MODBUS_RESP_SMALL*  ETMmodbus_resp_ptr[ETMMODBUS_CMD_QUEUE_SIZE];
+
+BUFFERBYTE64 uart1_input_buffer;   
+BUFFERBYTE64 uart1_output_buffer; 
+
+static unsigned char normal_reply_length;
+static MODBUS_MESSAGE * current_command_ptr;
+
+void ETMModbusInit(void);
+void ETMModbusSlaveDoModbus(void);
+void ReceiveCommand(MODBUS_MESSAGE * ptr);
+void SendResponse(MODBUS_MESSAGE * ptr);
+void ProcessCommand (MODBUS_MESSAGE * ptr);
+void CheckValidData(MODBUS_MESSAGE * ptr);
+void CheckDeviceFailure(MODBUS_MESSAGE * ptr);
+unsigned int checkCRC(unsigned char * ptr, unsigned int size);
+
+#endif
 
 /*
   Helper Function used to Enable/Disable Supplies on Converter logic board
@@ -96,7 +128,12 @@ unsigned char SPICharInverted(unsigned char transmit_byte);
   and inverts the received data before returning it.
 */
 
+#ifdef __noModbusLibrary
+void ETMmodbus_init(void);
 
+
+
+#endif
 
 // Digital Input Functions (NEEDS and ETM Module)
 void ETMDigitalInitializeInput(TYPE_DIGITAL_INPUT* input, unsigned int initial_value, unsigned int filter_time);
@@ -474,6 +511,8 @@ void InitializeA36772(void) {
   _T3IF = 0;
   _T3IP = 5;
   T3CON = A36772_T3CON_VALUE;
+  
+  
 
   // Configure on-board DAC
   SetupLTC265X(&U32_LTC2654, ETM_SPI_PORT_2, FCY_CLK, LTC265X_SPI_2_5_M_BIT, _PIN_RG15, _PIN_RC1);
@@ -987,6 +1026,10 @@ void DoA36772(void) {
 #ifndef __CAN_REQUIRED
   ClrWdt();
 #endif
+  
+#ifdef __MODE_MODBUS_INTERFACE
+  ETMModbusSlaveDoModbus();
+#endif
 
 
 #ifdef __DISCRETE_CONTROLS
@@ -1025,6 +1068,26 @@ void DoA36772(void) {
   }
   
 #endif
+  
+#ifdef __MODBUS_CONTROLS
+  if (modbus_slave_bit_0x02) {
+    global_data_A36772.request_hv_enable = 1;
+    _STATUS_CUSTOMER_HV_ON = 1;
+  } else {
+    global_data_A36772.request_hv_enable = 0;
+    _STATUS_CUSTOMER_HV_ON = 0;
+  }
+
+  if (modbus_slave_bit_0x03) {
+    global_data_A36772.request_beam_enable = 1;
+    _STATUS_CUSTOMER_BEAM_ENABLE = 1;
+  } else {
+    global_data_A36772.request_beam_enable = 0;
+    _STATUS_CUSTOMER_BEAM_ENABLE = 0;
+  }
+  
+#endif
+  
 
   if (_T2IF) {
     // Run once every 10ms
@@ -1071,6 +1134,20 @@ void DoA36772(void) {
     }  
     
 #endif
+    
+#ifdef __MODBUS_CONTROLS
+    if (global_data_A36772.control_state != STATE_FAULT_WARMUP_HEATER_OFF) {
+      if (GetModbusResetEnable()) {
+        global_data_A36772.reset_active = 1;
+      } else {
+        global_data_A36772.reset_active = 0;
+      } 
+    } else {
+      global_data_A36772.reset_active = 1;
+    }  
+    
+#endif
+    
     // pin = 1
 
     // Update to counter used to flash the LEDs at startup and time transmits to DACs
@@ -1198,6 +1275,21 @@ void DoA36772(void) {
     slave_board_data.log_data[14] = global_data_A36772.adc_read_error_count;
     slave_board_data.log_data[15] = GUN_DRIVER_LOAD_TYPE;
 
+#ifdef __MODE_MODBUS_INTERFACE
+    modbus_slave_hold_reg_0x21 = global_data_A36772.input_htr_v_mon.reading_scaled_and_calibrated;
+    modbus_slave_hold_reg_0x22 = global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated;
+    modbus_slave_hold_reg_0x23 = global_data_A36772.input_top_v_mon.reading_scaled_and_calibrated;
+    modbus_slave_hold_reg_0x24 = global_data_A36772.input_hv_v_mon.reading_scaled_and_calibrated;
+    modbus_slave_hold_reg_0x25 = global_data_A36772.input_temperature_mon.reading_scaled_and_calibrated;
+    modbus_slave_hold_reg_0x26 = global_data_A36772.input_bias_v_mon.reading_scaled_and_calibrated;
+    modbus_slave_hold_reg_0x27 = global_data_A36772.input_gun_i_peak.reading_scaled_and_calibrated;
+    modbus_slave_hold_reg_0x28 = global_data_A36772.heater_warm_up_time_remaining;
+    
+    modbus_slave_hold_reg_0x31 = global_data_A36772.state_message;
+    modbus_slave_hold_reg_0x32 = _FAULT_REGISTER;
+    modbus_slave_hold_reg_0x33 = _WARNING_REGISTER; 
+    
+#endif
 
     ETMCanSlaveSetDebugRegister(7, global_data_A36772.dac_write_failure_count);
 
@@ -1226,6 +1318,25 @@ void DoA36772(void) {
     global_data_A36772.heater_voltage_target                = global_data_A36772.can_heater_voltage_set_point;
     //global_data_A36772.analog_output_high_voltage.set_point = global_data_A36772.can_high_voltage_set_point;
     //global_data_A36772.analog_output_top_voltage.set_point  = global_data_A36772.can_pulse_top_set_point;
+#endif
+    
+#ifdef __MODBUS_REFERENCE
+    ETMAnalogSetOutput(&global_data_A36772.analog_output_high_voltage, modbus_slave_hold_reg_0x13);
+    ETMAnalogSetOutput(&global_data_A36772.analog_output_top_voltage, modbus_slave_hold_reg_0x12);
+    global_data_A36772.heater_voltage_target = modbus_slave_hold_reg_0x11;
+    
+    if (modbus_slave_hold_reg_0x13 < HIGH_VOLTAGE_MIN_SET_POINT || modbus_slave_hold_reg_0x13 > HIGH_VOLTAGE_MAX_SET_POINT) {
+        modbus_slave_invalid_data = 1;
+    }
+    
+    if (modbus_slave_hold_reg_0x12 > TOP_VOLTAGE_MAX_SET_POINT) {
+        modbus_slave_invalid_data = 1;
+    }
+    
+    if (modbus_slave_hold_reg_0x11 > MAX_PROGRAM_HTR_VOLTAGE) {
+        modbus_slave_invalid_data = 1;
+    }
+
 #endif
 
     
@@ -1620,7 +1731,15 @@ void SetStateMessage (unsigned int message) {
   global_data_A36772.state_message = message;
   
 }
-    
+   
+unsigned int GetModbusResetEnable(void) {
+  if (modbus_slave_bit_0x04) {
+    modbus_slave_bit_0x04 = 0;  
+    return 1;
+  } else {
+    return 0;
+  }
+}
 
 void EnableHeater(void) {
   /* 
@@ -2400,3 +2519,444 @@ void ETMCanSlaveExecuteCMDBoardSpecific(ETMCanMessage* message_ptr) {
 
 }
 
+#ifdef __noModbusLibrary
+
+void ETMModbusInit(void) {
+	  // Initialize application specific hardware
+  UART1TX_ON_TRIS = 0;
+  UART1TX_ON_IO = 1;    // always enable TX1
+
+    // Configure UART Interrupts
+  _U1RXIE = 0;
+  _U1RXIP = 3;
+  
+  _U1TXIE = 0;
+  _U1TXIP = 3;
+      
+          // Initialize TMR1
+  PR1   = A36772_PR1_VALUE;
+  TMR1  = 0;
+  _T1IF = 0;
+  _T1IP = 5;
+  T1CON = A36772_T1CON_VALUE;
+
+  // ----------------- UART #1 Setup and Data Buffer -------------------------//
+  // Setup the UART input and output buffers
+  uart1_input_buffer.write_location = 0;  
+  uart1_input_buffer.read_location = 0;
+  uart1_output_buffer.write_location = 0;
+  uart1_output_buffer.read_location = 0;
+           
+  ETMmodbus_put_index = 0;
+  ETMmodbus_get_index = 0;
+  
+  U1MODE = MODBUS_U1MODE_VALUE;
+  U1BRG = MODBUS_U1BRG_VALUE;
+  U1STA = MODBUS_U1STA_VALUE;
+  
+  _U1TXIF = 0;	// Clear the Transmit Interrupt Flag
+  _U1TXIE = 1;	// Enable Transmit Interrupts
+  _U1RXIF = 0;	// Clear the Recieve Interrupt Flag
+  _U1RXIE = 1;	// Enable Recieve Interrupts
+	  
+  U1MODEbits.UARTEN = 1;	// And turn the peripheral on
+      
+  PIN_ENABLE_RS485 = 1;
+
+  modbus_transmission_needed = 0;
+  modbus_receiving_flag = 0;
+  ETM_last_modbus_fail = 0;
+  
+  modbus_slave_invalid_data = 0;
+  
+  ETM_modbus_state = MODBUS_STATE_IDLE;
+}
+
+    
+void ETMModbusSlaveDoModbus(void) {
+  
+  switch (ETM_modbus_state) {
+      
+    case MODBUS_STATE_IDLE: 
+      if (modbus_transmission_needed) {
+        if (_T1IF) {
+          CheckValidData(&current_command_ptr);
+          CheckDeviceFailure(&current_command_ptr);
+          modbus_transmission_needed = 0;
+          ETM_modbus_state = MODBUS_STATE_TRANSMITTING;
+        }
+      }      
+      if (modbus_receiving_flag) {
+        modbus_receiving_flag = 0;
+        ETM_modbus_state = MODBUS_STATE_RECEIVING;
+      }
+      break;
+  
+    case MODBUS_STATE_RECEIVING:  
+      ReceiveCommand(&current_command_ptr);
+      if (current_command_ptr.done == ETMMODBUS_COMMAND_OK) {
+        ETM_modbus_state = MODBUS_STATE_PROCESSING;
+      } else if (current_command_ptr.done) {
+        ETM_last_modbus_fail = current_command_ptr.done;
+        ETM_modbus_state = MODBUS_STATE_IDLE;        
+      }   
+      break;
+    
+    case MODBUS_STATE_PROCESSING:
+      ProcessCommand (&current_command_ptr);
+      modbus_transmission needed = 1;
+      ETM_modbus_state = MODBUS_STATE_IDLE;
+      break;
+    
+    case MODBUS_STATE_TRANSMITTING:
+      if (modbus_transmission_needed) {
+        modbus_transmission_needed = 0;
+        SendResponse(&current_command_ptr);
+        if (BufferByte64BytesInBuffer(&uart1_output_buffer)) {
+          U1TXREG = BufferByte64ReadByte(&uart1_output_buffer);
+        }
+      }
+      if (!BufferByte64BytesInBuffer(&uart1_output_buffer)) {
+          ETM_modbus_state = MODBUS_STATE_IDLE;
+      }
+      break;
+
+    default:
+      ETM_modbus_state = MODBUS_STATE_IDLE;
+      break;
+    
+  }
+}    
+
+//this is the function for parsing and processing 
+void ReceiveCommand(MODBUS_MESSAGE * cmd_ptr) {
+  unsigned char reply_length;
+  unsigned int crc, crc_in;
+  
+  if (BufferByte64BytesInBuffer(&uart1_input_buffer) == ETMMODBUS_COMMAND_SIZE_MIN) {   
+    crc_in = (uart1_input_buffer.data[7] << 8) + uart1_input_buffer.data[6];
+    crc = checkCRC(uart1_input_buffer.data, 6); 
+    if (crc_in != crc) {
+      cmd_ptr->done = ETMMODBUS_ERROR_CRC;    
+      return;
+    } else {
+      if (uart1_input_buffer.data[0] != MODBUS_SLAVE_ADDR) {
+        cmd_ptr->done = ETMMODBUS_ERROR_SLAVE_ADDR; 
+        return;
+      } else { 
+      	if (uart1_input_buffer.data[1] & 0x80) {
+          cmd_ptr->done = ETMMODBUS_ERROR_FUNCTION;
+          cmd_ptr->received_function_code = cmd_ptr->function_code;
+          cmd_ptr->function_code = EXCEPTION_FLAGGED;
+          cmd_ptr->exception_code = ILLEGAL_FUNCTION;
+        } else {
+          _T1IF = 0;      // start 200ms timer
+          cmd_ptr->done = ETMMODBUS_COMMAND_OK;
+          cmd_ptr->function_code = uart1_input_buffer.data[1] & 0x7F;
+          cmd_ptr->data_address = (uart1_input_buffer.data[2] << 8) + uart1_input_buffer.data[3];
+          switch (cmd_ptr->function_code) {
+            case FUNCTION_READ_BITS:
+              cmd_ptr->qty_bits = (uart1_input_buffer.data[4] << 8) + uart1_input_buffer.data[5];
+              break;
+            
+            case FUNCTION_READ_REGISTERS:  
+            case FUNCTION_READ_INPUT_REGISTERS:  
+              cmd_ptr->qty_reg = (uart1_input_buffer.data[4] << 8) + uart1_input_buffer.data[5];                
+              break;
+    
+            case FUNCTION_WRITE_BIT:
+            case FUNCTION_WRITE_REGISTER:
+              cmd_ptr->write_value = (uart1_input_buffer.data[4] << 8) + uart1_input_buffer.data[5];
+              break;
+    
+            default:
+              cmd_ptr->done = ETMMODBUS_ERROR_FUNCTION;
+              cmd_ptr->received_function_code = cmd_ptr->function_code;
+              cmd_ptr->function_code = EXCEPTION_FLAGGED;
+              cmd_ptr->exception_code = ILLEGAL_FUNCTION;
+              break;
+          }
+                      
+        }
+
+      }
+    }
+  }  
+}
+
+
+void ProcessCommand (MODBUS_MESSAGE * ptr) {
+  unsigned int coil_index;
+  unsigned char bit_index;
+  unsigned int byte_index;
+  unsigned char byte_count;
+  unsigned char last_bits;
+  unsigned char data_index;
+  unsigned int data_length_words;
+  
+  modbus_slave_invalid_data = 0;
+  
+  switch (ptr->function_code) {
+      
+    case FUNCTION_READ_BITS:
+
+      if ((ptr->data_address + ptr->qty_bits) > SLAVE_BIT_ARRAY_SIZE) {
+        ptr->received_function_code = ptr->function_code;
+        ptr->function_code = EXCEPTION_FLAGGED;
+        ptr->exception_code = ILLEGAL_ADDRESS;
+        break;  
+      }
+
+      if (ptr->qty_bits <= 8) {
+        ptr->data_length_bytes = 1;
+      } else if (ptr->qty_bits & 0x0007) {
+        ptr->data_length_bytes = ((ptr->qty_bits /8) + 1) & 0xff;
+      } else {
+        ptr->data_length_bytes = (ptr->qty_bits /8) & 0xff;
+      }
+        
+      byte_count = ptr->qty_bits / 8;
+      last_bits = ptr->qty_bits & 0x07;
+      
+      if (ptr->qty_bits == 1) {
+        if (ModbusSlaveBit[ptr->data_address]) {
+          ptr->bit_data[0] = 0x01;
+        } else {
+          ptr->bit_data[0] = 0x00;
+        }
+      } else {
+        byte_index = 0;
+        while (byte_index < byte_count) { 
+          coil_index = ptr->data_address;
+          bit_index = 0;
+          ptr->bit_data[byte_index] = 0;
+          while (bit_index < 8) {
+            if (ModbusSlaveBit[coil_index]) {
+              ptr->bit_data[byte_index] |= (0x01 << bit_index);
+            }
+            bit_index++;
+            coil_index++
+          } 
+          byte_index++;
+        }
+        if (last_bits) {
+          bit_index = 0;
+          ptr->bit_data[byte_index] = 0;
+          while (bit_index < 8) {
+            if (bit_index < last_bits) {
+              if (ModbusSlaveBit[coil_index] != 0) {
+                ptr->bit_data[byte_index] |= (0x01 << bit_index);
+                coil_index++;
+              }  
+            }
+            bit_index++;            
+          }      
+          
+        }
+      }
+      break;
+      
+    case FUNCTION_READ_REGISTERS:         
+        
+      if ((ptr->data_address + ptr->qty_reg) >= SLAVE_HOLD_REG_ARRAY_SIZE) {
+        ptr->received_function_code = ptr->function_code;
+        ptr->function_code = EXCEPTION_FLAGGED;
+        ptr->exception_code = ILLEGAL_ADDRESS;
+        break;  
+      }
+      data_length_words = ptr->qty_reg;
+      byte_index = 0;
+      data_index = 0;
+      while (data_length_words) {
+        ptr->data[data_index] =  ModbusSlaveHoldingRegister[ptr->data_address + byte_index];
+        byte_index++;
+        data_index++;
+        data_length_words--;
+      } 
+      break;
+      
+    case FUNCTION_READ_INPUT_REGISTERS:
+        
+      if ((ptr->data_address + ptr->qty_reg) >= SLAVE_INPUT_REG_ARRAY_SIZE) {
+        ptr->received_function_code = ptr->function_code;
+        ptr->function_code = EXCEPTION_FLAGGED;
+        ptr->exception_code = ILLEGAL_ADDRESS;
+        break;  
+      }
+      data_length_words = ptr->qty_reg;
+      byte_index = 0;
+      data_index = 0;
+      while (data_length_words) {
+        ptr->data[data_index] =  ModbusSlaveInputRegister[ptr->data_address + byte_index];
+        byte_index++;
+        data_index++;
+        data_length_words--;
+      }
+      break;
+      
+    case FUNCTION_WRITE_BIT:
+      if (ptr->data_address >= SLAVE_BIT_ARRAY_SIZE) {
+        ptr->received_function_code = ptr->function_code;
+        ptr->function_code = EXCEPTION_FLAGGED;
+        ptr->exception_code = ILLEGAL_ADDRESS;
+        break;  
+      }
+      coil_index = ptr->data_address;
+      if ((ptr->write_value == 0x0000) || (ptr->write_value == 0xFF00)) {
+        ModbusSlaveBit[coil_index] = ptr->write_value;
+      } else {
+        ptr->received_function_code = ptr->function_code;
+        ptr->function_code = EXCEPTION_FLAGGED;
+        ptr->exception_code = ILLEGAL_VALUE;
+      }     
+      break;
+      
+    case FUNCTION_WRITE_REGISTER:
+      if (ptr->data_address >= SLAVE_HOLD_REG_ARRAY_SIZE) {
+        ptr->received_function_code = ptr->function_code;
+        ptr->function_code = EXCEPTION_FLAGGED;
+        ptr->exception_code = ILLEGAL_ADDRESS;
+        break;  
+      }
+      byte_index = ptr->data_address;
+      ModbusSlaveHoldingRegister[byte_index] = ptr->write_value;
+      break;
+      
+    default:
+  	  break;
+  }
+}    
+
+void CheckValidData(MODBUS_MESSAGE * ptr) {
+    
+  if ((modbus_slave_invalid_data != 0) && (ptr->function_code == FUNCTION_WRITE_REGISTER)) {     
+    ptr->received_function_code = ptr->function_code;
+    ptr->function_code = EXCEPTION_FLAGGED;
+    ptr->exception_code = ILLEGAL_VALUE;
+  }     
+}
+    
+void CheckDeviceFailure(MODBUS_MESSAGE * ptr) {
+  
+  if (_FAULT_REGISTER != 0) {
+    ptr->received_function_code = ptr->function_code;
+    ptr->function_code = EXCEPTION_FLAGGED;
+    ptr->exception_code = DEVICE_FAILURE; 
+  }
+}
+
+
+void SendResponse(MODBUS_MESSAGE * ptr) {
+  unsigned int crc;
+  unsigned int data_length_words;
+
+  unsigned int index;
+  
+  // clear input/output buffer first
+  uart1_input_buffer.write_location = 0;  
+  uart1_input_buffer.read_location = 0;
+  uart1_output_buffer.write_location = 0;
+  uart1_output_buffer.read_location = 0;
+  
+  switch (ptr->function_code) {
+    case FUNCTION_READ_BITS:
+      BufferByte64WriteByte(&uart1_output_buffer, MODBUS_SLAVE_ADDR);
+      BufferByte64WriteByte(&uart1_output_buffer, ptr->function_code);
+      BufferByte64WriteByte(&uart1_output_buffer, ptr->data_length_bytes);	// number of bytes to follow
+      data_length_words = ptr->data_length_bytes;
+      index = 0;
+      while (data_length_words) {
+        BufferByte64WriteByte(&uart1_output_buffer, ptr->bit_data[index] & 0xff);
+        index++;
+        data_length_words--;
+      }
+      break;
+      
+    case FUNCTION_READ_REGISTERS: 
+    case FUNCTION_READ_INPUT_REGISTERS:
+      BufferByte64WriteByte(&uart1_output_buffer, MODBUS_SLAVE_ADDR);
+      BufferByte64WriteByte(&uart1_output_buffer, ptr->function_code);    
+      data_length_words = ptr->qty_reg;
+      ptr->data_length_bytes = (data_length_words * 2) & 0xff;
+      BufferByte64WriteByte(&uart1_output_buffer, ptr->data_length_bytes);	// number of bytes to follow
+      index = 0;
+      while (data_length_words) {
+        BufferByte64WriteByte(&uart1_output_buffer, (ptr->data[index] >> 8) & 0xff);	// data Hi
+        BufferByte64WriteByte(&uart1_output_buffer, ptr->data[index] & 0xff);	// data Lo
+        index++;
+        data_length_words--;
+      }  
+      crc = checkCRC(uart1_output_buffer.data, 3 + ptr->data_length_bytes);
+      BufferByte64WriteByte(&uart1_output_buffer, crc & 0xff);
+      BufferByte64WriteByte(&uart1_output_buffer, (crc >> 8) & 0xff);
+      break;
+     
+    case FUNCTION_WRITE_BIT:
+    case FUNCTION_WRITE_REGISTER:
+      BufferByte64WriteByte(&uart1_output_buffer, MODBUS_SLAVE_ADDR);
+      BufferByte64WriteByte(&uart1_output_buffer, ptr->function_code);    
+      BufferByte64WriteByte(&uart1_output_buffer, (ptr->data_address >> 8) & 0xff);	// addr Hi
+      BufferByte64WriteByte(&uart1_output_buffer, ptr->data_address & 0xff);	// addr Lo
+      BufferByte64WriteByte(&uart1_output_buffer, (ptr->write_value >> 8) & 0xff);	// data Hi
+      BufferByte64WriteByte(&uart1_output_buffer, ptr->write_value & 0xff);	// data Lo
+      crc = checkCRC(uart1_output_buffer.data, 6);
+      BufferByte64WriteByte(&uart1_output_buffer, crc & 0xff);
+      BufferByte64WriteByte(&uart1_output_buffer, (crc >> 8) & 0xff);
+      break;
+      
+    case EXCEPTION_FLAGGED:
+      BufferByte64WriteByte(&uart1_output_buffer, MODBUS_SLAVE_ADDR);
+      BufferByte64WriteByte(&uart1_output_buffer, ptr->received_function_code); 
+      BufferByte64WriteByte(&uart1_output_buffer, ptr->exception_code);
+      crc = checkCRC(uart1_output_buffer.data, 3);
+      BufferByte64WriteByte(&uart1_output_buffer, crc & 0xff);
+      BufferByte64WriteByte(&uart1_output_buffer, (crc >> 8) & 0xff);
+      break;
+      
+    default:
+      break;
+      
+  } 
+}
+
+//-----------------------------------------------------------------------------
+// CRC_Check
+//-----------------------------------------------------------------------------
+//
+// Return Value : accum -- the end result of the CRC value.
+// Parameter    : *ptr -- pointer to the array for CRC calculation.
+//				: size -- size of the array
+//
+// This function calculates the 16-bit CRC value for the input array.
+//
+//-----------------------------------------------------------------------------
+unsigned int checkCRC(unsigned char * ptr, unsigned int size)
+{
+    unsigned int i, j;
+    unsigned int accum, element;
+
+    accum = 0xffff;
+
+    for (j = 0; j < size; j++)
+    {
+        element = ptr[j];
+
+        for (i = 8; i > 0; i--)		
+        {
+            if (((element ^ accum) & 0x0001) > 0)
+                accum = (unsigned int)((accum >> 1) ^ ((unsigned int)CRC_POLY));
+            else
+                accum >>= 1;
+
+            element >>= 1;
+        }
+    }
+
+    return (accum);
+}
+
+
+
+
+
+#endif
