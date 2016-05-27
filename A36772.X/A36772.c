@@ -2146,11 +2146,11 @@ void FPGAReadData(void) {
     } else {
       ETMDigitalUpdateInput(&global_data_A36772.fpga_coverter_logic_pcb_rev_mismatch, 0);
     }
-    if (global_data_A36772.fpga_coverter_logic_pcb_rev_mismatch.filtered_reading) {
-      _FPGA_CONVERTER_LOGIC_PCB_REV_MISMATCH = 1;
-    } else {
-      _FPGA_CONVERTER_LOGIC_PCB_REV_MISMATCH = 0;
-    }
+//    if (global_data_A36772.fpga_coverter_logic_pcb_rev_mismatch.filtered_reading) {
+//      _FPGA_CONVERTER_LOGIC_PCB_REV_MISMATCH = 1;
+//    } else {
+//      _FPGA_CONVERTER_LOGIC_PCB_REV_MISMATCH = 0;
+//    }
 
     // Check the firmware minor rev (NOT LATCHED)
     if (fpga_bits.fpga_firmware_minor_rev != TARGET_FPGA_FIRMWARE_MINOR_REV) {
@@ -2189,12 +2189,12 @@ void FPGAReadData(void) {
 //    }
 
     // Check module temp greater than 65 C (NOT LATCHED)
-    ETMDigitalUpdateInput(&global_data_A36772.fpga_module_temp_greater_than_65_C, fpga_bits.module_temp_greater_than_65_C);
-    if (global_data_A36772.fpga_module_temp_greater_than_65_C.filtered_reading) {
-      _FPGA_MODULE_TEMP_GREATER_THAN_65_C = 1;
-    } else {
-      _FPGA_MODULE_TEMP_GREATER_THAN_65_C = 0;
-    }
+//    ETMDigitalUpdateInput(&global_data_A36772.fpga_module_temp_greater_than_65_C, fpga_bits.module_temp_greater_than_65_C);
+//    if (global_data_A36772.fpga_module_temp_greater_than_65_C.filtered_reading) {
+//      _FPGA_MODULE_TEMP_GREATER_THAN_65_C = 1;
+//    } else {
+//      _FPGA_MODULE_TEMP_GREATER_THAN_65_C = 0;
+//    }
 
     // Check module temp greater than 75 C (NOT LATCHED)
     ETMDigitalUpdateInput(&global_data_A36772.fpga_module_temp_greater_than_75_C, fpga_bits.module_temp_greater_than_75_C);
@@ -2735,7 +2735,7 @@ void ProcessCommand (MODBUS_MESSAGE * ptr) {
               ptr->bit_data[byte_index] |= (0x01 << bit_index);
             }
             bit_index++;
-            coil_index++
+            coil_index++;
           } 
           byte_index++;
         }

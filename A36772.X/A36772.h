@@ -215,7 +215,7 @@
 #define A36772_SPI1STAT_VALUE (SPI_ENABLE & SPI_IDLE_CON & SPI_RX_OVFLOW_CLR)   
 
 
-
+/*
   --- Timer2 Setup ---
   Period of 10mS
 */
