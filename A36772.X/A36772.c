@@ -1137,6 +1137,7 @@ void DoA36772(void) {
 #endif
     
 #ifdef __MODBUS_CONTROLS
+    ModbusTimer++;
     if (global_data_A36772.control_state != STATE_FAULT_WARMUP_HEATER_OFF) {
       if (GetModbusResetEnable()) {
         global_data_A36772.reset_active = 1;
@@ -1251,9 +1252,9 @@ void DoA36772(void) {
     //ETMCanSlaveSetDebugRegister(0xD, global_data_A36772.ref_htr.reading_scaled_and_calibrated);
     //ETMCanSlaveSetDebugRegister(0xE, global_data_A36772.ref_vtop.reading_scaled_and_calibrated);//
     //ETMCanSlaveSetDebugRegister(0xF, global_data_A36772.ref_ek.reading_scaled_and_calibrated);
-    ETMCanSlaveSetDebugRegister(0xA, global_data_A36772.monitor_grid_voltage.set_point); //run_time_counter);
-    ETMCanSlaveSetDebugRegister(0xB, global_data_A36772.monitor_grid_voltage.dac_setting_scaled_and_calibrated); //fault_restart_remaining);
-    ETMCanSlaveSetDebugRegister(0xC, global_data_A36772.ref_vtop.reading_scaled_and_calibrated); //power_supply_startup_remaining);
+//    ETMCanSlaveSetDebugRegister(0xA, global_data_A36772.monitor_grid_voltage.set_point); //run_time_counter);
+//    ETMCanSlaveSetDebugRegister(0xB, global_data_A36772.monitor_grid_voltage.dac_setting_scaled_and_calibrated); //fault_restart_remaining);
+//    ETMCanSlaveSetDebugRegister(0xC, global_data_A36772.ref_vtop.reading_scaled_and_calibrated); //power_supply_startup_remaining);
     ETMCanSlaveSetDebugRegister(0xD, global_data_A36772.heater_warm_up_time_remaining);
     ETMCanSlaveSetDebugRegister(0xE, global_data_A36772.heater_ramp_up_time);
     ETMCanSlaveSetDebugRegister(0xF, global_data_A36772.control_state);
@@ -2529,10 +2530,10 @@ void ETMModbusInit(void) {
 
     // Configure UART Interrupts
   _U1RXIE = 0;
-  _U1RXIP = 3;
+  _U1RXIP = 6;
   
   _U1TXIE = 0;
-  _U1TXIP = 3;
+  _U1TXIP = 7;
       
           // Initialize TMR1
   PR1   = A36772_PR1_VALUE;
@@ -2562,13 +2563,16 @@ void ETMModbusInit(void) {
 	  
   U1MODEbits.UARTEN = 1;	// And turn the peripheral on
       
-  PIN_RS485_ENABLE = 1;
-
+//  PIN_RS485_ENABLE = 1;
+  PIN_RS485_ENABLE = 0;
+  
   modbus_transmission_needed = 0;
   modbus_receiving_flag = 0;
   ETM_last_modbus_fail = 0;
   
   modbus_slave_invalid_data = 0;
+  
+  ModbusTimer = 0;
   
   ETM_modbus_state = MODBUS_STATE_IDLE;
 }
@@ -2578,16 +2582,17 @@ void ETMModbusSlaveDoModbus(void) {
   
   switch (ETM_modbus_state) {
       
-    case MODBUS_STATE_IDLE: 
+    case MODBUS_STATE_IDLE:
+      PIN_RS485_ENABLE = 0;
       if (modbus_transmission_needed) {
-        if (_T1IF) {
+        if (ModbusTimer >= MODBUS_200ms_DELAY) {
+          ModbusTimer = 0;
           CheckValidData(&current_command_ptr);
           CheckDeviceFailure(&current_command_ptr);
-          modbus_transmission_needed = 0;
+//          modbus_transmission_needed = 0;
           ETM_modbus_state = MODBUS_STATE_TRANSMITTING;
         }
-      }      
-      if (modbus_receiving_flag) {
+      } else if (modbus_receiving_flag) {
         modbus_receiving_flag = 0;
         ETM_modbus_state = MODBUS_STATE_RECEIVING;
       }
@@ -2611,12 +2616,18 @@ void ETMModbusSlaveDoModbus(void) {
     
     case MODBUS_STATE_TRANSMITTING:
       if (modbus_transmission_needed) {
+
         modbus_transmission_needed = 0;
         SendResponse(&current_command_ptr);
-        if (BufferByte64BytesInBuffer(&uart1_output_buffer)) {
-          U1TXREG = BufferByte64ReadByte(&uart1_output_buffer);
-        }
+//        if (BufferByte64BytesInBuffer(&uart1_output_buffer)) {
+//          U1TXREG = BufferByte64ReadByte(&uart1_output_buffer);
+//        }
       }
+      PIN_RS485_ENABLE = 1;
+      while ((!U1STAbits.UTXBF) && (BufferByte64BytesInBuffer(&uart1_output_buffer))) {
+        U1TXREG = BufferByte64ReadByte(&uart1_output_buffer);
+      }
+      
       if (!BufferByte64BytesInBuffer(&uart1_output_buffer)) {
           ETM_modbus_state = MODBUS_STATE_IDLE;
       }
@@ -2631,27 +2642,30 @@ void ETMModbusSlaveDoModbus(void) {
 
 //this is the function for parsing and processing 
 void ReceiveCommand(MODBUS_MESSAGE * cmd_ptr) {
-  unsigned char reply_length;
+
   unsigned int crc, crc_in;
   
   if (BufferByte64BytesInBuffer(&uart1_input_buffer) == ETMMODBUS_COMMAND_SIZE_MIN) {   
     crc_in = (uart1_input_buffer.data[7] << 8) + uart1_input_buffer.data[6];
     crc = checkCRC(uart1_input_buffer.data, 6); 
+//    ETMCanSlaveSetDebugRegister(0xA, crc_in);
+//    ETMCanSlaveSetDebugRegister(0xB, crc);
     if (crc_in != crc) {
       cmd_ptr->done = ETMMODBUS_ERROR_CRC;    
       return;
     } else {
-      if (uart1_input_buffer.data[0] != MODBUS_SLAVE_ADDR) {
-        cmd_ptr->done = ETMMODBUS_ERROR_SLAVE_ADDR; 
+      if ((uart1_input_buffer.data[0] & 0xFF) != MODBUS_SLAVE_ADDR) {
+        cmd_ptr->done = ETMMODBUS_ERROR_SLAVE_ADDR;
         return;
-      } else { 
+      } else {
       	if (uart1_input_buffer.data[1] & 0x80) {
           cmd_ptr->done = ETMMODBUS_ERROR_FUNCTION;
           cmd_ptr->received_function_code = cmd_ptr->function_code;
           cmd_ptr->function_code = EXCEPTION_FLAGGED;
           cmd_ptr->exception_code = ILLEGAL_FUNCTION;
         } else {
-          _T1IF = 0;      // start 200ms timer
+//          _T1IF = 0;      // start 200ms timer
+          ModbusTimer = 0;
           cmd_ptr->done = ETMMODBUS_COMMAND_OK;
           cmd_ptr->function_code = uart1_input_buffer.data[1] & 0x7F;
           cmd_ptr->data_address = (uart1_input_buffer.data[2] << 8) + uart1_input_buffer.data[3];
@@ -2852,6 +2866,13 @@ void SendResponse(MODBUS_MESSAGE * ptr) {
   unsigned int data_length_words;
 
   unsigned int index;
+  unsigned int data_16_msb;
+  unsigned char data_msb;
+  unsigned char data_lsb;
+  unsigned int crc_16_msb;
+  unsigned char crc_msb;
+  unsigned char crc_lsb;
+  unsigned int length_16_bytes;
   
   // clear input/output buffer first
   uart1_input_buffer.write_location = 0;  
@@ -2878,18 +2899,27 @@ void SendResponse(MODBUS_MESSAGE * ptr) {
       BufferByte64WriteByte(&uart1_output_buffer, MODBUS_SLAVE_ADDR);
       BufferByte64WriteByte(&uart1_output_buffer, ptr->function_code);    
       data_length_words = ptr->qty_reg;
-      ptr->data_length_bytes = (data_length_words * 2) & 0xff;
+      ptr->data_length_bytes = ((unsigned char)data_length_words * 2) & 0xff;
       BufferByte64WriteByte(&uart1_output_buffer, ptr->data_length_bytes);	// number of bytes to follow
       index = 0;
       while (data_length_words) {
-        BufferByte64WriteByte(&uart1_output_buffer, (ptr->data[index] >> 8) & 0xff);	// data Hi
-        BufferByte64WriteByte(&uart1_output_buffer, ptr->data[index] & 0xff);	// data Lo
+        data_16_msb = ptr->data[index] >> 8;
+        data_msb = (unsigned char)data_16_msb & 0xff;
+        data_lsb = (unsigned char)ptr->data[index] & 0xff;
+        BufferByte64WriteByte(&uart1_output_buffer, data_msb);	// data Hi
+        BufferByte64WriteByte(&uart1_output_buffer, data_lsb);	// data Lo
         index++;
         data_length_words--;
       }  
-      crc = checkCRC(uart1_output_buffer.data, 3 + ptr->data_length_bytes);
-      BufferByte64WriteByte(&uart1_output_buffer, crc & 0xff);
-      BufferByte64WriteByte(&uart1_output_buffer, (crc >> 8) & 0xff);
+      length_16_bytes = (unsigned int)ptr->data_length_bytes;
+      crc = checkCRC(uart1_output_buffer.data, 3 + length_16_bytes);
+      crc_16_msb = crc >> 8;
+      crc_msb = (unsigned char)crc_16_msb & 0xff;
+      crc_lsb = (unsigned char)crc & 0xff;
+      ETMCanSlaveSetDebugRegister(0xA, data_lsb);
+      ETMCanSlaveSetDebugRegister(0xB, data_msb);
+      BufferByte64WriteByte(&uart1_output_buffer, crc_lsb);
+      BufferByte64WriteByte(&uart1_output_buffer, crc_msb);
       break;
      
     case FUNCTION_WRITE_BIT:

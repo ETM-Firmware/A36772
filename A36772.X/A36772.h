@@ -493,6 +493,10 @@ extern TYPE_GLOBAL_DATA_A36772 global_data_A36772;
 #define A36772_PR1_VALUE_US    200000   // 200ms
 #define A36772_PR1_VALUE       ((FCY_CLK/1000000)*A36772_PR1_VALUE_US/256)
 
+#define SLAVE_ADDRESS 0x07  //Slave address
+
+#define CRC_POLY 0xA001				// Reverse CR16 polynomial
+
 
 // Modbus states
 #define MODBUS_STATE_IDLE           0x01
@@ -553,7 +557,11 @@ typedef struct {
 #define SLAVE_HOLD_REG_ARRAY_SIZE     64
 #define SLAVE_INPUT_REG_ARRAY_SIZE    64
 
+#define MODBUS_200ms_DELAY           20
+
 unsigned int ETM_modbus_state;
+
+unsigned int ModbusTimer;
 
 unsigned int ModbusSlaveHoldingRegister[SLAVE_HOLD_REG_ARRAY_SIZE];
 unsigned int ModbusSlaveInputRegister[SLAVE_INPUT_REG_ARRAY_SIZE];
@@ -755,29 +763,6 @@ unsigned char ModbusSlaveBit[SLAVE_BIT_ARRAY_SIZE];
 #define modbus_slave_bit_0x3D        ModbusSlaveBit[61]
 #define modbus_slave_bit_0x3E        ModbusSlaveBit[62]
 #define modbus_slave_bit_0x3F        ModbusSlaveBit[63]
-
-
-
-#define SLAVE_ADDRESS 0x07  //Slave address
-
-#define CRC_POLY 0xA001				// Reverse CR16 polynomial.
-
-// MODBUS functions
-
-#define MODBUS_READ_COILS               1
-#define MODBUS_WRITE_SINGLE_COIL        5
-
-#define MODBUS_READ_INPUT_REGISTERS     4
-#define MODBUS_READ_HOLDING_REGISTERS   3
-#define MODBUS_WRITE_HOLDING_REGISTER   6
-
-
-
-// MODBUS exception codes
-#define ILLEGAL_FUNCTION      0x01
-#define ILLEGAL_DATA_ADDRESS  0x02
-#define ILLEGAL_DATA_VALUE    0x03
-#define SLAVE_DEVICE_FAILURE  0x04
 
 #endif
 
