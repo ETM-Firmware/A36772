@@ -73,6 +73,7 @@ void SendResponse(MODBUS_MESSAGE * ptr);
 void ProcessCommand (MODBUS_MESSAGE * ptr);
 void CheckValidData(MODBUS_MESSAGE * ptr);
 void CheckDeviceFailure(MODBUS_MESSAGE * ptr);
+void ClearModbusMessage(MODBUS_MESSAGE * ptr);
 unsigned int checkCRC(unsigned char * ptr, unsigned int size);
 
 #endif
@@ -2575,27 +2576,30 @@ void ETMModbusInit(void) {
   modbus_slave_invalid_data = 0;
   
   ModbusTimer = 0;
+  ModbusTest = 0;
+  PIN_RS485_ENABLE = 0;
   
   ETM_modbus_state = MODBUS_STATE_IDLE;
 }
 
     
 void ETMModbusSlaveDoModbus(void) {
-  unsigned int test;
+  unsigned char test;
   switch (ETM_modbus_state) {
       
     case MODBUS_STATE_IDLE:
-      PIN_RS485_ENABLE = 0;
+//      PIN_RS485_ENABLE = 0;
       if (modbus_transmission_needed) {
         if (ModbusTimer >= MODBUS_200ms_DELAY) {
           ModbusTimer = 0;
-          CheckValidData(&current_command_ptr);
-          CheckDeviceFailure(&current_command_ptr);
+          if (current_command_ptr.done == ETMMODBUS_COMMAND_OK) {
+            CheckValidData(&current_command_ptr);
+            CheckDeviceFailure(&current_command_ptr);
+          }
 //          modbus_transmission_needed = 0;
           ETM_modbus_state = MODBUS_STATE_TRANSMITTING;
         }
       } else if (modbus_receiving_flag) {
-        modbus_receiving_flag = 0;
         ETM_modbus_state = MODBUS_STATE_RECEIVING;
       }
       break;
@@ -2603,11 +2607,25 @@ void ETMModbusSlaveDoModbus(void) {
     case MODBUS_STATE_RECEIVING:  
       ReceiveCommand(&current_command_ptr);
       if (current_command_ptr.done == ETMMODBUS_COMMAND_OK) {
+        current_command_ptr.done = 0;
+        ModbusTimer = 0;      //start 200ms timer
+        PIN_RS485_ENABLE = 1;
+        modbus_receiving_flag = 0;
         ETM_modbus_state = MODBUS_STATE_PROCESSING;
+      } else if (current_command_ptr.done ==  ETMMODBUS_ERROR_FUNCTION) {
+        current_command_ptr.done = 0;
+        ModbusTimer = 0;      //start 200ms timer
+        PIN_RS485_ENABLE = 1;
+        ETM_last_modbus_fail = ETMMODBUS_ERROR_FUNCTION;
+        modbus_transmission_needed = 1;
+        modbus_receiving_flag = 0;
+        ETM_modbus_state = MODBUS_STATE_IDLE;
       } else if (current_command_ptr.done) {
+        current_command_ptr.done = 0;
         ETM_last_modbus_fail = current_command_ptr.done;
-        ETM_modbus_state = MODBUS_STATE_IDLE;        
-      }   
+        modbus_receiving_flag = 0;
+        ETM_modbus_state = MODBUS_STATE_IDLE;
+      }  
       break;
     
     case MODBUS_STATE_PROCESSING:
@@ -2617,15 +2635,15 @@ void ETMModbusSlaveDoModbus(void) {
       break;
     
     case MODBUS_STATE_TRANSMITTING:
-      if (modbus_transmission_needed) {
+      if (modbus_transmission_needed != 0) {
         modbus_transmission_needed = 0;
-        PIN_RS485_ENABLE = 1;
-    //    SendResponse(&current_command_ptr);
+        SendResponse(&current_command_ptr);
+    //    ClearModbusMessage(&current_command_ptr);
 //TEST BUFFER FILL
-        test = 0;
-        for (test = 0; test < 3; test++) {  
-          BufferByte64WriteByte(&uart1_output_buffer, 0x27);
-        }
+//        for (test = 27; test < 34; test++) {  
+//          BufferByte64WriteByte(&uart1_output_buffer, test);
+//        }
+        ModbusTest++;
         while ((!U1STAbits.UTXBF) && (BufferByte64BytesInBuffer(&uart1_output_buffer))) {
           U1TXREG = BufferByte64ReadByte(&uart1_output_buffer);
         }
@@ -2638,7 +2656,9 @@ void ETMModbusSlaveDoModbus(void) {
 //        Nop();
 //      }
       if ((U1STAbits.TRMT == 1) && (!BufferByte64BytesInBuffer(&uart1_output_buffer))) {
-          ETM_modbus_state = MODBUS_STATE_IDLE;
+        ETM_modbus_state = MODBUS_STATE_IDLE;
+        PIN_RS485_ENABLE = 0;
+        modbus_receiving_flag = 0;
       }
       break;
 
@@ -2659,8 +2679,8 @@ void ReceiveCommand(MODBUS_MESSAGE * cmd_ptr) {
     for (i=0; i<ETMMODBUS_COMMAND_SIZE_MIN; i++){
       cmd_byte[i] = BufferByte64ReadByte(&uart1_input_buffer);
     }
-    if (BufferByte64IsNotEmpty(&uart1_input_buffer)){
-        
+    while (BufferByte64IsNotEmpty(&uart1_input_buffer)) {
+      i = BufferByte64ReadByte(&uart1_input_buffer);
     }
     crc_in = (cmd_byte[7] << 8) + cmd_byte[6];
     crc = checkCRC(cmd_byte, 6); 
@@ -2676,12 +2696,11 @@ void ReceiveCommand(MODBUS_MESSAGE * cmd_ptr) {
       } else {
       	if (cmd_byte[1] & 0x80) {
           cmd_ptr->done = ETMMODBUS_ERROR_FUNCTION;
-          cmd_ptr->received_function_code = cmd_ptr->function_code;
+          cmd_ptr->received_function_code = cmd_byte[1];
           cmd_ptr->function_code = EXCEPTION_FLAGGED;
           cmd_ptr->exception_code = ILLEGAL_FUNCTION;
         } else {
 //          _T1IF = 0;      // start 200ms timer
-          ModbusTimer = 0;
           cmd_ptr->done = ETMMODBUS_COMMAND_OK;
           cmd_ptr->function_code = cmd_byte[1] & 0x7F;
           cmd_ptr->data_address = (cmd_byte[2] << 8) + cmd_byte[3];
@@ -2706,10 +2725,8 @@ void ReceiveCommand(MODBUS_MESSAGE * cmd_ptr) {
               cmd_ptr->function_code = EXCEPTION_FLAGGED;
               cmd_ptr->exception_code = ILLEGAL_FUNCTION;
               break;
-          }
-                      
+          }                      
         }
-
       }
     }
   }  
@@ -2968,6 +2985,20 @@ void SendResponse(MODBUS_MESSAGE * ptr) {
   } 
 }
 
+void ClearModbusMessage(MODBUS_MESSAGE * ptr) {
+  ptr->function_code = 0;
+  ptr->received_function_code = 0;
+  ptr->data_length_bytes = 0;
+  ptr->exception_code = 0;
+  ptr->done = 0;
+  ptr->data_address = 0;
+  ptr->qty_bits = 0;
+  ptr->qty_reg = 0;
+  ptr->write_value = 0;
+//  ptr->data[125];
+//  ptr->bit_data[125];
+}
+
 //-----------------------------------------------------------------------------
 // CRC_Check
 //-----------------------------------------------------------------------------
@@ -3012,10 +3043,12 @@ unsigned int checkCRC(unsigned char * ptr, unsigned int size)
         
 void __attribute__((interrupt, no_auto_psv)) _U1RXInterrupt(void) {
   _U1RXIF = 0;
-  modbus_receiving_flag = 1;
+  if ((ETM_modbus_state == MODBUS_STATE_IDLE) || (ETM_modbus_state == MODBUS_STATE_RECEIVING)) {
+    modbus_receiving_flag = 1;
 
-  while (U1STAbits.URXDA) {
-    BufferByte64WriteByte(&uart1_input_buffer, U1RXREG);
+    while (U1STAbits.URXDA) {
+      BufferByte64WriteByte(&uart1_input_buffer, U1RXREG);
+    }
   }
 }
 

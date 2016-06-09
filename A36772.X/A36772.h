@@ -562,6 +562,7 @@ typedef struct {
 unsigned int ETM_modbus_state;
 
 unsigned int ModbusTimer;
+unsigned int ModbusTest;
 
 unsigned int ModbusSlaveHoldingRegister[SLAVE_HOLD_REG_ARRAY_SIZE];
 unsigned int ModbusSlaveInputRegister[SLAVE_INPUT_REG_ARRAY_SIZE];
