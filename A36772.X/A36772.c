@@ -2678,7 +2678,6 @@ void ETMModbusSlaveDoModbus(void) {
       PIN_RS485_ENABLE = 1;
       ReceiveCommand(&current_command_ptr);
       ProcessCommand(&current_command_ptr);
-      CheckDeviceFailure(&current_command_ptr);
       SendResponse(&current_command_ptr);
       modbus_transmission_needed = 1;
 //      while ((!U1STAbits.UTXBF) && (BufferByte64BytesInBuffer(&uart1_output_buffer))) {
