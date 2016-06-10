@@ -532,8 +532,6 @@ extern TYPE_GLOBAL_DATA_A36772 global_data_A36772;
  
 //#define ETMMODBUS_CMD_QUEUE_SIZE   16
 
-//#define ETMMODBUS_COMMAND_SIZE_MIN  8
-
 typedef struct {
   unsigned char function_code;
   unsigned char received_function_code;
@@ -550,6 +548,8 @@ typedef struct {
 } MODBUS_MESSAGE;
 
 //extern MODBUS_MESSAGE  current_command_ptr;
+
+unsigned char modbus_cmd_byte[8];
 
 #define ETMMODBUS_COMMAND_SIZE_MIN    8
 
