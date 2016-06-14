@@ -2564,11 +2564,23 @@ void ETMModbusInit(void) {
   _U1TXIE = 1;	// Enable Transmit Interrupts
   _U1RXIF = 0;	// Clear the Recieve Interrupt Flag
   _U1RXIE = 1;	// Enable Recieve Interrupts
-	  
+  
+  //Load startup values from EEPROM
+  int i;
+  
+  for (i=0;i<64;i++) {
+    ModbusSlaveHoldingRegister[i] = ETMEEPromReadWord(0x600 + i);
+  }
+  for (i=0;i<64;i++) {
+    ModbusSlaveBit[i] = ETMEEPromReadWord(0x640 + i);
+  }
+  
+  //Initialize control bits as disabled
+  modbus_slave_bit_0x02 = 0;
+  modbus_slave_bit_0x03 = 0;
+  modbus_slave_bit_0x04 = 0;
+  
   U1MODEbits.UARTEN = 1;	// And turn the peripheral on
-      
-//  PIN_RS485_ENABLE = 1;
-  PIN_RS485_ENABLE = 0;
   
   modbus_transmission_needed = 0;
   modbus_receiving_flag = 0;
@@ -2869,6 +2881,7 @@ void ProcessCommand (MODBUS_MESSAGE * ptr) {
       coil_index = ptr->data_address;
       if ((ptr->write_value == 0x0000) || (ptr->write_value == 0xFF00)) {
         ModbusSlaveBit[coil_index] = ptr->write_value;
+        ETMEEPromWriteWord(0x640 + coil_index, ptr->write_value);
       } else {
         ptr->received_function_code = ptr->function_code;
         ptr->function_code = EXCEPTION_FLAGGED;
@@ -2885,6 +2898,7 @@ void ProcessCommand (MODBUS_MESSAGE * ptr) {
       }
       byte_index = ptr->data_address;
       ModbusSlaveHoldingRegister[byte_index] = ptr->write_value;
+      ETMEEPromWriteWord(0x600 + byte_index, ptr->write_value);
       break;
       
     default:

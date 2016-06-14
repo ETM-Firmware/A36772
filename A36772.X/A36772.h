@@ -566,7 +566,7 @@ unsigned int ModbusTest;
 
 unsigned int ModbusSlaveHoldingRegister[SLAVE_HOLD_REG_ARRAY_SIZE];
 unsigned int ModbusSlaveInputRegister[SLAVE_INPUT_REG_ARRAY_SIZE];
-unsigned char ModbusSlaveBit[SLAVE_BIT_ARRAY_SIZE];
+unsigned int ModbusSlaveBit[SLAVE_BIT_ARRAY_SIZE];
 
 #define modbus_slave_hold_reg_0x00  ModbusSlaveHoldingRegister[0]
 #define modbus_slave_hold_reg_0x01  ModbusSlaveHoldingRegister[1]
