@@ -1263,6 +1263,10 @@ void DoA36772(void) {
     ETMCanSlaveSetDebugRegister(0xE, global_data_A36772.heater_ramp_up_time);
     ETMCanSlaveSetDebugRegister(0xF, global_data_A36772.control_state);
     
+    ETMCanSlaveSetDebugRegister(0xA, _FPGA_FIRMWARE_MINOR_REV_MISMATCH);
+    ETMCanSlaveSetDebugRegister(0xB, global_data_A36772.fpga_firmware_minor_rev_mismatch.filtered_reading);
+    ETMCanSlaveSetDebugRegister(0xC, _WARNING_REGISTER);
+    
     
     slave_board_data.log_data[0] = global_data_A36772.input_gun_i_peak.reading_scaled_and_calibrated;
     slave_board_data.log_data[1] = global_data_A36772.input_hv_v_mon.reading_scaled_and_calibrated;
@@ -2922,8 +2926,6 @@ void ReceiveCommand(MODBUS_MESSAGE * cmd_ptr) {
     }
     crc_in = (cmd_byte[7] << 8) + cmd_byte[6];
     crc = checkCRC(cmd_byte, 6); 
-//    ETMCanSlaveSetDebugRegister(0xA, crc_in);
-//    ETMCanSlaveSetDebugRegister(0xB, crc);
     if (crc_in != crc) {
       cmd_ptr->done = ETMMODBUS_ERROR_CRC;    
       return;
@@ -3136,7 +3138,9 @@ void CheckDeviceFailure(MODBUS_MESSAGE * ptr) {
 void SendResponse(MODBUS_MESSAGE * ptr) {
   unsigned int crc;
   unsigned int data_length_words;
-
+  unsigned int address_16_msb;
+  unsigned char address_msb;
+  unsigned char address_lsb;
   unsigned int index;
   unsigned int data_16_msb;
   unsigned char data_msb;
@@ -3179,8 +3183,6 @@ void SendResponse(MODBUS_MESSAGE * ptr) {
       ptr->data_length_bytes = ((unsigned char)data_length_words * 2) & 0xff;
       BufferByte64WriteByte(&uart1_output_buffer, ptr->data_length_bytes);	// number of bytes to follow
        output_data[2] = ptr->data_length_bytes;
-      ETMCanSlaveSetDebugRegister(0xA, ptr->qty_reg);
-      ETMCanSlaveSetDebugRegister(0xB, ptr->data_length_bytes);
       index = 0;
       while (data_length_words) {
         data_16_msb = ptr->data[index] >> 8;
@@ -3198,8 +3200,6 @@ void SendResponse(MODBUS_MESSAGE * ptr) {
       crc_16_msb = crc >> 8;
       crc_msb = (unsigned char)crc_16_msb & 0xff;
       crc_lsb = (unsigned char)crc & 0xff;
-//      ETMCanSlaveSetDebugRegister(0xA, data_lsb);
-//      ETMCanSlaveSetDebugRegister(0xB, data_msb);
       BufferByte64WriteByte(&uart1_output_buffer, crc_lsb);
       BufferByte64WriteByte(&uart1_output_buffer, crc_msb);
       break;
@@ -3207,23 +3207,44 @@ void SendResponse(MODBUS_MESSAGE * ptr) {
     case FUNCTION_WRITE_BIT:
     case FUNCTION_WRITE_REGISTER:
       BufferByte64WriteByte(&uart1_output_buffer, MODBUS_SLAVE_ADDR);
-      BufferByte64WriteByte(&uart1_output_buffer, ptr->function_code);    
-      BufferByte64WriteByte(&uart1_output_buffer, (ptr->data_address >> 8) & 0xff);	// addr Hi
-      BufferByte64WriteByte(&uart1_output_buffer, ptr->data_address & 0xff);	// addr Lo
-      BufferByte64WriteByte(&uart1_output_buffer, (ptr->write_value >> 8) & 0xff);	// data Hi
-      BufferByte64WriteByte(&uart1_output_buffer, ptr->write_value & 0xff);	// data Lo
-      crc = checkCRC(uart1_output_buffer.data, 6);
-      BufferByte64WriteByte(&uart1_output_buffer, crc & 0xff);
-      BufferByte64WriteByte(&uart1_output_buffer, (crc >> 8) & 0xff);
+       output_data[0] = MODBUS_SLAVE_ADDR;
+      BufferByte64WriteByte(&uart1_output_buffer, ptr->function_code); 
+       output_data[1] = ptr->function_code;
+      address_16_msb = ptr->data_address >> 8;
+      address_msb = (unsigned char)address_16_msb & 0xff;
+      address_lsb = (unsigned char)ptr->data_address & 0xff;
+      BufferByte64WriteByte(&uart1_output_buffer, address_msb);	// addr Hi
+      BufferByte64WriteByte(&uart1_output_buffer, address_lsb);	// addr Lo
+       output_data[2] = address_msb;
+       output_data[3] = address_lsb;
+      data_16_msb = ptr->write_value >> 8;
+      data_msb = (unsigned char)data_16_msb & 0xff;
+      data_lsb = (unsigned char)ptr->write_value & 0xff;
+      BufferByte64WriteByte(&uart1_output_buffer, data_msb);	// data Hi
+      BufferByte64WriteByte(&uart1_output_buffer, data_lsb);	// data Lo
+       output_data[4] = data_msb;
+       output_data[5] = data_lsb;
+      crc = checkCRC(output_data, 6);
+      crc_16_msb = crc >> 8;
+      crc_msb = (unsigned char)crc_16_msb & 0xff;
+      crc_lsb = (unsigned char)crc & 0xff;
+      BufferByte64WriteByte(&uart1_output_buffer, crc_lsb);
+      BufferByte64WriteByte(&uart1_output_buffer, crc_msb);
       break;
       
     case EXCEPTION_FLAGGED:
       BufferByte64WriteByte(&uart1_output_buffer, MODBUS_SLAVE_ADDR);
+       output_data[0] = MODBUS_SLAVE_ADDR;
       BufferByte64WriteByte(&uart1_output_buffer, ptr->received_function_code); 
+       output_data[1] = ptr->received_function_code;
       BufferByte64WriteByte(&uart1_output_buffer, ptr->exception_code);
-      crc = checkCRC(uart1_output_buffer.data, 3);
-      BufferByte64WriteByte(&uart1_output_buffer, crc & 0xff);
-      BufferByte64WriteByte(&uart1_output_buffer, (crc >> 8) & 0xff);
+       output_data[2] = ptr->exception_code;
+      crc = checkCRC(output_data, 3);
+      crc_16_msb = crc >> 8;
+      crc_msb = (unsigned char)crc_16_msb & 0xff;
+      crc_lsb = (unsigned char)crc & 0xff;
+      BufferByte64WriteByte(&uart1_output_buffer, crc_lsb);
+      BufferByte64WriteByte(&uart1_output_buffer, crc_msb);
       break;
       
     default:
@@ -3311,7 +3332,7 @@ void __attribute__((interrupt, no_auto_psv)) _U1TXInterrupt(void) {
     */
     U1TXREG = BufferByte64ReadByte(&uart1_output_buffer);
   }
-//  ETMCanSlaveSetDebugRegister(0xA, 1234);
+
 }
 
 
