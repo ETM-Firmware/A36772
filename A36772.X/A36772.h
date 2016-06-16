@@ -258,7 +258,7 @@
 
 #define TARGET_CONVERTER_LOGIC_PCB_REV               0b000000
 #define TARGET_FPGA_FIRMWARE_MAJOR_REV               0b0001
-#define TARGET_FPGA_FIRMWARE_MINOR_REV               0b000000
+#define TARGET_FPGA_FIRMWARE_MINOR_REV               0b000010
   
 // MAX1230 Control Words
 #define MAX1230_CONVERSION_BYTE                      0b10000011

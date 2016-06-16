@@ -2799,12 +2799,25 @@ void ProcessCommand (MODBUS_MESSAGE * ptr) {
       byte_count = ptr->qty_bits / 8;
       last_bits = ptr->qty_bits & 0x07;
       
+      int i;
+      for (i=0; i<(byte_count+1); i++) {
+          ptr->bit_data[i] = 0;
+      }
+      
       if (ptr->qty_bits == 1) {
         if (ModbusSlaveBit[ptr->data_address]) {
           ptr->bit_data[0] = 0x01;
-        } else {
-          ptr->bit_data[0] = 0x00;
         }
+      } else if (ptr->qty_bits <= 8) {
+        coil_index = ptr->data_address; 
+        bit_index = 0;
+        while (bit_index < ptr->qty_bits) {
+          if (ModbusSlaveBit[coil_index] != 0) {
+            ptr->bit_data[0] |= (0x01 << bit_index);
+            coil_index++;
+          }    
+          bit_index++;            
+        }      
       } else {
         byte_index = 0;
         while (byte_index < byte_count) { 
@@ -3162,15 +3175,24 @@ void SendResponse(MODBUS_MESSAGE * ptr) {
   switch (ptr->function_code) {
     case FUNCTION_READ_BITS:
       BufferByte64WriteByte(&uart1_output_buffer, MODBUS_SLAVE_ADDR);
+       output_data[0] = MODBUS_SLAVE_ADDR;
       BufferByte64WriteByte(&uart1_output_buffer, ptr->function_code);
+       output_data[1] = ptr->function_code;
       BufferByte64WriteByte(&uart1_output_buffer, ptr->data_length_bytes);	// number of bytes to follow
+       output_data[2] = ptr->data_length_bytes;
       data_length_words = ptr->data_length_bytes;
       index = 0;
-      while (data_length_words) {
-        BufferByte64WriteByte(&uart1_output_buffer, ptr->bit_data[index] & 0xff);
+      while (index < data_length_words) {
+        BufferByte64WriteByte(&uart1_output_buffer, ptr->bit_data[index]);
+         output_data[3 + index] = ptr->bit_data[index];
         index++;
-        data_length_words--;
       }
+      crc = checkCRC(output_data, 3 + data_length_words);
+      crc_16_msb = crc >> 8;
+      crc_msb = (unsigned char)crc_16_msb & 0xff;
+      crc_lsb = (unsigned char)crc & 0xff;
+      BufferByte64WriteByte(&uart1_output_buffer, crc_lsb);
+      BufferByte64WriteByte(&uart1_output_buffer, crc_msb);
       break;
       
     case FUNCTION_READ_REGISTERS: 
