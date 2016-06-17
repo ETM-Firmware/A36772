@@ -300,8 +300,10 @@
 
 #define DAC_TOP_VOLTAGE_FIXED_SCALE           1.5000
 #define DAC_TOP_VOLTAGE_FIXED_OFFSET          0
-#define TOP_VOLTAGE_MAX_SET_POINT             26000                             // 180V
-#define TOP_VOLTAGE_MIN_SET_POINT             0                                 // -80V
+//#define TOP_VOLTAGE_MAX_SET_POINT             26000                             // 180V
+#define TOP_VOLTAGE_MAX_SET_POINT             40000                             // 320V
+//#define TOP_VOLTAGE_MIN_SET_POINT             0                                 // -80V
+#define TOP_VOLTAGE_MIN_SET_POINT             4000                              // -40V
 
 
 #define DAC_HEATER_VOLTAGE_FIXED_SCALE        7.5188
