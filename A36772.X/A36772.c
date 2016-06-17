@@ -878,7 +878,7 @@ void ResetAllFaultInfo(void) {
 //  _STATUS_ADC_DIGITAL_HEATER_NOT_READY = 0;
 //  _STATUS_DAC_WRITE_FAILURE = 0;
 //
-//  _FPGA_CONVERTER_LOGIC_PCB_REV_MISMATCH         = 0;
+//  _FPGA_CUSTOMER_HARDWARE_REV_MISMATCH         = 0;
 //  _FPGA_FIRMWARE_MINOR_REV_MISMATCH              = 0;
 //  _FPGA_ARC_COUNTER_GREATER_ZERO                 = 0;
 //  _FPGA_ARC_HIGH_VOLTAGE_INHIBIT_ACTIVE          = 0;
@@ -1264,7 +1264,7 @@ void DoA36772(void) {
     ETMCanSlaveSetDebugRegister(0xF, global_data_A36772.control_state);
     
     ETMCanSlaveSetDebugRegister(0xA, _FPGA_FIRMWARE_MINOR_REV_MISMATCH);
-    ETMCanSlaveSetDebugRegister(0xB, global_data_A36772.fpga_firmware_minor_rev_mismatch.filtered_reading);
+//    ETMCanSlaveSetDebugRegister(0xB, fpga_bits.fpga_firmware_minor_rev);
     ETMCanSlaveSetDebugRegister(0xC, _WARNING_REGISTER);
     
     
@@ -2091,9 +2091,9 @@ void DACWriteChannel(unsigned int command_word, unsigned int data_word) {
 
 
 typedef struct {
-  unsigned converter_logic_pcb_rev:6;
-  unsigned fpga_firmware_major_rev:4;
   unsigned fpga_firmware_minor_rev:6;
+  unsigned fpga_firmware_major_rev:4;
+  unsigned customer_hardware_rev:6;
   unsigned arc:1;
   unsigned arc_high_voltage_inihibit_active:1;
   unsigned heater_voltage_less_than_4_5_volts:1;
@@ -2115,6 +2115,7 @@ typedef struct {
 
 void FPGAReadData(void) {
   unsigned long bits;
+  unsigned int test;
   TYPE_FPGA_DATA fpga_bits;
   /*
     Reads 32 bits from the FPGA
@@ -2151,17 +2152,18 @@ void FPGAReadData(void) {
   if (fpga_bits.fpga_firmware_major_rev == TARGET_FPGA_FIRMWARE_MAJOR_REV) {
 
     // Check the logic board pcb rev (NOT LATCHED)
-    if (fpga_bits.converter_logic_pcb_rev != TARGET_CONVERTER_LOGIC_PCB_REV) {
+    if (fpga_bits.customer_hardware_rev != TARGET_CUSTOMER_HARDWARE_REV) {
       ETMDigitalUpdateInput(&global_data_A36772.fpga_coverter_logic_pcb_rev_mismatch, 1);   
     } else {
       ETMDigitalUpdateInput(&global_data_A36772.fpga_coverter_logic_pcb_rev_mismatch, 0);
     }
 //    if (global_data_A36772.fpga_coverter_logic_pcb_rev_mismatch.filtered_reading) {
-//      _FPGA_CONVERTER_LOGIC_PCB_REV_MISMATCH = 1;
+//      _FPGA_CUSTOMER_HARDWARE_REV_MISMATCH = 1;
 //    } else {
-//      _FPGA_CONVERTER_LOGIC_PCB_REV_MISMATCH = 0;
+//      _FPGA_CUSTOMER_HARDWARE_REV_MISMATCH = 0;
 //    }
-
+    test = fpga_bits.fpga_firmware_minor_rev & 0x003F;
+    ETMCanSlaveSetDebugRegister(0xB, test);
     // Check the firmware minor rev (NOT LATCHED)
     if (fpga_bits.fpga_firmware_minor_rev != TARGET_FPGA_FIRMWARE_MINOR_REV) {
       ETMDigitalUpdateInput(&global_data_A36772.fpga_firmware_minor_rev_mismatch, 1);   
@@ -2814,8 +2816,8 @@ void ProcessCommand (MODBUS_MESSAGE * ptr) {
         while (bit_index < ptr->qty_bits) {
           if (ModbusSlaveBit[coil_index] != 0) {
             ptr->bit_data[0] |= (0x01 << bit_index);
-            coil_index++;
           }    
+          coil_index++;
           bit_index++;            
         }      
       } else {
@@ -2840,8 +2842,8 @@ void ProcessCommand (MODBUS_MESSAGE * ptr) {
             if (bit_index < last_bits) {
               if (ModbusSlaveBit[coil_index] != 0) {
                 ptr->bit_data[byte_index] |= (0x01 << bit_index);
-                coil_index++;
               }  
+              coil_index++;
             }
             bit_index++;            
           }      
