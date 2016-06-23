@@ -300,7 +300,10 @@ typedef struct {
   unsigned int can_pulse_top_set_point;         // This is the pulse top set point set over the can interface (it is only used if can mode is selected)
   unsigned int can_heater_voltage_set_point;    // This is the heater voltage set point set over the can interface (it is only used if can mode is selected)
 
-
+  unsigned int discrete_commands_always;
+  unsigned int analog_references_always;
+  unsigned int modbus_controls_enabled;
+  
   unsigned int accumulator_counter;             // This counts the number of converstion on the internal ADC (used for averaging)
   unsigned int adc_read_error_count;            // This counts the total number of errors on reads from the adc on the converter logic board
   unsigned int adc_read_error_test;             // This increments when there is an adc read error and decrements when there is not.  If it exceeds a certain value a fault is generated

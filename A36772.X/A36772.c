@@ -35,8 +35,8 @@ unsigned int CheckPreTopFault(void);
 // Helper functions for DoA36772
 void DoA36772(void);
 /*
-  DoA36772 is called every time the processor cycles throuh it's control loop
-  If _T2IF is set (indicateds 10mS has passed) it executes everything that happens on 10mS time scale
+  DoA36772 is called every time the processor cycles through it's control loop
+  If _T2IF is set (indicates 10mS has passed) it executes everything that happens on 10mS time scale
 */
 void UpdateFaults(void); // Update the fault bits based on analog/digital parameters
 void UpdateLEDandStatusOutuputs(void);  // Updates the LED and status outputs based on the system state
@@ -816,6 +816,19 @@ void InitializeA36772(void) {
   //Reset faults/warnings and inputs
   ResetAllFaultInfo();
   
+  
+#ifdef __DISCRETE_CONTROLS
+  global_data_A36772.discrete_commands_always = 1;
+#endif
+  
+#ifdef __DISCRETE_REFERENCE
+  global_data_A36772.analog_references_always = 1;
+#endif
+  
+#ifdef __MODBUS_CONTROLS
+  global_data_A36772.modbus_controls_enabled = 1;
+#endif
+  
 }
 
 
@@ -1036,24 +1049,43 @@ void DoA36772(void) {
   ETMModbusSlaveDoModbus();
 #endif
 
+  // Deciding whether to use discrete commands or Modbus commands    
+  if ((global_data_A36772.discrete_commands_always == 1) || (modbus_slave_bit_0x05 != 0)) {
 
-#ifdef __DISCRETE_CONTROLS
-  if (PIN_CUSTOMER_HV_ON == ILL_PIN_CUSTOMER_HV_ON_ENABLE_HV) {
-    global_data_A36772.request_hv_enable = 1;
-    _STATUS_CUSTOMER_HV_ON = 1;
-  } else {
-    global_data_A36772.request_hv_enable = 0;
-    _STATUS_CUSTOMER_HV_ON = 0;
-  }
+    if (PIN_CUSTOMER_HV_ON == ILL_PIN_CUSTOMER_HV_ON_ENABLE_HV) {
+      global_data_A36772.request_hv_enable = 1;
+      _STATUS_CUSTOMER_HV_ON = 1;
+    } else {
+      global_data_A36772.request_hv_enable = 0;
+      _STATUS_CUSTOMER_HV_ON = 0;
+    }
 
-  if (PIN_CUSTOMER_BEAM_ENABLE == ILL_PIN_CUSTOMER_BEAM_ENABLE_BEAM_ENABLED) {
-    global_data_A36772.request_beam_enable = 1;
-    _STATUS_CUSTOMER_BEAM_ENABLE = 1;
-  } else {
-    global_data_A36772.request_beam_enable = 0;
-    _STATUS_CUSTOMER_BEAM_ENABLE = 0;
+    if (PIN_CUSTOMER_BEAM_ENABLE == ILL_PIN_CUSTOMER_BEAM_ENABLE_BEAM_ENABLED) {
+      global_data_A36772.request_beam_enable = 1;
+      _STATUS_CUSTOMER_BEAM_ENABLE = 1;
+    } else {
+      global_data_A36772.request_beam_enable = 0;
+      _STATUS_CUSTOMER_BEAM_ENABLE = 0;
+    }
+  
+  } else if (global_data_A36772.modbus_controls_enabled) {
+      
+    if (modbus_slave_bit_0x02) {
+      global_data_A36772.request_hv_enable = 1;
+      _STATUS_CUSTOMER_HV_ON = 1;
+    } else {
+      global_data_A36772.request_hv_enable = 0;
+      _STATUS_CUSTOMER_HV_ON = 0;
+    }
+
+    if (modbus_slave_bit_0x03) {
+      global_data_A36772.request_beam_enable = 1;
+      _STATUS_CUSTOMER_BEAM_ENABLE = 1;
+    } else {
+      global_data_A36772.request_beam_enable = 0;
+      _STATUS_CUSTOMER_BEAM_ENABLE = 0;
+    }
   }
-#endif
   
 #ifdef __CAN_CONTROLS
   if (!ETMCanSlaveGetSyncMsgSystemHVDisable()) {
@@ -1074,24 +1106,6 @@ void DoA36772(void) {
   
 #endif
   
-#ifdef __MODBUS_CONTROLS
-  if (modbus_slave_bit_0x02) {
-    global_data_A36772.request_hv_enable = 1;
-    _STATUS_CUSTOMER_HV_ON = 1;
-  } else {
-    global_data_A36772.request_hv_enable = 0;
-    _STATUS_CUSTOMER_HV_ON = 0;
-  }
-
-  if (modbus_slave_bit_0x03) {
-    global_data_A36772.request_beam_enable = 1;
-    _STATUS_CUSTOMER_BEAM_ENABLE = 1;
-  } else {
-    global_data_A36772.request_beam_enable = 0;
-    _STATUS_CUSTOMER_BEAM_ENABLE = 0;
-  }
-  
-#endif
   
 
   if (_T2IF) {
@@ -1124,38 +1138,41 @@ void DoA36772(void) {
     }  
 #endif
 
-#ifdef __DISCRETE_CONTROLS
-    unsigned int state_pin_customer_hv_on = PIN_CUSTOMER_HV_ON;
-    if (global_data_A36772.control_state != STATE_FAULT_WARMUP_HEATER_OFF) {
-      if ((state_pin_customer_hv_on == !ILL_PIN_CUSTOMER_HV_ON_ENABLE_HV) && (global_data_A36772.previous_state_pin_customer_hv_on == ILL_PIN_CUSTOMER_HV_ON_ENABLE_HV)) {
-        global_data_A36772.reset_active = 1;
-      } else {
-        global_data_A36772.reset_active = 0;
-      }
-      global_data_A36772.previous_state_pin_customer_hv_on = state_pin_customer_hv_on;
+    // Deciding whether to use discrete reset command or Modbus reset command    
+    if ((global_data_A36772.discrete_commands_always == 1) || (modbus_slave_bit_0x05 != 0)) {
+
+      unsigned int state_pin_customer_hv_on = PIN_CUSTOMER_HV_ON;
+      if (global_data_A36772.control_state != STATE_FAULT_WARMUP_HEATER_OFF) {
+        if ((state_pin_customer_hv_on == !ILL_PIN_CUSTOMER_HV_ON_ENABLE_HV) && (global_data_A36772.previous_state_pin_customer_hv_on == ILL_PIN_CUSTOMER_HV_ON_ENABLE_HV)) {
+          global_data_A36772.reset_active = 1;
+        } else {
+          global_data_A36772.reset_active = 0;
+        }
+        global_data_A36772.previous_state_pin_customer_hv_on = state_pin_customer_hv_on;
       
-    } else {
-      global_data_A36772.reset_active = 1;
-    }  
+      } else {
+        global_data_A36772.reset_active = 1;
+      }  
+
+    } else if (global_data_A36772.modbus_controls_enabled) {  
+
+      if (global_data_A36772.control_state != STATE_FAULT_WARMUP_HEATER_OFF) {
+        if (GetModbusResetEnable()) {
+          global_data_A36772.reset_active = 1;
+        } else {
+          global_data_A36772.reset_active = 0;
+        } 
+      } else {
+        global_data_A36772.reset_active = 1;
+      }  
+    }    
     
-#endif
     
 #ifdef __MODBUS_CONTROLS
     ModbusTimer++;
-    if (global_data_A36772.control_state != STATE_FAULT_WARMUP_HEATER_OFF) {
-      if (GetModbusResetEnable()) {
-        global_data_A36772.reset_active = 1;
-      } else {
-        global_data_A36772.reset_active = 0;
-      } 
-    } else {
-      global_data_A36772.reset_active = 1;
-    }  
-    
 #endif
-    
-    // pin = 1
 
+    
     // Update to counter used to flash the LEDs at startup and time transmits to DACs
     if (global_data_A36772.power_supply_startup_remaining) {
       global_data_A36772.power_supply_startup_remaining--;
@@ -1310,16 +1327,6 @@ void DoA36772(void) {
     global_data_A36772.heater_voltage_target                = global_data_A36772.pot_htr.reading_scaled_and_calibrated;
     //global_data_A36772.analog_output_high_voltage.set_point = global_data_A36772.pot_ek.reading_scaled_and_calibrated;
     //global_data_A36772.analog_output_top_voltage.set_point  = global_data_A36772.pot_vtop.reading_scaled_and_calibrated;
- #endif
-
-#ifdef __DISCRETE_REFERENCE
-    // The set points should be based on the analog references
-    ETMAnalogSetOutput(&global_data_A36772.analog_output_high_voltage, global_data_A36772.ref_ek.reading_scaled_and_calibrated);
-    ETMAnalogSetOutput(&global_data_A36772.analog_output_top_voltage, global_data_A36772.ref_vtop.reading_scaled_and_calibrated);
-    global_data_A36772.heater_voltage_target                = global_data_A36772.ref_htr.reading_scaled_and_calibrated;    
-    //global_data_A36772.analog_output_high_voltage.set_point = global_data_A36772.ref_ek.reading_scaled_and_calibrated;
-    //global_data_A36772.analog_output_top_voltage.set_point  = global_data_A36772.ref_vtop.reading_scaled_and_calibrated;
-
 #endif
 
 #ifdef __CAN_REFERENCE
@@ -1329,26 +1336,35 @@ void DoA36772(void) {
     //global_data_A36772.analog_output_high_voltage.set_point = global_data_A36772.can_high_voltage_set_point;
     //global_data_A36772.analog_output_top_voltage.set_point  = global_data_A36772.can_pulse_top_set_point;
 #endif
-    
-#ifdef __MODBUS_REFERENCE
-    ETMAnalogSetOutput(&global_data_A36772.analog_output_high_voltage, modbus_slave_hold_reg_0x13);
-    ETMAnalogSetOutput(&global_data_A36772.analog_output_top_voltage, modbus_slave_hold_reg_0x12);
-    global_data_A36772.heater_voltage_target = modbus_slave_hold_reg_0x11;
-    
-    if (modbus_slave_hold_reg_0x13 < HIGH_VOLTAGE_MIN_SET_POINT || modbus_slave_hold_reg_0x13 > HIGH_VOLTAGE_MAX_SET_POINT) {
-        modbus_slave_invalid_data = 1;
-    }
-    
-    if (modbus_slave_hold_reg_0x12 > TOP_VOLTAGE_MAX_SET_POINT) {
-        modbus_slave_invalid_data = 1;
-    }
-    
-    if (modbus_slave_hold_reg_0x11 > MAX_PROGRAM_HTR_VOLTAGE) {
-        modbus_slave_invalid_data = 1;
-    }
 
-#endif
+    if ((global_data_A36772.analog_references_always == 1) || (modbus_slave_bit_0x06 != 0)) {
 
+      // The set points should be based on the analog references
+      ETMAnalogSetOutput(&global_data_A36772.analog_output_high_voltage, global_data_A36772.ref_ek.reading_scaled_and_calibrated);
+      ETMAnalogSetOutput(&global_data_A36772.analog_output_top_voltage, global_data_A36772.ref_vtop.reading_scaled_and_calibrated);
+      global_data_A36772.heater_voltage_target                = global_data_A36772.ref_htr.reading_scaled_and_calibrated;    
+      //global_data_A36772.analog_output_high_voltage.set_point = global_data_A36772.ref_ek.reading_scaled_and_calibrated;
+      //global_data_A36772.analog_output_top_voltage.set_point  = global_data_A36772.ref_vtop.reading_scaled_and_calibrated;
+
+    } else if (global_data_A36772.modbus_controls_enabled) {   
+
+      ETMAnalogSetOutput(&global_data_A36772.analog_output_high_voltage, modbus_slave_hold_reg_0x13);
+      ETMAnalogSetOutput(&global_data_A36772.analog_output_top_voltage, modbus_slave_hold_reg_0x12);
+      global_data_A36772.heater_voltage_target = modbus_slave_hold_reg_0x11;
+    
+      if (modbus_slave_hold_reg_0x13 < HIGH_VOLTAGE_MIN_SET_POINT || modbus_slave_hold_reg_0x13 > HIGH_VOLTAGE_MAX_SET_POINT) {
+          modbus_slave_invalid_data = 1;
+      }
+    
+      if (modbus_slave_hold_reg_0x12 > TOP_VOLTAGE_MAX_SET_POINT) {
+          modbus_slave_invalid_data = 1;
+      }
+    
+      if (modbus_slave_hold_reg_0x11 > MAX_PROGRAM_HTR_VOLTAGE) {
+          modbus_slave_invalid_data = 1;
+      }
+    }
+    
     
     if (global_data_A36772.heater_voltage_target > MAX_PROGRAM_HTR_VOLTAGE) {
       global_data_A36772.heater_voltage_target = MAX_PROGRAM_HTR_VOLTAGE;
@@ -2585,6 +2601,8 @@ void ETMModbusInit(void) {
   modbus_slave_bit_0x02 = 0;
   modbus_slave_bit_0x03 = 0;
   modbus_slave_bit_0x04 = 0;
+//  modbus_slave_bit_0x05 = 0;
+//  modbus_slave_bit_0x06 = 0;
   
   U1MODEbits.UARTEN = 1;	// And turn the peripheral on
   
@@ -2601,93 +2619,7 @@ void ETMModbusInit(void) {
   ETM_modbus_state = MODBUS_STATE_IDLE;
 }
 
-/*    
-void ETMModbusSlaveDoModbus(void) {
-  unsigned char test;
-  switch (ETM_modbus_state) {
-      
-    case MODBUS_STATE_IDLE:
-//      PIN_RS485_ENABLE = 0;
-      if (modbus_transmission_needed) {
-        if (ModbusTimer >= MODBUS_200ms_DELAY) {
-          ModbusTimer = 0;
-          if (current_command_ptr.done == ETMMODBUS_COMMAND_OK) {
-            CheckValidData(&current_command_ptr);
-            CheckDeviceFailure(&current_command_ptr);
-          }
-//          modbus_transmission_needed = 0;
-          ETM_modbus_state = MODBUS_STATE_TRANSMITTING;
-        }
-      } else if (modbus_receiving_flag) {
-        ETM_modbus_state = MODBUS_STATE_RECEIVING;
-      }
-      break;
-  
-    case MODBUS_STATE_RECEIVING:  
-      ReceiveCommand(&current_command_ptr);
-      if (current_command_ptr.done == ETMMODBUS_COMMAND_OK) {
-        current_command_ptr.done = 0;
-        ModbusTimer = 0;      //start 200ms timer
-        PIN_RS485_ENABLE = 1;
-        modbus_receiving_flag = 0;
-        ETM_modbus_state = MODBUS_STATE_PROCESSING;
-      } else if (current_command_ptr.done ==  ETMMODBUS_ERROR_FUNCTION) {
-        current_command_ptr.done = 0;
-        ModbusTimer = 0;      //start 200ms timer
-        PIN_RS485_ENABLE = 1;
-        ETM_last_modbus_fail = ETMMODBUS_ERROR_FUNCTION;
-        modbus_transmission_needed = 1;
-        modbus_receiving_flag = 0;
-        ETM_modbus_state = MODBUS_STATE_IDLE;
-      } else if (current_command_ptr.done) {
-        current_command_ptr.done = 0;
-        ETM_last_modbus_fail = current_command_ptr.done;
-        modbus_receiving_flag = 0;
-        ETM_modbus_state = MODBUS_STATE_IDLE;
-      }  
-      break;
-    
-    case MODBUS_STATE_PROCESSING:
-      ProcessCommand (&current_command_ptr);
-      modbus_transmission_needed = 1;
-      ETM_modbus_state = MODBUS_STATE_IDLE;
-      break;
-    
-    case MODBUS_STATE_TRANSMITTING:
-      if (modbus_transmission_needed != 0) {
-        modbus_transmission_needed = 0;
-        SendResponse(&current_command_ptr);
-    //    ClearModbusMessage(&current_command_ptr);
-//TEST BUFFER FILL
-//        for (test = 27; test < 34; test++) {  
-//          BufferByte64WriteByte(&uart1_output_buffer, test);
-//        }
-        ModbusTest++;
-        while ((!U1STAbits.UTXBF) && (BufferByte64BytesInBuffer(&uart1_output_buffer))) {
-          U1TXREG = BufferByte64ReadByte(&uart1_output_buffer);
-        }
-      }
-//      PIN_RS485_ENABLE = 1;
-//      while (BufferByte64BytesInBuffer(&uart1_output_buffer)) {
-//        if (!U1STAbits.UTXBF) {
-//          U1TXREG = BufferByte64ReadByte(&uart1_output_buffer);
-//        }
-//        Nop();
-//      }
-      if ((U1STAbits.TRMT == 1) && (!BufferByte64BytesInBuffer(&uart1_output_buffer))) {
-        ETM_modbus_state = MODBUS_STATE_IDLE;
-        PIN_RS485_ENABLE = 0;
-        modbus_receiving_flag = 0;
-      }
-      break;
 
-    default:
-      ETM_modbus_state = MODBUS_STATE_IDLE;
-      break;
-    
-  }
-}    
-*/
 
 void ETMModbusSlaveDoModbus(void) {
   if (!modbus_transmission_needed) {
@@ -2925,211 +2857,6 @@ void ProcessCommand (MODBUS_MESSAGE * ptr) {
   }
 }    
 
-/*
-//this is the function for parsing and processing 
-void ReceiveCommand(MODBUS_MESSAGE * cmd_ptr) {
-
-  unsigned int crc, crc_in, i;
-  unsigned char cmd_byte[8];
-  
-  if (BufferByte64BytesInBuffer(&uart1_input_buffer) >= ETMMODBUS_COMMAND_SIZE_MIN) {   
-    for (i=0; i<ETMMODBUS_COMMAND_SIZE_MIN; i++){
-      cmd_byte[i] = BufferByte64ReadByte(&uart1_input_buffer);
-    }
-    while (BufferByte64IsNotEmpty(&uart1_input_buffer)) {
-      i = BufferByte64ReadByte(&uart1_input_buffer);
-    }
-    crc_in = (cmd_byte[7] << 8) + cmd_byte[6];
-    crc = checkCRC(cmd_byte, 6); 
-    if (crc_in != crc) {
-      cmd_ptr->done = ETMMODBUS_ERROR_CRC;    
-      return;
-    } else {
-      if ((cmd_byte[0] & 0xFF) != MODBUS_SLAVE_ADDR) {
-        cmd_ptr->done = ETMMODBUS_ERROR_SLAVE_ADDR;
-        return;
-      } else {
-      	if (cmd_byte[1] & 0x80) {
-          cmd_ptr->done = ETMMODBUS_ERROR_FUNCTION;
-          cmd_ptr->received_function_code = cmd_byte[1];
-          cmd_ptr->function_code = EXCEPTION_FLAGGED;
-          cmd_ptr->exception_code = ILLEGAL_FUNCTION;
-        } else {
-//          _T1IF = 0;      // start 200ms timer
-          cmd_ptr->done = ETMMODBUS_COMMAND_OK;
-          cmd_ptr->function_code = cmd_byte[1] & 0x7F;
-          cmd_ptr->data_address = (cmd_byte[2] << 8) + cmd_byte[3];
-          switch (cmd_ptr->function_code) {
-            case FUNCTION_READ_BITS:
-              cmd_ptr->qty_bits = (cmd_byte[4] << 8) + cmd_byte[5];
-              break;
-            
-            case FUNCTION_READ_REGISTERS:  
-            case FUNCTION_READ_INPUT_REGISTERS:  
-              cmd_ptr->qty_reg = (cmd_byte[4] << 8) + cmd_byte[5];                
-              break;
-    
-            case FUNCTION_WRITE_BIT:
-            case FUNCTION_WRITE_REGISTER:
-              cmd_ptr->write_value = (cmd_byte[4] << 8) + cmd_byte[5];
-              break;
-    
-            default:
-              cmd_ptr->done = ETMMODBUS_ERROR_FUNCTION;
-              cmd_ptr->received_function_code = cmd_ptr->function_code;
-              cmd_ptr->function_code = EXCEPTION_FLAGGED;
-              cmd_ptr->exception_code = ILLEGAL_FUNCTION;
-              break;
-          }                      
-        }
-      }
-    }
-  }  
-}
-
-
-void ProcessCommand (MODBUS_MESSAGE * ptr) {
-  unsigned int coil_index;
-  unsigned char bit_index;
-  unsigned int byte_index;
-  unsigned char byte_count;
-  unsigned char last_bits;
-  unsigned char data_index;
-  unsigned int data_length_words;
-  
-  modbus_slave_invalid_data = 0;
-  
-  switch (ptr->function_code) {
-      
-    case FUNCTION_READ_BITS:
-
-      if ((ptr->data_address + ptr->qty_bits) > SLAVE_BIT_ARRAY_SIZE) {
-        ptr->received_function_code = ptr->function_code;
-        ptr->function_code = EXCEPTION_FLAGGED;
-        ptr->exception_code = ILLEGAL_ADDRESS;
-        break;  
-      }
-
-      if (ptr->qty_bits <= 8) {
-        ptr->data_length_bytes = 1;
-      } else if (ptr->qty_bits & 0x0007) {
-        ptr->data_length_bytes = ((ptr->qty_bits /8) + 1) & 0xff;
-      } else {
-        ptr->data_length_bytes = (ptr->qty_bits /8) & 0xff;
-      }
-        
-      byte_count = ptr->qty_bits / 8;
-      last_bits = ptr->qty_bits & 0x07;
-      
-      if (ptr->qty_bits == 1) {
-        if (ModbusSlaveBit[ptr->data_address]) {
-          ptr->bit_data[0] = 0x01;
-        } else {
-          ptr->bit_data[0] = 0x00;
-        }
-      } else {
-        byte_index = 0;
-        while (byte_index < byte_count) { 
-          coil_index = ptr->data_address;
-          bit_index = 0;
-          ptr->bit_data[byte_index] = 0;
-          while (bit_index < 8) {
-            if (ModbusSlaveBit[coil_index]) {
-              ptr->bit_data[byte_index] |= (0x01 << bit_index);
-            }
-            bit_index++;
-            coil_index++;
-          } 
-          byte_index++;
-        }
-        if (last_bits) {
-          bit_index = 0;
-          ptr->bit_data[byte_index] = 0;
-          while (bit_index < 8) {
-            if (bit_index < last_bits) {
-              if (ModbusSlaveBit[coil_index] != 0) {
-                ptr->bit_data[byte_index] |= (0x01 << bit_index);
-                coil_index++;
-              }  
-            }
-            bit_index++;            
-          }      
-          
-        }
-      }
-      break;
-      
-    case FUNCTION_READ_REGISTERS:         
-        
-      if ((ptr->data_address + ptr->qty_reg) >= SLAVE_HOLD_REG_ARRAY_SIZE) {
-        ptr->received_function_code = ptr->function_code;
-        ptr->function_code = EXCEPTION_FLAGGED;
-        ptr->exception_code = ILLEGAL_ADDRESS;
-        break;  
-      }
-      data_length_words = ptr->qty_reg;
-      byte_index = 0;
-      data_index = 0;
-      while (data_length_words) {
-        ptr->data[data_index] =  ModbusSlaveHoldingRegister[ptr->data_address + byte_index];
-        byte_index++;
-        data_index++;
-        data_length_words--;
-      } 
-      break;
-      
-    case FUNCTION_READ_INPUT_REGISTERS:
-        
-      if ((ptr->data_address + ptr->qty_reg) >= SLAVE_INPUT_REG_ARRAY_SIZE) {
-        ptr->received_function_code = ptr->function_code;
-        ptr->function_code = EXCEPTION_FLAGGED;
-        ptr->exception_code = ILLEGAL_ADDRESS;
-        break;  
-      }
-      data_length_words = ptr->qty_reg;
-      byte_index = 0;
-      data_index = 0;
-      while (data_length_words) {
-        ptr->data[data_index] =  ModbusSlaveInputRegister[ptr->data_address + byte_index];
-        byte_index++;
-        data_index++;
-        data_length_words--;
-      }
-      break;
-      
-    case FUNCTION_WRITE_BIT:
-      if (ptr->data_address >= SLAVE_BIT_ARRAY_SIZE) {
-        ptr->received_function_code = ptr->function_code;
-        ptr->function_code = EXCEPTION_FLAGGED;
-        ptr->exception_code = ILLEGAL_ADDRESS;
-        break;  
-      }
-      coil_index = ptr->data_address;
-      if ((ptr->write_value == 0x0000) || (ptr->write_value == 0xFF00)) {
-        ModbusSlaveBit[coil_index] = ptr->write_value;
-      } else {
-        ptr->received_function_code = ptr->function_code;
-        ptr->function_code = EXCEPTION_FLAGGED;
-        ptr->exception_code = ILLEGAL_VALUE;
-      }     
-      break;
-      
-    case FUNCTION_WRITE_REGISTER:
-      if (ptr->data_address >= SLAVE_HOLD_REG_ARRAY_SIZE) {
-        ptr->received_function_code = ptr->function_code;
-        ptr->function_code = EXCEPTION_FLAGGED;
-        ptr->exception_code = ILLEGAL_ADDRESS;
-        break;  
-      }
-      byte_index = ptr->data_address;
-      ModbusSlaveHoldingRegister[byte_index] = ptr->write_value;
-      break;
-      
-    default:
-  	  break;
-  }
-}    
- */
 
 void CheckValidData(MODBUS_MESSAGE * ptr) {
     
@@ -3166,7 +2893,7 @@ void SendResponse(MODBUS_MESSAGE * ptr) {
   unsigned int length_16_bytes;
   
   //BUFFERBYTE64 local_buffer;
-  unsigned char output_data[16];
+  unsigned char output_data[64];
   
   // clear input/output buffer first
   //uart1_input_buffer.write_location = 0;  
