@@ -2574,10 +2574,10 @@ void ETMModbusInit(void) {
   //Load startup values from EEPROM
   int i;
   
-  for (i=0;i<64;i++) {
+  for (i=0; i<SLAVE_HOLD_REG_ARRAY_SIZE; i++) {
     ModbusSlaveHoldingRegister[i] = ETMEEPromReadWord(0x600 + i);
   }
-  for (i=0;i<64;i++) {
+  for (i=0; i<SLAVE_BIT_ARRAY_SIZE; i++) {
     ModbusSlaveBit[i] = ETMEEPromReadWord(0x640 + i);
   }
   
@@ -2753,7 +2753,11 @@ void ReceiveCommand(MODBUS_MESSAGE * cmd_ptr) {
             
       case FUNCTION_READ_REGISTERS:  
       case FUNCTION_READ_INPUT_REGISTERS:  
-        cmd_ptr->qty_reg = (modbus_cmd_byte[4] << 8) + modbus_cmd_byte[5];                
+        cmd_ptr->qty_reg = (modbus_cmd_byte[4] << 8) + modbus_cmd_byte[5];
+        
+        if (cmd_ptr->qty_reg > 24) {                          // Limit to 24 registers read per message
+          cmd_ptr->qty_reg = 24;
+        }
         break;
     
       case FUNCTION_WRITE_BIT:
@@ -2783,7 +2787,8 @@ void ProcessCommand (MODBUS_MESSAGE * ptr) {
       
     case FUNCTION_READ_BITS:
 
-      if ((ptr->data_address + ptr->qty_bits) > SLAVE_BIT_ARRAY_SIZE) {
+      if (((ptr->data_address + ptr->qty_bits) > SLAVE_BIT_ARRAY_SIZE) ||
+          (ptr->data_address >= SLAVE_BIT_ARRAY_SIZE)){
         ptr->received_function_code = ptr->function_code;
         ptr->function_code = EXCEPTION_FLAGGED;
         ptr->exception_code = ILLEGAL_ADDRESS;
@@ -2822,8 +2827,8 @@ void ProcessCommand (MODBUS_MESSAGE * ptr) {
         }      
       } else {
         byte_index = 0;
+        coil_index = ptr->data_address;
         while (byte_index < byte_count) { 
-          coil_index = ptr->data_address;
           bit_index = 0;
           ptr->bit_data[byte_index] = 0;
           while (bit_index < 8) {
@@ -2846,15 +2851,15 @@ void ProcessCommand (MODBUS_MESSAGE * ptr) {
               coil_index++;
             }
             bit_index++;            
-          }      
-          
+          }                
         }
       }
       break;
       
     case FUNCTION_READ_REGISTERS:         
         
-      if ((ptr->data_address + ptr->qty_reg) >= SLAVE_HOLD_REG_ARRAY_SIZE) {
+      if (((ptr->data_address + ptr->qty_reg) > SLAVE_HOLD_REG_ARRAY_SIZE) ||
+          (ptr->data_address >= SLAVE_HOLD_REG_ARRAY_SIZE)){
         ptr->received_function_code = ptr->function_code;
         ptr->function_code = EXCEPTION_FLAGGED;
         ptr->exception_code = ILLEGAL_ADDRESS;
@@ -2873,7 +2878,8 @@ void ProcessCommand (MODBUS_MESSAGE * ptr) {
       
     case FUNCTION_READ_INPUT_REGISTERS:
         
-      if ((ptr->data_address + ptr->qty_reg) >= SLAVE_INPUT_REG_ARRAY_SIZE) {
+      if (((ptr->data_address + ptr->qty_reg) > SLAVE_INPUT_REG_ARRAY_SIZE) ||
+          (ptr->data_address >= SLAVE_INPUT_REG_ARRAY_SIZE)){
         ptr->received_function_code = ptr->function_code;
         ptr->function_code = EXCEPTION_FLAGGED;
         ptr->exception_code = ILLEGAL_ADDRESS;
