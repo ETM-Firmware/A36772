@@ -1290,9 +1290,9 @@ void DoA36772(void) {
     modbus_slave_hold_reg_0x22 = global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated;
     modbus_slave_hold_reg_0x23 = global_data_A36772.input_top_v_mon.reading_scaled_and_calibrated;
     modbus_slave_hold_reg_0x24 = global_data_A36772.input_hv_v_mon.reading_scaled_and_calibrated;
-    modbus_slave_hold_reg_0x25 = global_data_A36772.input_temperature_mon.reading_scaled_and_calibrated;
-    modbus_slave_hold_reg_0x26 = global_data_A36772.input_bias_v_mon.reading_scaled_and_calibrated;
-    modbus_slave_hold_reg_0x27 = global_data_A36772.input_gun_i_peak.reading_scaled_and_calibrated;
+    modbus_slave_hold_reg_0x25 = global_data_A36772.input_temperature_mon.reading_scaled_and_calibrated / 100;
+    modbus_slave_hold_reg_0x26 = global_data_A36772.input_bias_v_mon.reading_scaled_and_calibrated / 10;
+    modbus_slave_hold_reg_0x27 = global_data_A36772.input_gun_i_peak.reading_scaled_and_calibrated / 10;
     modbus_slave_hold_reg_0x28 = global_data_A36772.heater_warm_up_time_remaining;
     
     modbus_slave_hold_reg_0x31 = global_data_A36772.state_message;
