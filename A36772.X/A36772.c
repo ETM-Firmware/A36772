@@ -1307,9 +1307,9 @@ void DoA36772(void) {
     modbus_slave_hold_reg_0x22 = global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated;
     modbus_slave_hold_reg_0x23 = global_data_A36772.input_top_v_mon.reading_scaled_and_calibrated;
     modbus_slave_hold_reg_0x24 = global_data_A36772.input_hv_v_mon.reading_scaled_and_calibrated;
-    modbus_slave_hold_reg_0x25 = global_data_A36772.input_temperature_mon.reading_scaled_and_calibrated;
-    modbus_slave_hold_reg_0x26 = global_data_A36772.input_bias_v_mon.reading_scaled_and_calibrated;
-    modbus_slave_hold_reg_0x27 = global_data_A36772.input_gun_i_peak.reading_scaled_and_calibrated;
+    modbus_slave_hold_reg_0x25 = global_data_A36772.input_temperature_mon.reading_scaled_and_calibrated / 100;
+    modbus_slave_hold_reg_0x26 = global_data_A36772.input_bias_v_mon.reading_scaled_and_calibrated / 10;
+    modbus_slave_hold_reg_0x27 = global_data_A36772.input_gun_i_peak.reading_scaled_and_calibrated / 10;
     modbus_slave_hold_reg_0x28 = global_data_A36772.heater_warm_up_time_remaining;
     
     modbus_slave_hold_reg_0x31 = global_data_A36772.state_message;
@@ -2590,10 +2590,10 @@ void ETMModbusInit(void) {
   //Load startup values from EEPROM
   int i;
   
-  for (i=0;i<64;i++) {
+  for (i=0; i<SLAVE_HOLD_REG_ARRAY_SIZE; i++) {
     ModbusSlaveHoldingRegister[i] = ETMEEPromReadWord(0x600 + i);
   }
-  for (i=0;i<64;i++) {
+  for (i=0; i<SLAVE_BIT_ARRAY_SIZE; i++) {
     ModbusSlaveBit[i] = ETMEEPromReadWord(0x640 + i);
   }
   
@@ -2685,7 +2685,11 @@ void ReceiveCommand(MODBUS_MESSAGE * cmd_ptr) {
             
       case FUNCTION_READ_REGISTERS:  
       case FUNCTION_READ_INPUT_REGISTERS:  
-        cmd_ptr->qty_reg = (modbus_cmd_byte[4] << 8) + modbus_cmd_byte[5];                
+        cmd_ptr->qty_reg = (modbus_cmd_byte[4] << 8) + modbus_cmd_byte[5];
+        
+        if (cmd_ptr->qty_reg > 24) {                          // Limit to 24 registers read per message
+          cmd_ptr->qty_reg = 24;
+        }
         break;
     
       case FUNCTION_WRITE_BIT:
@@ -2715,7 +2719,8 @@ void ProcessCommand (MODBUS_MESSAGE * ptr) {
       
     case FUNCTION_READ_BITS:
 
-      if ((ptr->data_address + ptr->qty_bits) > SLAVE_BIT_ARRAY_SIZE) {
+      if (((ptr->data_address + ptr->qty_bits) > SLAVE_BIT_ARRAY_SIZE) ||
+          (ptr->data_address >= SLAVE_BIT_ARRAY_SIZE)){
         ptr->received_function_code = ptr->function_code;
         ptr->function_code = EXCEPTION_FLAGGED;
         ptr->exception_code = ILLEGAL_ADDRESS;
@@ -2754,8 +2759,8 @@ void ProcessCommand (MODBUS_MESSAGE * ptr) {
         }      
       } else {
         byte_index = 0;
+        coil_index = ptr->data_address;
         while (byte_index < byte_count) { 
-          coil_index = ptr->data_address;
           bit_index = 0;
           ptr->bit_data[byte_index] = 0;
           while (bit_index < 8) {
@@ -2778,15 +2783,15 @@ void ProcessCommand (MODBUS_MESSAGE * ptr) {
               coil_index++;
             }
             bit_index++;            
-          }      
-          
+          }                
         }
       }
       break;
       
     case FUNCTION_READ_REGISTERS:         
         
-      if ((ptr->data_address + ptr->qty_reg) >= SLAVE_HOLD_REG_ARRAY_SIZE) {
+      if (((ptr->data_address + ptr->qty_reg) > SLAVE_HOLD_REG_ARRAY_SIZE) ||
+          (ptr->data_address >= SLAVE_HOLD_REG_ARRAY_SIZE)){
         ptr->received_function_code = ptr->function_code;
         ptr->function_code = EXCEPTION_FLAGGED;
         ptr->exception_code = ILLEGAL_ADDRESS;
@@ -2805,7 +2810,8 @@ void ProcessCommand (MODBUS_MESSAGE * ptr) {
       
     case FUNCTION_READ_INPUT_REGISTERS:
         
-      if ((ptr->data_address + ptr->qty_reg) >= SLAVE_INPUT_REG_ARRAY_SIZE) {
+      if (((ptr->data_address + ptr->qty_reg) > SLAVE_INPUT_REG_ARRAY_SIZE) ||
+          (ptr->data_address >= SLAVE_INPUT_REG_ARRAY_SIZE)){
         ptr->received_function_code = ptr->function_code;
         ptr->function_code = EXCEPTION_FLAGGED;
         ptr->exception_code = ILLEGAL_ADDRESS;
@@ -2893,7 +2899,7 @@ void SendResponse(MODBUS_MESSAGE * ptr) {
   unsigned int length_16_bytes;
   
   //BUFFERBYTE64 local_buffer;
-  unsigned char output_data[16];
+  unsigned char output_data[64];
   
   // clear input/output buffer first
   //uart1_input_buffer.write_location = 0;  
