@@ -2893,7 +2893,7 @@ void SendResponse(MODBUS_MESSAGE * ptr) {
   unsigned int length_16_bytes;
   
   //BUFFERBYTE64 local_buffer;
-  unsigned char output_data[64];
+  unsigned char output_data[16];
   
   // clear input/output buffer first
   //uart1_input_buffer.write_location = 0;  
