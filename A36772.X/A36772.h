@@ -301,6 +301,7 @@ typedef struct {
   unsigned int can_heater_voltage_set_point;    // This is the heater voltage set point set over the can interface (it is only used if can mode is selected)
 
   unsigned int discrete_commands_always;
+  unsigned int pot_references_always;
   unsigned int analog_references_always;
   unsigned int modbus_controls_enabled;
   

@@ -3,8 +3,8 @@
 
 //-----------------------Specific board selections---------------------
 
-#define __A36772_000
-//#define __A36772_600
+//#define __A36772_000
+#define __A36772_600
 //#define __A36772_700
 
 
@@ -39,7 +39,6 @@
 
 #ifdef __A36772_600
 #define __MODE_MODBUS_INTERFACE
-#define __MODE_DISCRETE_INTERFACE
 #define __OPTION_ENABLE_CAN
 #define REF_VTOP_SCALE_SELECTED                 .31250       // 1V = 20V above -100V Eg
 #define REF_VTOP_OFFSET_SELECTED                -6400

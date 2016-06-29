@@ -47,8 +47,6 @@ unsigned int GetModbusResetEnable(void);
 
 #ifdef __noModbusLibrary
 
-static unsigned char  ETMmodbus_put_index;
-static unsigned char  ETMmodbus_get_index;
 
 unsigned char  modbus_transmission_needed = 0;
 unsigned char  modbus_receiving_flag = 0;
@@ -829,6 +827,10 @@ void InitializeA36772(void) {
   global_data_A36772.modbus_controls_enabled = 1;
 #endif
   
+#ifdef __POT_REFERENCE
+  global_data_A36772.pot_references_always = 1;
+#endif
+  
 }
 
 
@@ -1267,9 +1269,9 @@ void DoA36772(void) {
     ETMAnalogScaleCalibrateADCReading(&global_data_A36772.pos_15v_mon);
     ETMAnalogScaleCalibrateADCReading(&global_data_A36772.neg_15v_mon);
 
-    //ETMCanSlaveSetDebugRegister(0xA, global_data_A36772.pot_htr.reading_scaled_and_calibrated);
-    //ETMCanSlaveSetDebugRegister(0xB, global_data_A36772.pot_vtop.reading_scaled_and_calibrated);
-    //ETMCanSlaveSetDebugRegister(0xC, global_data_A36772.pot_ek.reading_scaled_and_calibrated);
+    ETMCanSlaveSetDebugRegister(0xA, global_data_A36772.pot_htr.reading_scaled_and_calibrated);
+    ETMCanSlaveSetDebugRegister(0xB, global_data_A36772.pot_vtop.reading_scaled_and_calibrated);
+    ETMCanSlaveSetDebugRegister(0xC, global_data_A36772.pot_ek.reading_scaled_and_calibrated);
     //ETMCanSlaveSetDebugRegister(0xD, global_data_A36772.ref_htr.reading_scaled_and_calibrated);
     //ETMCanSlaveSetDebugRegister(0xE, global_data_A36772.ref_vtop.reading_scaled_and_calibrated);//
     //ETMCanSlaveSetDebugRegister(0xF, global_data_A36772.ref_ek.reading_scaled_and_calibrated);
@@ -1279,10 +1281,6 @@ void DoA36772(void) {
     ETMCanSlaveSetDebugRegister(0xD, global_data_A36772.heater_warm_up_time_remaining);
     ETMCanSlaveSetDebugRegister(0xE, global_data_A36772.heater_ramp_up_time);
     ETMCanSlaveSetDebugRegister(0xF, global_data_A36772.control_state);
-    
-    ETMCanSlaveSetDebugRegister(0xA, _FPGA_FIRMWARE_MINOR_REV_MISMATCH);
-//    ETMCanSlaveSetDebugRegister(0xB, fpga_bits.fpga_firmware_minor_rev);
-    ETMCanSlaveSetDebugRegister(0xC, _WARNING_REGISTER);
     
     
     slave_board_data.log_data[0] = global_data_A36772.input_gun_i_peak.reading_scaled_and_calibrated;
@@ -1320,14 +1318,14 @@ void DoA36772(void) {
 
     ETMCanSlaveSetDebugRegister(7, global_data_A36772.dac_write_failure_count);
 
-#ifdef __POT_REFERENCE
-    // The set points should be based on the pots
-    ETMAnalogSetOutput(&global_data_A36772.analog_output_high_voltage, global_data_A36772.pot_ek.reading_scaled_and_calibrated);
-    ETMAnalogSetOutput(&global_data_A36772.analog_output_top_voltage, global_data_A36772.pot_vtop.reading_scaled_and_calibrated);
-    global_data_A36772.heater_voltage_target                = global_data_A36772.pot_htr.reading_scaled_and_calibrated;
-    //global_data_A36772.analog_output_high_voltage.set_point = global_data_A36772.pot_ek.reading_scaled_and_calibrated;
-    //global_data_A36772.analog_output_top_voltage.set_point  = global_data_A36772.pot_vtop.reading_scaled_and_calibrated;
-#endif
+//#ifdef __POT_REFERENCE
+//    // The set points should be based on the pots
+//    ETMAnalogSetOutput(&global_data_A36772.analog_output_high_voltage, global_data_A36772.pot_ek.reading_scaled_and_calibrated);
+//    ETMAnalogSetOutput(&global_data_A36772.analog_output_top_voltage, global_data_A36772.pot_vtop.reading_scaled_and_calibrated);
+//    global_data_A36772.heater_voltage_target                = global_data_A36772.pot_htr.reading_scaled_and_calibrated;
+//    //global_data_A36772.analog_output_high_voltage.set_point = global_data_A36772.pot_ek.reading_scaled_and_calibrated;
+//    //global_data_A36772.analog_output_top_voltage.set_point  = global_data_A36772.pot_vtop.reading_scaled_and_calibrated;
+//#endif
 
 #ifdef __CAN_REFERENCE
     ETMAnalogSetOutput(&global_data_A36772.analog_output_high_voltage, global_data_A36772.can_high_voltage_set_point);
@@ -1337,14 +1335,19 @@ void DoA36772(void) {
     //global_data_A36772.analog_output_top_voltage.set_point  = global_data_A36772.can_pulse_top_set_point;
 #endif
 
-    if ((global_data_A36772.analog_references_always == 1) || (modbus_slave_bit_0x06 != 0)) {
+    if ((modbus_slave_bit_0x06 != 0) || (global_data_A36772.analog_references_always == 1)
+                                      || (global_data_A36772.pot_references_always == 1)) {
 
+      if (((modbus_slave_bit_0x06 != 0) && (modbus_slave_bit_0x07 != 0)) || (global_data_A36772.pot_references_always == 1)) {
+        ETMAnalogSetOutput(&global_data_A36772.analog_output_high_voltage, global_data_A36772.pot_ek.reading_scaled_and_calibrated);
+        ETMAnalogSetOutput(&global_data_A36772.analog_output_top_voltage, global_data_A36772.pot_vtop.reading_scaled_and_calibrated);
+        global_data_A36772.heater_voltage_target                = global_data_A36772.pot_htr.reading_scaled_and_calibrated;   
+      } else {
       // The set points should be based on the analog references
-      ETMAnalogSetOutput(&global_data_A36772.analog_output_high_voltage, global_data_A36772.ref_ek.reading_scaled_and_calibrated);
-      ETMAnalogSetOutput(&global_data_A36772.analog_output_top_voltage, global_data_A36772.ref_vtop.reading_scaled_and_calibrated);
-      global_data_A36772.heater_voltage_target                = global_data_A36772.ref_htr.reading_scaled_and_calibrated;    
-      //global_data_A36772.analog_output_high_voltage.set_point = global_data_A36772.ref_ek.reading_scaled_and_calibrated;
-      //global_data_A36772.analog_output_top_voltage.set_point  = global_data_A36772.ref_vtop.reading_scaled_and_calibrated;
+        ETMAnalogSetOutput(&global_data_A36772.analog_output_high_voltage, global_data_A36772.ref_ek.reading_scaled_and_calibrated);
+        ETMAnalogSetOutput(&global_data_A36772.analog_output_top_voltage, global_data_A36772.ref_vtop.reading_scaled_and_calibrated);
+        global_data_A36772.heater_voltage_target                = global_data_A36772.ref_htr.reading_scaled_and_calibrated;    
+      }
 
     } else if (global_data_A36772.modbus_controls_enabled) {   
 
@@ -2179,7 +2182,7 @@ void FPGAReadData(void) {
 //      _FPGA_CUSTOMER_HARDWARE_REV_MISMATCH = 0;
 //    }
     test = fpga_bits.fpga_firmware_minor_rev & 0x003F;
-    ETMCanSlaveSetDebugRegister(0xB, test);
+
     // Check the firmware minor rev (NOT LATCHED)
     if (fpga_bits.fpga_firmware_minor_rev != TARGET_FPGA_FIRMWARE_MINOR_REV) {
       ETMDigitalUpdateInput(&global_data_A36772.fpga_firmware_minor_rev_mismatch, 1);   
@@ -2574,9 +2577,6 @@ void ETMModbusInit(void) {
   uart1_input_buffer.read_location = 0;
   uart1_output_buffer.write_location = 0;
   uart1_output_buffer.read_location = 0;
-           
-  ETMmodbus_put_index = 0;
-  ETMmodbus_get_index = 0;
   
   U1MODE = MODBUS_U1MODE_VALUE;
   U1BRG = MODBUS_U1BRG_VALUE;
@@ -2603,6 +2603,7 @@ void ETMModbusInit(void) {
   modbus_slave_bit_0x04 = 0;
 //  modbus_slave_bit_0x05 = 0;
 //  modbus_slave_bit_0x06 = 0;
+//  modbus_slave_bit_0x07 = 0;
   
   U1MODEbits.UARTEN = 1;	// And turn the peripheral on
   
