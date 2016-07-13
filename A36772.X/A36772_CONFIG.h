@@ -40,12 +40,12 @@
 #ifdef __A36772_600
 #define __MODE_MODBUS_INTERFACE
 #define __OPTION_ENABLE_CAN
-#define REF_VTOP_SCALE_SELECTED                 .31250       // 1V = 20V above -100V Eg
-#define REF_VTOP_OFFSET_SELECTED                -6400
+#define REF_VTOP_SCALE_SELECTED                 .62500       // 1V = 40V above -100V Eg
+#define REF_VTOP_OFFSET_SELECTED                -3200
 #define REF_EK_SCALE_SELECTED                   .31250       // 1V = 2kV Ek 
 #define DAC_MON_EK_VOLTAGE_SCALE_SELECTED       2.6667       // 1V = 2kV Ek
-#define DAC_MON_TOP_VOLTAGE_SCALE_SELECTED      2.6667       // 1V = 20V above -100V Eg
-#define DAC_MON_TOP_VOLTAGE_OFFSET_SELECTED     2000
+#define DAC_MON_TOP_VOLTAGE_SCALE_SELECTED      1.3333       // 1V = 40V above -100V Eg
+#define DAC_MON_TOP_VOLTAGE_OFFSET_SELECTED     4000         //  ?
 #define BOARD_DASH_NUMBER                       600
 #ifdef  __A36772_700
 #error "Multiple boards selected"
