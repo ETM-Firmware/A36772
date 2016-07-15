@@ -45,7 +45,7 @@
 #define REF_EK_SCALE_SELECTED                   .31250       // 1V = 2kV Ek 
 #define DAC_MON_EK_VOLTAGE_SCALE_SELECTED       2.6667       // 1V = 2kV Ek
 #define DAC_MON_TOP_VOLTAGE_SCALE_SELECTED      1.3333       // 1V = 40V above -100V Eg
-#define DAC_MON_TOP_VOLTAGE_OFFSET_SELECTED     4000         //  ?
+#define DAC_MON_TOP_VOLTAGE_OFFSET_SELECTED     2000         //  ?
 #define BOARD_DASH_NUMBER                       600
 #ifdef  __A36772_700
 #error "Multiple boards selected"
@@ -101,7 +101,7 @@
 #endif
 #define HEATER_RAMP_TIME                 30000
 #define MAX_PROGRAM_HTR_VOLTAGE          7000           // 7.0 V
-#define MAX_RAMP_HTR_I                   1650           // 1.650 Amps
+#define MAX_RAMP_HTR_I                   1600           // 1.600 Amps
 #define HTR_OC_ABS                       1750           // 1.750 Amps
 //#define HTR_OV_ABS                       7000           // 7 V
 #define GUN_DRIVER_LOAD_TYPE             1
@@ -300,9 +300,10 @@
 #define DAC_TOP_VOLTAGE_FIXED_SCALE           1.5000
 #define DAC_TOP_VOLTAGE_FIXED_OFFSET          0
 //#define TOP_VOLTAGE_MAX_SET_POINT             26000                             // 180V
-#define TOP_VOLTAGE_MAX_SET_POINT             40000                             // 320V
-//#define TOP_VOLTAGE_MIN_SET_POINT             0                                 // -80V
-#define TOP_VOLTAGE_MIN_SET_POINT             4000                              // -40V
+//#define TOP_VOLTAGE_MAX_SET_POINT             40000                             // 320V
+#define TOP_VOLTAGE_MAX_SET_POINT             38000                             // 300V
+#define TOP_VOLTAGE_MIN_SET_POINT             0                                 // -80V
+//#define TOP_VOLTAGE_MIN_SET_POINT             4000                              // -40V
 
 
 #define DAC_HEATER_VOLTAGE_FIXED_SCALE        7.5188
