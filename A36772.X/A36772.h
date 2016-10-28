@@ -137,6 +137,10 @@
 #define PIN_CUSTOMER_BEAM_ENABLE                      _RD8
 #define ILL_PIN_CUSTOMER_BEAM_ENABLE_BEAM_ENABLED     0
 
+#define PIN_GRID_PULSE_INTERRUPT                      _RA12
+#define PIN_INTERLOCK_RELAY_CLOSED                    _RD4
+#define PIN_GRID_PULSE_INPUT_CAPTURE                  _RD12
+
 //------------------- GUN Driver Interface I/O ------------------------- //
 #define PIN_CS_DAC                                    _LATD13
 #define OLL_PIN_CS_DAC_SELECTED                       1
