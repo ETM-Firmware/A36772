@@ -1076,16 +1076,24 @@ void DoA36772(void) {
   
 #ifdef __MODBUS_CONTROLS
   if (modbus_slave_bit_0x02) {
-    global_data_A36772.request_hv_enable = 1;
-    _STATUS_CUSTOMER_HV_ON = 1;
+    _STATUS_CUSTOMER_HV_ON = 1;         
+    if (PIN_CUSTOMER_HV_ON == ILL_PIN_CUSTOMER_HV_ON_ENABLE_HV) {
+      global_data_A36772.request_hv_enable = 1;
+    } else {
+      global_data_A36772.request_hv_enable = 0;
+    }
   } else {
     global_data_A36772.request_hv_enable = 0;
     _STATUS_CUSTOMER_HV_ON = 0;
   }
 
   if (modbus_slave_bit_0x03) {
-    global_data_A36772.request_beam_enable = 1;
-    _STATUS_CUSTOMER_BEAM_ENABLE = 1;
+    _STATUS_CUSTOMER_BEAM_ENABLE = 1; 
+    if (PIN_CUSTOMER_BEAM_ENABLE == ILL_PIN_CUSTOMER_BEAM_ENABLE_BEAM_ENABLED) {
+      global_data_A36772.request_beam_enable = 1;
+    } else {
+      global_data_A36772.request_beam_enable = 0;
+    }
   } else {
     global_data_A36772.request_beam_enable = 0;
     _STATUS_CUSTOMER_BEAM_ENABLE = 0;
