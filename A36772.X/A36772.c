@@ -1051,6 +1051,7 @@ void DoA36772(void) {
   ETMModbusSlaveDoModbus();
 #endif
 
+
   // Deciding whether to use discrete commands or Modbus commands    
   if ((global_data_A36772.discrete_commands_always == 1) || (modbus_slave_bit_0x05 != 0)) {
 
@@ -1174,6 +1175,9 @@ void DoA36772(void) {
     ModbusTimer++;
 #endif
 
+#ifdef __A36772_100
+    modbus_slave_bit_0x07 = 0;
+#endif
     
     // Update to counter used to flash the LEDs at startup and time transmits to DACs
     if (global_data_A36772.power_supply_startup_remaining) {
@@ -1298,7 +1302,7 @@ void DoA36772(void) {
     slave_board_data.log_data[12] = global_data_A36772.input_bias_v_mon.reading_scaled_and_calibrated;
     slave_board_data.log_data[13] = global_data_A36772.control_state;
     slave_board_data.log_data[14] = global_data_A36772.adc_read_error_count;
-    slave_board_data.log_data[15] = GUN_DRIVER_LOAD_TYPE;
+    slave_board_data.log_data[15] = 0;          //GUN_DRIVER_LOAD_TYPE;
 
 #ifdef __MODE_MODBUS_INTERFACE
     modbus_slave_hold_reg_0x21 = global_data_A36772.input_htr_v_mon.reading_scaled_and_calibrated;
@@ -1363,7 +1367,8 @@ void DoA36772(void) {
           modbus_slave_invalid_data = 1;
       }
     
-      if (modbus_slave_hold_reg_0x11 > MAX_PROGRAM_HTR_VOLTAGE) {
+      if (modbus_slave_hold_reg_0x11 > 
+      ) {
           modbus_slave_invalid_data = 1;
       }
     }

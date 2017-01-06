@@ -165,7 +165,8 @@
 #define PIN_CPU_HV_ENABLE                            _LATD2
 #define PIN_CPU_BEAM_ENABLE                          _LATD1
 #define OLL_PIN_CPU_BEAM_ENABLE_BEAM_ENABLED         1
-#define OLL_PIN_CPU_HV_ENABLE_HV_ENABLED             1
+    // OLL_PIN_CPU_HV_ENABLE_HV_ENABLED defined in A36772_CONFIG.h file
+
 
 #define PIN_RS485_ENABLE                             _LATF4  // DPARKER THERE IS ERROR ON SCHEMATIC
 
