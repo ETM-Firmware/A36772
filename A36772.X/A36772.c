@@ -1367,8 +1367,7 @@ void DoA36772(void) {
           modbus_slave_invalid_data = 1;
       }
     
-      if (modbus_slave_hold_reg_0x11 > 
-      ) {
+      if (modbus_slave_hold_reg_0x11 > MAX_PROGRAM_HTR_VOLTAGE) {
           modbus_slave_invalid_data = 1;
       }
     }
