@@ -104,10 +104,10 @@
 #define DAC_MON_EK_VOLTAGE_SCALE_SELECTED       2.6667       // 1V = 2kV Ek
 #define DAC_MON_TOP_VOLTAGE_SCALE_SELECTED      1.0667       // 1V = 50V above -100V Eg
 #define DAC_MON_TOP_VOLTAGE_OFFSET_SELECTED     2000         //  ?
-#define HEATER_RAMP_TIME                        30000        //10min     <-change
+#define HEATER_RAMP_TIME                        60000        // 10min    
 #define MAX_PROGRAM_HTR_VOLTAGE                 8000         // 8.000 V
-#define MAX_RAMP_HTR_I                          1650         // 1.650 Amps  <-change
-#define HTR_OC_ABS                              1750         // 5.500 Amps  <-change
+#define MAX_RAMP_HTR_I                          5200         // 5.200 Amps  
+#define HTR_OC_ABS                              5500         // 5.500 Amps 
 #define HV_MAX_SET_BOARD_SPEC                   20000        // -20KV
 #define HV_MIN_SET_BOARD_SPEC                   0            // 0V
 #define TOP_MAX_SET_BOARD_SPEC                  40000        // 320V

@@ -1115,7 +1115,7 @@ void DoA36772(void) {
     // Run once every 10ms
     _T2IF = 0;
 
-
+    unsigned int timer_report;
 //    if (_SYNC_CONTROL_HIGH_SPEED_LOGGING) {
 //      spoof_counter++;
 //      if (spoof_counter >= 10) {
@@ -1304,6 +1304,14 @@ void DoA36772(void) {
     slave_board_data.log_data[14] = global_data_A36772.adc_read_error_count;
     slave_board_data.log_data[15] = 0;          //GUN_DRIVER_LOAD_TYPE;
 
+    if (global_data_A36772.control_state == STATE_HEATER_RAMP_UP) {
+      timer_report = (global_data_A36772.heater_ramp_up_time + HEATER_WARM_UP_TIME) / 100;
+    } else if (global_data_A36772.heater_warm_up_time_remaining > 100) {
+      timer_report = global_data_A36772.heater_warm_up_time_remaining / 100;
+    } else {
+      timer_report = 0;
+    }
+    
 #ifdef __MODE_MODBUS_INTERFACE
     modbus_slave_hold_reg_0x21 = global_data_A36772.input_htr_v_mon.reading_scaled_and_calibrated;
     modbus_slave_hold_reg_0x22 = global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated;
@@ -1312,7 +1320,7 @@ void DoA36772(void) {
     modbus_slave_hold_reg_0x25 = global_data_A36772.input_temperature_mon.reading_scaled_and_calibrated / 100;
     modbus_slave_hold_reg_0x26 = global_data_A36772.input_bias_v_mon.reading_scaled_and_calibrated / 10;
     modbus_slave_hold_reg_0x27 = global_data_A36772.input_gun_i_peak.reading_scaled_and_calibrated / 10;
-    modbus_slave_hold_reg_0x28 = global_data_A36772.heater_warm_up_time_remaining;
+    modbus_slave_hold_reg_0x28 = timer_report;                //global_data_A36772.heater_warm_up_time_remaining;
     
     modbus_slave_hold_reg_0x31 = global_data_A36772.state_message;
     modbus_slave_hold_reg_0x32 = _FAULT_REGISTER;
