@@ -31,6 +31,7 @@
 #define REF_VTOP_SCALE_SELECTED                 .62500       // 1V = 50V Eg
 #define REF_VTOP_OFFSET_SELECTED                0
 #define REF_EK_SCALE_SELECTED                   .33784       // 0.37V = -1kV Ek
+#define DAC_MON_HTR_CURRENT_SCALE_SELECTED      10.6667      // 1V = 500mA If
 #define DAC_MON_EK_VOLTAGE_SCALE_SELECTED       1.9733       // 0.37V = -1kV Ek
 #define DAC_MON_TOP_VOLTAGE_SCALE_SELECTED      1.0667       // 1V = 50V Eg
 #define DAC_MON_TOP_VOLTAGE_OFFSET_SELECTED     0
@@ -42,6 +43,8 @@
 #define HV_MIN_SET_BOARD_SPEC                   5000         // -5KV
 #define TOP_MAX_SET_BOARD_SPEC                  40000        // 320V
 #define TOP_MIN_SET_BOARD_SPEC                  4000         // -40V
+#define BIAS_OVER_VOLTAGE                       18000        // -180V
+#define BIAS_UNDER_VOLTAGE                      14000        // -140V
 #define BOARD_DASH_NUMBER                       000
 #ifdef  __A36772_600
 #error "Multiple boards selected"
@@ -64,6 +67,7 @@
 #define REF_VTOP_SCALE_SELECTED                 .62500       // 1V = 40V above -100V Eg
 #define REF_VTOP_OFFSET_SELECTED                -3200
 #define REF_EK_SCALE_SELECTED                   .31250       // 1V = 2kV Ek 
+#define DAC_MON_HTR_CURRENT_SCALE_SELECTED      10.6667      // 1V = 500mA If
 #define DAC_MON_EK_VOLTAGE_SCALE_SELECTED       2.6667       // 1V = 2kV Ek
 #define DAC_MON_TOP_VOLTAGE_SCALE_SELECTED      1.3333       // 1V = 40V above -100V Eg
 #define DAC_MON_TOP_VOLTAGE_OFFSET_SELECTED     2000         //  ?
@@ -75,6 +79,8 @@
 #define HV_MIN_SET_BOARD_SPEC                   5000         // -5KV
 #define TOP_MAX_SET_BOARD_SPEC                  38000        // 300V
 #define TOP_MIN_SET_BOARD_SPEC                  0            // -80V
+#define BIAS_OVER_VOLTAGE                       18000        // -180V
+#define BIAS_UNDER_VOLTAGE                      14000        // -140V
 #define BOARD_DASH_NUMBER                       600
 #ifdef  __A36772_700
 #error "Multiple boards selected"
@@ -93,19 +99,22 @@
 #define OLL_PIN_CPU_HV_ENABLE_HV_ENABLED        0
 #define REF_VTOP_SCALE_SELECTED                 .62500       // 1V = 40V above -100V Eg
 #define REF_VTOP_OFFSET_SELECTED                -3200
-#define REF_EK_SCALE_SELECTED                   .31250       // 1V = 2kV Ek 
+#define REF_EK_SCALE_SELECTED                   .31250       // 1V = 2kV Ek
+#define DAC_MON_HTR_CURRENT_SCALE_SELECTED      5.3333      // 1V = 1A If
 #define DAC_MON_EK_VOLTAGE_SCALE_SELECTED       2.6667       // 1V = 2kV Ek
 #define DAC_MON_TOP_VOLTAGE_SCALE_SELECTED      1.0667       // 1V = 50V above -100V Eg
 #define DAC_MON_TOP_VOLTAGE_OFFSET_SELECTED     2000         //  ?
-#define HEATER_RAMP_TIME                        30000
+#define HEATER_RAMP_TIME                        30000        //10min     <-change
 #define MAX_PROGRAM_HTR_VOLTAGE                 8000         // 8.000 V
-#define MAX_RAMP_HTR_I                          1600         // 1.600 Amps
-#define HTR_OC_ABS                              1750         // 5.500 Amps
+#define MAX_RAMP_HTR_I                          1650         // 1.650 Amps  <-change
+#define HTR_OC_ABS                              1750         // 5.500 Amps  <-change
 #define HV_MAX_SET_BOARD_SPEC                   20000        // -20KV
 #define HV_MIN_SET_BOARD_SPEC                   0            // 0V
 #define TOP_MAX_SET_BOARD_SPEC                  40000        // 320V
 #define TOP_MIN_SET_BOARD_SPEC                  0            // -80V
 #define BOARD_DASH_NUMBER                       100
+#define BIAS_OVER_VOLTAGE                       23000        // -230V
+#define BIAS_UNDER_VOLTAGE                      17000        // -170V
 #ifdef  __A36772_700
 #error "Multiple boards selected"
 #endif
@@ -121,6 +130,7 @@
 #define REF_VTOP_SCALE_SELECTED                 .62500       // 1V = 50V Eg
 #define REF_VTOP_OFFSET_SELECTED                0
 #define REF_EK_SCALE_SELECTED                   .33784       // 0.37V = -1kV Ek
+#define DAC_MON_HTR_CURRENT_SCALE_SELECTED      10.6667      // 1V = 500mA If
 #define DAC_MON_EK_VOLTAGE_SCALE_SELECTED       1.9733       // 0.37V = -1kV Ek
 #define DAC_MON_TOP_VOLTAGE_SCALE_SELECTED      1.0667       // 1V = 50V Eg
 #define DAC_MON_TOP_VOLTAGE_OFFSET_SELECTED     0
@@ -132,6 +142,8 @@
 #define HV_MIN_SET_BOARD_SPEC                   5000         // -5KV
 #define TOP_MAX_SET_BOARD_SPEC                  38000        // 300V
 #define TOP_MIN_SET_BOARD_SPEC                  0            // -80V
+#define BIAS_OVER_VOLTAGE                       18000        // -180V
+#define BIAS_UNDER_VOLTAGE                      14000        // -140V
 #define BOARD_DASH_NUMBER                       200
 #ifdef  __A36772_700
 #error "Multiple boards selected"
@@ -145,6 +157,7 @@
 #define REF_VTOP_SCALE_SELECTED                 .31250       // 1V = 20V above -100V Eg
 #define REF_VTOP_OFFSET_SELECTED                -6400
 #define REF_EK_SCALE_SELECTED                   .31250       // 1V = -2kV Ek
+#define DAC_MON_HTR_CURRENT_SCALE_SELECTED      10.6667      // 1V = 500mA If
 #define DAC_MON_EK_VOLTAGE_SCALE_SELECTED       2.6667       // 1V = -2kV Ek
 #define DAC_MON_TOP_VOLTAGE_SCALE_SELECTED      2.6667       // 1V = 20V above -100V Eg
 #define DAC_MON_TOP_VOLTAGE_OFFSET_SELECTED     2000
@@ -156,6 +169,8 @@
 #define HV_MIN_SET_BOARD_SPEC                   5000         // -5KV
 #define TOP_MAX_SET_BOARD_SPEC                  26000        // 180V
 #define TOP_MIN_SET_BOARD_SPEC                  0            // -80V
+#define BIAS_OVER_VOLTAGE                       18000        // -180V
+#define BIAS_UNDER_VOLTAGE                      14000        // -140V
 #define BOARD_DASH_NUMBER                       700
 #endif
 
@@ -372,8 +387,8 @@
 
 #define ADC_BIAS_V_MON_FIXED_SCALE            .34688
 #define ADC_BIAS_V_MON_FIXED_OFFSET           0
-#define ADC_BIAS_V_MON_OVER_LIMIT_ABSOLUTE    18000                             // -180V
-#define ADC_BIAS_V_MON_UNDER_LIMIT_ABSOLUTE   14000                             // -140V
+#define ADC_BIAS_V_MON_OVER_LIMIT_ABSOLUTE    BIAS_OVER_VOLTAGE
+#define ADC_BIAS_V_MON_UNDER_LIMIT_ABSOLUTE   BIAS_UNDER_VOLTAGE
 #define ADC_BIAS_V_MON_ABSOLUTE_TRIP_TIME     50                                // 500mS 
 
 
@@ -434,7 +449,7 @@
 #define DAC_MONITOR_HEATER_VOLTAGE_FIXED_SCALE    5.3333                        // 1V = -1V Ef
 #define DAC_MONITOR_HEATER_VOLTAGE_FIXED_OFFSET   0
 
-#define DAC_MONITOR_HEATER_CURRENT_FIXED_SCALE    10.6667                       // 1V = 500mA If
+#define DAC_MONITOR_HEATER_CURRENT_FIXED_SCALE    DAC_MON_HTR_CURRENT_SCALE_SELECTED
 #define DAC_MONITOR_HEATER_CURRENT_FIXED_OFFSET   0
 
 #define DAC_MONITOR_CATHODE_VOLTAGE_FIXED_SCALE   DAC_MON_EK_VOLTAGE_SCALE_SELECTED
