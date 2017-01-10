@@ -811,6 +811,14 @@ void InitializeA36772(void) {
   global_data_A36772.monitor_grid_voltage.enabled = 1;
   global_data_A36772.monitor_cathode_voltage.enabled = 1;
 
+#ifdef __A36772_200
+  global_data_A36772.monitor_heater_voltage.enabled = 0;
+  global_data_A36772.monitor_heater_current.enabled = 0;
+  global_data_A36772.monitor_grid_voltage.enabled = 0;
+  global_data_A36772.monitor_cathode_voltage.enabled = 0;
+#endif  
+  
+
   //Reset faults/warnings and inputs
   ResetAllFaultInfo();
   
@@ -1051,6 +1059,14 @@ void DoA36772(void) {
   ETMModbusSlaveDoModbus();
 #endif
 
+#ifdef __A36772_000
+  modbus_slave_bit_0x05 = 0;
+#endif
+
+#ifdef __A36772_200
+  modbus_slave_bit_0x05 = 0;
+#endif
+
 
   // Deciding whether to use discrete commands or Modbus commands    
   if ((global_data_A36772.discrete_commands_always == 1) || (modbus_slave_bit_0x05 != 0)) {
@@ -1178,6 +1194,15 @@ void DoA36772(void) {
 #ifdef __A36772_100
     modbus_slave_bit_0x07 = 0;
 #endif
+
+#ifdef __A36772_000
+  modbus_slave_bit_0x06 = 0;
+#endif
+
+#ifdef __A36772_200
+  modbus_slave_bit_0x06 = 0;
+#endif
+
     
     // Update to counter used to flash the LEDs at startup and time transmits to DACs
     if (global_data_A36772.power_supply_startup_remaining) {
