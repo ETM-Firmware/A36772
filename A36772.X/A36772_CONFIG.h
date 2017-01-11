@@ -4,10 +4,10 @@
 //-----------------------Specific board selections---------------------
 
 //#define __A36772_000
-//#define __A36772_600
+#define __A36772_600
 //#define __A36772_700
 //#define __A36772_100
-#define __A36772_200
+//#define __A36772_200
 
 
 
@@ -73,8 +73,8 @@
 #define DAC_MON_TOP_VOLTAGE_OFFSET_SELECTED     2000         //  ?
 #define HEATER_RAMP_TIME                        30000
 #define MAX_PROGRAM_HTR_VOLTAGE                 7000         // 7.0 V
-#define MAX_RAMP_HTR_I                          1600         // 1.600 Amps
-#define HTR_OC_ABS                              1750         // 1.750 Amps
+#define MAX_RAMP_HTR_I                          2000         // 2.000 Amps
+#define HTR_OC_ABS                              2200         // 2.200 Amps
 #define HV_MAX_SET_BOARD_SPEC                   20000        // -20KV
 #define HV_MIN_SET_BOARD_SPEC                   5000         // -5KV
 #define TOP_MAX_SET_BOARD_SPEC                  38000        // 300V

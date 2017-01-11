@@ -1794,6 +1794,18 @@ void SetStateMessage (unsigned int message) {
     message &= ~0x0200;
   } 
   
+  if (modbus_slave_bit_0x05 != 0) {
+    message |= 0x0400;
+  } else {
+    message &= ~0x0400;
+  } 
+  
+  if (modbus_slave_bit_0x06 != 0) {
+    message |= 0x0800;
+  } else {
+    message &= ~0x0800;
+  } 
+  
   global_data_A36772.state_message = message;
   
 }
