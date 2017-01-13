@@ -1072,7 +1072,25 @@ void DoA36772(void) {
     }
   
   } else if (global_data_A36772.modbus_controls_enabled) {
-      
+
+#ifdef __A36772_100   
+    if ((PIN_CUSTOMER_HV_ON == ILL_PIN_CUSTOMER_HV_ON_ENABLE_HV) && (modbus_slave_bit_0x02 != 0)) {
+      global_data_A36772.request_hv_enable = 1;
+      _STATUS_CUSTOMER_HV_ON = 1;
+    } else {
+      global_data_A36772.request_hv_enable = 0;
+      _STATUS_CUSTOMER_HV_ON = 0;
+    }
+
+    if ((PIN_CUSTOMER_BEAM_ENABLE == ILL_PIN_CUSTOMER_BEAM_ENABLE_BEAM_ENABLED) && (modbus_slave_bit_0x03 != 0)) {
+      global_data_A36772.request_beam_enable = 1;
+      _STATUS_CUSTOMER_BEAM_ENABLE = 1;
+    } else {
+      global_data_A36772.request_beam_enable = 0;
+      _STATUS_CUSTOMER_BEAM_ENABLE = 0;
+    }
+
+#else 
     if (modbus_slave_bit_0x02) {
       global_data_A36772.request_hv_enable = 1;
       _STATUS_CUSTOMER_HV_ON = 1;
@@ -1088,6 +1106,8 @@ void DoA36772(void) {
       global_data_A36772.request_beam_enable = 0;
       _STATUS_CUSTOMER_BEAM_ENABLE = 0;
     }
+    
+#endif   
   }
   
 #ifdef __CAN_CONTROLS
