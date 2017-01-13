@@ -63,6 +63,7 @@
 #ifdef __A36772_600
 #define __MODE_MODBUS_INTERFACE
 #define __OPTION_ENABLE_CAN
+#define OLL_PIN_CPU_HV_ENABLE_HV_ENABLED        1
 #define REF_VTOP_SCALE_SELECTED                 .62500       // 1V = 40V above -100V Eg
 #define REF_VTOP_OFFSET_SELECTED                -3200
 #define REF_EK_SCALE_SELECTED                   .31250       // 1V = 2kV Ek 
