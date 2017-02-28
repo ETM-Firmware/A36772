@@ -6,8 +6,9 @@
 //#define __A36772_000
 //#define __A36772_600
 //#define __A36772_700
-#define __A36772_100
+//#define __A36772_100
 //#define __A36772_200
+#define __A36772_300
 
 
 
@@ -17,7 +18,9 @@
 #ifndef __A36772_700
 #ifndef __A36772_100
 #ifndef __A36772_200
+#ifndef __A36772_300
 #error "No Specific Board Selected"
+#endif
 #endif
 #endif
 #endif
@@ -49,13 +52,16 @@
 #ifdef  __A36772_600
 #error "Multiple boards selected"
 #endif
-#ifdef  __A36772_700
-#error "Multiple boards selected"
-#endif
 #ifdef  __A36772_100
 #error "Multiple boards selected"
 #endif
 #ifdef  __A36772_200
+#error "Multiple boards selected"
+#endif
+#ifdef  __A36772_300
+#error "Multiple boards selected"
+#endif
+#ifdef  __A36772_700
 #error "Multiple boards selected"
 #endif
 #endif
@@ -82,13 +88,16 @@
 #define BIAS_OVER_VOLTAGE                       18000        // -180V
 #define BIAS_UNDER_VOLTAGE                      14000        // -140V
 #define BOARD_DASH_NUMBER                       600
-#ifdef  __A36772_700
-#error "Multiple boards selected"
-#endif
 #ifdef  __A36772_100
 #error "Multiple boards selected"
 #endif
 #ifdef  __A36772_200
+#error "Multiple boards selected"
+#endif
+#ifdef  __A36772_300
+#error "Multiple boards selected"
+#endif
+#ifdef  __A36772_700
 #error "Multiple boards selected"
 #endif
 #endif
@@ -115,10 +124,13 @@
 #define BOARD_DASH_NUMBER                       100
 #define BIAS_OVER_VOLTAGE                       23000        // -230V
 #define BIAS_UNDER_VOLTAGE                      17000        // -170V
-#ifdef  __A36772_700
+#ifdef  __A36772_200
 #error "Multiple boards selected"
 #endif
-#ifdef  __A36772_200
+#ifdef  __A36772_300
+#error "Multiple boards selected"
+#endif
+#ifdef  __A36772_700
 #error "Multiple boards selected"
 #endif
 #endif
@@ -145,6 +157,36 @@
 #define BIAS_OVER_VOLTAGE                       18000        // -180V
 #define BIAS_UNDER_VOLTAGE                      14000        // -140V
 #define BOARD_DASH_NUMBER                       200
+#ifdef  __A36772_300
+#error "Multiple boards selected"
+#endif
+#ifdef  __A36772_700
+#error "Multiple boards selected"
+#endif
+#endif
+
+#ifdef __A36772_300
+#define __MODE_MODBUS_INTERFACE
+#define __OPTION_ENABLE_CAN
+#define OLL_PIN_CPU_HV_ENABLE_HV_ENABLED        1
+#define REF_VTOP_SCALE_SELECTED                 .62500       // 1V = 50V Eg
+#define REF_VTOP_OFFSET_SELECTED                0
+#define REF_EK_SCALE_SELECTED                   .33784       // 0.37V = -1kV Ek
+#define DAC_MON_HTR_CURRENT_SCALE_SELECTED      10.6667      // 1V = 500mA If
+#define DAC_MON_EK_VOLTAGE_SCALE_SELECTED       1.9733       // 0.37V = -1kV Ek
+#define DAC_MON_TOP_VOLTAGE_SCALE_SELECTED      1.0667       // 1V = 50V Eg
+#define DAC_MON_TOP_VOLTAGE_OFFSET_SELECTED     0
+#define HEATER_RAMP_TIME                        30000
+#define MAX_PROGRAM_HTR_VOLTAGE                 8000         // 8.0 V
+#define MAX_RAMP_HTR_I                          2850         // 2.850 Amps
+#define HTR_OC_ABS                              3000         // 3.000 Amps
+#define HV_MAX_SET_BOARD_SPEC                   20000        // -20KV
+#define HV_MIN_SET_BOARD_SPEC                   5000         // -5KV
+#define TOP_MAX_SET_BOARD_SPEC                  28000        // 200V
+#define TOP_MIN_SET_BOARD_SPEC                  0            // -80V
+#define BIAS_OVER_VOLTAGE                       18000        // -180V
+#define BIAS_UNDER_VOLTAGE                      14000        // -140V
+#define BOARD_DASH_NUMBER                       300
 #ifdef  __A36772_700
 #error "Multiple boards selected"
 #endif
