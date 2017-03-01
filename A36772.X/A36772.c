@@ -1092,16 +1092,24 @@ void DoA36772(void) {
 
 #else 
     if (modbus_slave_bit_0x02) {
-      global_data_A36772.request_hv_enable = 1;
-      _STATUS_CUSTOMER_HV_ON = 1;
+      _STATUS_CUSTOMER_HV_ON = 1;         
+      if (PIN_CUSTOMER_HV_ON == ILL_PIN_CUSTOMER_HV_ON_ENABLE_HV) {
+        global_data_A36772.request_hv_enable = 1;
+      } else {
+        global_data_A36772.request_hv_enable = 0;
+      }
     } else {
       global_data_A36772.request_hv_enable = 0;
       _STATUS_CUSTOMER_HV_ON = 0;
     }
 
     if (modbus_slave_bit_0x03) {
-      global_data_A36772.request_beam_enable = 1;
-      _STATUS_CUSTOMER_BEAM_ENABLE = 1;
+      _STATUS_CUSTOMER_BEAM_ENABLE = 1; 
+      if (PIN_CUSTOMER_BEAM_ENABLE == ILL_PIN_CUSTOMER_BEAM_ENABLE_BEAM_ENABLED) {
+        global_data_A36772.request_beam_enable = 1;
+      } else {
+        global_data_A36772.request_beam_enable = 0;
+      }
     } else {
       global_data_A36772.request_beam_enable = 0;
       _STATUS_CUSTOMER_BEAM_ENABLE = 0;
@@ -1198,6 +1206,26 @@ void DoA36772(void) {
 #ifdef __A36772_100
     modbus_slave_bit_0x07 = 0;
 #endif
+
+#ifdef __A36772_000
+    modbus_slave_bit_0x05 = 0;
+    modbus_slave_bit_0x06 = 0;
+    modbus_slave_bit_0x07 = 0;
+#endif
+
+#ifdef __A36772_200
+    modbus_slave_bit_0x05 = 0;
+    modbus_slave_bit_0x06 = 0;
+    modbus_slave_bit_0x07 = 0;
+#endif
+
+#ifdef __A36772_300
+    modbus_slave_bit_0x05 = 0;
+    modbus_slave_bit_0x06 = 0;
+    modbus_slave_bit_0x07 = 0;
+#endif
+
+
     
     // Update to counter used to flash the LEDs at startup and time transmits to DACs
     if (global_data_A36772.power_supply_startup_remaining) {
@@ -1914,9 +1942,9 @@ void ADCConfigure(void) {
   PIN_CS_ADC  = OLL_PIN_CS_ADC_SELECTED;
   __delay32(DELAY_FPGA_CABLE_DELAY);
 
+  temp = SPICharInverted(MAX1230_RESET_BYTE);
   temp = SPICharInverted(MAX1230_SETUP_BYTE);
   temp = SPICharInverted(MAX1230_AVERAGE_BYTE);
-  temp = SPICharInverted(MAX1230_RESET_BYTE);
 
 
   PIN_CS_ADC  = !OLL_PIN_CS_ADC_SELECTED;
