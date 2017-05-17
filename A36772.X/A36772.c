@@ -524,6 +524,7 @@ void InitializeA36772(void) {
   SetupLTC265X(&U32_LTC2654, ETM_SPI_PORT_2, FCY_CLK, LTC265X_SPI_2_5_M_BIT, _PIN_RG15, _PIN_RC1);
 
   //Configure EEPROM
+  ETMEEPromUseExternal();
   ETMEEPromConfigureExternalDevice(EEPROM_SIZE_8K_BYTES, FCY_CLK, 400000, EEPROM_I2C_ADDRESS_0, 1);
 
   // ------------- Configure Internal ADC --------- //
@@ -1947,9 +1948,9 @@ void ADCConfigure(void) {
   PIN_CS_ADC  = OLL_PIN_CS_ADC_SELECTED;
   __delay32(DELAY_FPGA_CABLE_DELAY);
 
+  temp = SPICharInverted(MAX1230_RESET_BYTE);
   temp = SPICharInverted(MAX1230_SETUP_BYTE);
   temp = SPICharInverted(MAX1230_AVERAGE_BYTE);
-  temp = SPICharInverted(MAX1230_RESET_BYTE);
 
 
   PIN_CS_ADC  = !OLL_PIN_CS_ADC_SELECTED;
@@ -2039,6 +2040,7 @@ void UpdateADCResults(void) {
     global_data_A36772.adc_read_error_count++;
     global_data_A36772.adc_read_error_test++;
     global_data_A36772.adc_read_ok = 0;
+    ADCConfigure();
   } else {
     // The data passed the most basic test.  Load the values into RAM
     global_data_A36772.adc_read_ok = 1;
@@ -2522,12 +2524,12 @@ void __attribute__((interrupt, no_auto_psv)) _ADCInterrupt(void) {
 }
 
 
-void ETMAnalogClearFaultCounters(AnalogInput* ptr_analog_input) {
-  ptr_analog_input->absolute_under_counter = 0;
-  ptr_analog_input->absolute_over_counter = 0;
-  ptr_analog_input->over_trip_counter = 0;
-  ptr_analog_input->under_trip_counter = 0;
-}
+//void ETMAnalogClearFaultCounters(AnalogInput* ptr_analog_input) {
+//  ptr_analog_input->absolute_under_counter = 0;
+//  ptr_analog_input->absolute_over_counter = 0;
+//  ptr_analog_input->over_trip_counter = 0;
+//  ptr_analog_input->under_trip_counter = 0;
+//}
 
 
 //void ETMCanSpoofPulseSyncNextPulseLevel(void) {
