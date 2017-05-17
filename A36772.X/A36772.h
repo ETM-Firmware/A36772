@@ -138,7 +138,7 @@
 #define ILL_PIN_CUSTOMER_BEAM_ENABLE_BEAM_ENABLED     0
 
 #define PIN_GRID_PULSE_INTERRUPT                      _RA12
-#define PIN_INTERLOCK_RELAY_CLOSED                    _RD4
+#define PIN_INTERLOCK_RELAY_STATUS                    _RD4
 #define PIN_GRID_PULSE_INPUT_CAPTURE                  _RD12
 
 //------------------- GUN Driver Interface I/O ------------------------- //
@@ -382,6 +382,8 @@ typedef struct {
   TYPE_DIGITAL_INPUT adc_digital_grid_flt;
   AnalogInput  input_dac_monitor;
 
+  TYPE_DIGITAL_INPUT interlock_relay_closed;
+  
   // These are the anlog input from the PICs internal DAC
   AnalogInput  pot_htr;     // an3
   AnalogInput  pot_vtop;    // an4
@@ -416,11 +418,11 @@ extern TYPE_GLOBAL_DATA_A36772 global_data_A36772;
 #define _FAULT_ADC_TOP_V_MON_UNDER_RELATIVE            _FAULT_5 // CHECKED_DP
 #define _FAULT_ADC_BIAS_V_MON_OVER_ABSOLUTE            _FAULT_6 // CHECKED_DP 
 #define _FAULT_ADC_BIAS_V_MON_UNDER_ABSOLUTE           _FAULT_6 // CHECKED_DP
-#define _FAULT_CAN_COMMUNICATION                       _FAULT_7 // CHECKED_DP// Heater Fault
+//#define _FAULT_CAN_COMMUNICATION                       _FAULT_7 // CHECKED_DP// Heater Fault
 #define _FAULT_SPI_COMMUNICATION                       _FAULT_8
 #define _FAULT_ADC_DIGITAL_ARC                         _FAULT_9  // CHECKED_DP// This requires HV OFF
 #define _FAULT_ADC_DIGITAL_OVER_TEMP                   _FAULT_A  // CHECKED_DP// This requires a FPGA Reset (Goto Heater Off State)
-//#define _FAULT_CONVERTER_LOGIC_ADC_READ_FAILURE        _FAULT_B // CHECKED_DP// Heater Fault
+#define _FAULT_CONVERTER_LOGIC_ADC_READ_FAILURE        _FAULT_B // CHECKED_DP// Heater Fault
 #define _FAULT_ADC_DIGITAL_GRID                        _FAULT_C  // CHECKED_DP// This requires a FPGA Reset (Goto Heater Off State)
 #define _FAULT_HEATER_VOLTAGE_CURRENT_LIMITED          _FAULT_D  // CHECKED_DP// Heater Fault
 #define _FAULT_HEATER_RAMP_TIMEOUT                     _FAULT_E  // CHECKED_DP// Heater Fault
@@ -431,7 +433,7 @@ extern TYPE_GLOBAL_DATA_A36772 global_data_A36772;
 #define _STATUS_CUSTOMER_BEAM_ENABLE                   _WARNING_1
 #define _STATUS_ADC_DIGITAL_HEATER_NOT_READY           _WARNING_2
 #define _STATUS_DAC_WRITE_FAILURE                      _WARNING_3
-//#define _STATUS_INTERLOCK_INHIBITING_HV                _WARNING_4
+#define _STATUS_INTERLOCK_INHIBITING_HV                _WARNING_4
 //#define _STATUS_HEATER_AT_OPERATING_CURRENT            _WARNING_5
 //#define _FPGA_CUSTOMER_HARDWARE_REV_MISMATCH           _WARNING_6
 #define _FPGA_FIRMWARE_MINOR_REV_MISMATCH              _WARNING_6

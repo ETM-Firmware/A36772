@@ -7,7 +7,8 @@
 //#define __A36772_600
 //#define __A36772_700
 //#define __A36772_100
-#define __A36772_200
+#define __A36772_150
+//#define __A36772_200
 
 
 
@@ -16,8 +17,10 @@
 #ifndef __A36772_600
 #ifndef __A36772_700
 #ifndef __A36772_100
+#ifndef __A36772_150
 #ifndef __A36772_200
 #error "No Specific Board Selected"
+#endif
 #endif
 #endif
 #endif
@@ -55,6 +58,9 @@
 #ifdef  __A36772_100
 #error "Multiple boards selected"
 #endif
+#ifdef  __A36772_150
+#error "Multiple boards selected"
+#endif
 #ifdef  __A36772_200
 #error "Multiple boards selected"
 #endif
@@ -88,6 +94,9 @@
 #ifdef  __A36772_100
 #error "Multiple boards selected"
 #endif
+#ifdef  __A36772_150
+#error "Multiple boards selected"
+#endif
 #ifdef  __A36772_200
 #error "Multiple boards selected"
 #endif
@@ -115,6 +124,39 @@
 #define BOARD_DASH_NUMBER                       100
 #define BIAS_OVER_VOLTAGE                       23000        // -230V
 #define BIAS_UNDER_VOLTAGE                      17000        // -170V
+#ifdef  __A36772_700
+#error "Multiple boards selected"
+#endif
+#ifdef  __A36772_150
+#error "Multiple boards selected"
+#endif
+#ifdef  __A36772_200
+#error "Multiple boards selected"
+#endif
+#endif
+
+#ifdef __A36772_150
+#define __MODE_MODBUS_INTERFACE
+#define __OPTION_ENABLE_CAN
+#define OLL_PIN_CPU_HV_ENABLE_HV_ENABLED        1
+#define REF_VTOP_SCALE_SELECTED                 .62500       // 1V = 50V Eg
+#define REF_VTOP_OFFSET_SELECTED                0
+#define REF_EK_SCALE_SELECTED                   .33784       // 0.37V = -1kV Ek
+#define DAC_MON_HTR_CURRENT_SCALE_SELECTED      10.6667      // 1V = 500mA If
+#define DAC_MON_EK_VOLTAGE_SCALE_SELECTED       1.9733       // 0.37V = -1kV Ek
+#define DAC_MON_TOP_VOLTAGE_SCALE_SELECTED      1.0667       // 1V = 50V Eg
+#define DAC_MON_TOP_VOLTAGE_OFFSET_SELECTED     0
+#define HEATER_RAMP_TIME                        30000
+#define MAX_PROGRAM_HTR_VOLTAGE                 7000         // 7.0 V
+#define MAX_RAMP_HTR_I                          1900         // 1.900 Amps
+#define HTR_OC_ABS                              2400         // 2.400 Amps
+#define HV_MAX_SET_BOARD_SPEC                   15000        // -15KV    -13kV needed
+#define HV_MIN_SET_BOARD_SPEC                   5000         // -5kV     -10kV needed
+#define TOP_MAX_SET_BOARD_SPEC                  22000        // 140V     +50V needed
+#define TOP_MIN_SET_BOARD_SPEC                  0            // -80V     -30V needed
+#define BIAS_OVER_VOLTAGE                       18000        // -180V
+#define BIAS_UNDER_VOLTAGE                      14000        // -140V
+#define BOARD_DASH_NUMBER                       150
 #ifdef  __A36772_700
 #error "Multiple boards selected"
 #endif

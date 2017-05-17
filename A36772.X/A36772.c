@@ -209,7 +209,11 @@ void DoStateMachine(void) {
         global_data_A36772.control_state = STATE_HEATER_WARM_UP;
       }
       if (CheckHeaterFault()) {
-        global_data_A36772.control_state = STATE_FAULT_WARMUP_HEATER_OFF;
+        if (global_data_A36772.heater_start_up_attempts >= MAX_HEATER_START_UP_ATTEMPTS) {
+          global_data_A36772.control_state = STATE_FAULT_HEATER_FAILURE;
+        } else{
+          global_data_A36772.control_state = STATE_FAULT_WARMUP_HEATER_OFF;
+        }
       }
     }
     break;
@@ -238,7 +242,11 @@ void DoStateMachine(void) {
         global_data_A36772.control_state = STATE_HEATER_WARM_UP_DONE;
       }
       if (CheckHeaterFault()) {
-        global_data_A36772.control_state = STATE_FAULT_WARMUP_HEATER_OFF;
+        if (global_data_A36772.heater_start_up_attempts >= MAX_HEATER_START_UP_ATTEMPTS) {
+          global_data_A36772.control_state = STATE_FAULT_HEATER_FAILURE;
+        } else{
+          global_data_A36772.control_state = STATE_FAULT_WARMUP_HEATER_OFF;
+        }
       }
     }
     break;
@@ -256,7 +264,7 @@ void DoStateMachine(void) {
         global_data_A36772.control_state = STATE_POWER_SUPPLY_RAMP_UP;
       }
       if (CheckHeaterFault()) {
-        global_data_A36772.control_state = STATE_FAULT_WARMUP_HEATER_OFF;
+        global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
       }
     }
     break;
@@ -434,9 +442,9 @@ void DoStateMachine(void) {
       if (global_data_A36772.fault_restart_remaining == 0) {
         global_data_A36772.control_state = STATE_WAIT_FOR_CONFIG;
       }
-      if (global_data_A36772.heater_start_up_attempts > MAX_HEATER_START_UP_ATTEMPTS) {
-        global_data_A36772.control_state = STATE_FAULT_HEATER_FAILURE;
-      }
+//      if (global_data_A36772.heater_start_up_attempts > MAX_HEATER_START_UP_ATTEMPTS) {
+//        global_data_A36772.control_state = STATE_FAULT_HEATER_FAILURE;
+//      }
     }
     break;
 
@@ -951,6 +959,8 @@ void ResetAllFaultInfo(void) {
   ETMDigitalInitializeInput(&global_data_A36772.adc_digital_over_temp_flt                  , 1, 30);
   ETMDigitalInitializeInput(&global_data_A36772.adc_digital_pulse_width_duty_flt           , 1, 30);
   ETMDigitalInitializeInput(&global_data_A36772.adc_digital_grid_flt                       , 1, 30);
+  
+  ETMDigitalInitializeInput(&global_data_A36772.interlock_relay_closed                     , 0, 4);
 
   // Reset all the Analog input fault counters
   ETMAnalogClearFaultCounters(&global_data_A36772.input_adc_temperature);
@@ -1012,6 +1022,7 @@ unsigned int CheckFault(void) {
   fault |= _FAULT_ADC_BIAS_V_MON_OVER_ABSOLUTE;
   fault |= _FAULT_ADC_BIAS_V_MON_UNDER_ABSOLUTE;
   fault |= _FAULT_ADC_DIGITAL_ARC;
+  fault|=_STATUS_INTERLOCK_INHIBITING_HV;
   if (fault) {
     return 1;
   } else {
@@ -1024,6 +1035,7 @@ unsigned int CheckPreTopFault(void) {
   fault  = _FAULT_ADC_HV_V_MON_OVER_RELATIVE;
   fault |= _FAULT_ADC_HV_V_MON_UNDER_RELATIVE;
   fault |= _FAULT_ADC_DIGITAL_ARC;
+  fault |= _STATUS_INTERLOCK_INHIBITING_HV;
   if (fault) {
     return 1;
   } else {
@@ -1037,6 +1049,7 @@ unsigned int CheckPreHVFault(void) {
   unsigned int fault = 0;
   fault  = _FAULT_ADC_HV_V_MON_OVER_RELATIVE;
   fault |= _FAULT_ADC_DIGITAL_ARC;
+  fault |= _STATUS_INTERLOCK_INHIBITING_HV;
   if (fault) {
     return 1;
   } else {
@@ -1058,12 +1071,19 @@ void DoA36772(void) {
 #ifdef __MODE_MODBUS_INTERFACE
   ETMModbusSlaveDoModbus();
 #endif
+  
+
+  ETMDigitalUpdateInput(&global_data_A36772.interlock_relay_closed, PIN_INTERLOCK_RELAY_STATUS);
 
 #ifdef __A36772_000
   modbus_slave_bit_0x05 = 0;
 #endif
 
 #ifdef __A36772_200
+  modbus_slave_bit_0x05 = 0;
+#endif
+  
+#ifdef __A36772_150
   modbus_slave_bit_0x05 = 0;
 #endif
 
@@ -1196,11 +1216,18 @@ void DoA36772(void) {
 #endif
 
 #ifdef __A36772_000
-  modbus_slave_bit_0x06 = 0;
+    modbus_slave_bit_0x06 = 0;
+    modbus_slave_bit_0x07 = 0;
 #endif
 
 #ifdef __A36772_200
-  modbus_slave_bit_0x06 = 0;
+    modbus_slave_bit_0x06 = 0;
+    modbus_slave_bit_0x07 = 0;
+#endif
+
+#ifdef __A36772_300
+    modbus_slave_bit_0x06 = 0;
+    modbus_slave_bit_0x07 = 0;
 #endif
 
     
@@ -1699,14 +1726,22 @@ void UpdateFaults(void) {
     } else if (global_data_A36772.reset_active) {
       _FAULT_SPI_COMMUNICATION = 0;
     }  
-  } 
+  }
 
-//  if (global_data_A36772.adc_read_error_test > MAX_CONVERTER_LOGIC_ADC_READ_ERRORS) {
-//    global_data_A36772.adc_read_error_test = MAX_CONVERTER_LOGIC_ADC_READ_ERRORS;
-//    _FAULT_CONVERTER_LOGIC_ADC_READ_FAILURE = 1; 
-//  } else if (global_data_A36772.reset_active) {
-//    _FAULT_CONVERTER_LOGIC_ADC_READ_FAILURE = 0;
-//  }
+  if (global_data_A36772.control_state >= STATE_POWER_SUPPLY_RAMP_UP) {
+    if (global_data_A36772.interlock_relay_closed.filtered_reading == 0) {
+      _STATUS_INTERLOCK_INHIBITING_HV = 1;
+    }
+  } else if (global_data_A36772.reset_active) {
+    _STATUS_INTERLOCK_INHIBITING_HV = 0;
+  }  
+
+  if (global_data_A36772.adc_read_error_test > MAX_CONVERTER_LOGIC_ADC_READ_ERRORS) {
+    global_data_A36772.adc_read_error_test = MAX_CONVERTER_LOGIC_ADC_READ_ERRORS;
+    _FAULT_CONVERTER_LOGIC_ADC_READ_FAILURE = 1; 
+  } else if (global_data_A36772.reset_active) {
+    _FAULT_CONVERTER_LOGIC_ADC_READ_FAILURE = 0;
+  }
   
   if ((global_data_A36772.heater_ramp_up_time == 0) && (global_data_A36772.control_state == STATE_HEATER_RAMP_UP)) {
     _FAULT_HEATER_RAMP_TIMEOUT = 1;
@@ -2339,7 +2374,7 @@ void FPGAReadData(void) {
     
     // FPGA DIPSWITCH 1 ON (NOT LATCHED)
     ETMDigitalUpdateInput(&global_data_A36772.fpga_dipswitch_1_on, fpga_bits.dipswitch_1_on);
-    if (&global_data_A36772.fpga_dipswitch_1_on.filtered_reading) {
+    if (global_data_A36772.fpga_dipswitch_1_on.filtered_reading) {
       _FPGA_DIPSWITCH_1_ON = 1;
     } else {
       _FPGA_DIPSWITCH_1_ON = 0;
@@ -2347,7 +2382,7 @@ void FPGAReadData(void) {
 
     // Check test mode toggle switch (NOT LATCHED)
     ETMDigitalUpdateInput(&global_data_A36772.fpga_test_mode_toggle_switch_set_to_test, fpga_bits.test_mode_toggle_switch_set_to_test);
-    if (&global_data_A36772.fpga_test_mode_toggle_switch_set_to_test.filtered_reading) {
+    if (global_data_A36772.fpga_test_mode_toggle_switch_set_to_test.filtered_reading) {
       _FPGA_TEST_MODE_TOGGLE_SWITCH_TEST_MODE = 1;
     } else {
       _FPGA_TEST_MODE_TOGGLE_SWITCH_TEST_MODE = 0;
