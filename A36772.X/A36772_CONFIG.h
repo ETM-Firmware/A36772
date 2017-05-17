@@ -148,7 +148,7 @@
 #define DAC_MON_TOP_VOLTAGE_OFFSET_SELECTED     0
 #define HEATER_RAMP_TIME                        30000
 #define MAX_PROGRAM_HTR_VOLTAGE                 7000         // 7.0 V
-#define MAX_RAMP_HTR_I                          1900         // 1.900 Amps
+#define MAX_RAMP_HTR_I                          1650  //1900         // 1.900 Amps
 #define HTR_OC_ABS                              2400         // 2.400 Amps
 #define HV_MAX_SET_BOARD_SPEC                   15000        // -15KV    -13kV needed
 #define HV_MIN_SET_BOARD_SPEC                   5000         // -5kV     -10kV needed
