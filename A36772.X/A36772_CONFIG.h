@@ -35,7 +35,7 @@
 #define DAC_MON_EK_VOLTAGE_SCALE_SELECTED       1.9733       // 0.37V = -1kV Ek
 #define DAC_MON_TOP_VOLTAGE_SCALE_SELECTED      1.0667       // 1V = 50V Eg
 #define DAC_MON_TOP_VOLTAGE_OFFSET_SELECTED     0
-#define HEATER_RAMP_TIME                        30000
+#define HEATER_RAMP_TIME                        30000        // 5 min
 #define MAX_PROGRAM_HTR_VOLTAGE                 7000         // 7.0 V
 #define MAX_RAMP_HTR_I                          1650         // 1.600 Amps
 #define HTR_OC_ABS                              1750         // 1.750 Amps
@@ -71,7 +71,7 @@
 #define DAC_MON_EK_VOLTAGE_SCALE_SELECTED       2.6667       // 1V = 2kV Ek
 #define DAC_MON_TOP_VOLTAGE_SCALE_SELECTED      1.3333       // 1V = 40V above -100V Eg
 #define DAC_MON_TOP_VOLTAGE_OFFSET_SELECTED     2000         //  ?
-#define HEATER_RAMP_TIME                        30000
+#define HEATER_RAMP_TIME                        30000        // 5 min
 #define MAX_PROGRAM_HTR_VOLTAGE                 7000         // 7.0 V
 #define MAX_RAMP_HTR_I                          1600         // 1.600 Amps
 #define HTR_OC_ABS                              1750         // 1.750 Amps
@@ -134,7 +134,7 @@
 #define DAC_MON_EK_VOLTAGE_SCALE_SELECTED       1.9733       // 0.37V = -1kV Ek
 #define DAC_MON_TOP_VOLTAGE_SCALE_SELECTED      1.0667       // 1V = 50V Eg
 #define DAC_MON_TOP_VOLTAGE_OFFSET_SELECTED     0
-#define HEATER_RAMP_TIME                        30000
+#define HEATER_RAMP_TIME                        30000        // 5 min
 #define MAX_PROGRAM_HTR_VOLTAGE                 7000         // 7.0 V
 #define MAX_RAMP_HTR_I                          1600         // 1.600 Amps
 #define HTR_OC_ABS                              1750         // 1.750 Amps
@@ -161,7 +161,7 @@
 #define DAC_MON_EK_VOLTAGE_SCALE_SELECTED       2.6667       // 1V = -2kV Ek
 #define DAC_MON_TOP_VOLTAGE_SCALE_SELECTED      2.6667       // 1V = 20V above -100V Eg
 #define DAC_MON_TOP_VOLTAGE_OFFSET_SELECTED     2000
-#define HEATER_RAMP_TIME                        30000
+#define HEATER_RAMP_TIME                        30000        // 5 min
 #define MAX_PROGRAM_HTR_VOLTAGE                 7000         // 7.0 V
 #define MAX_RAMP_HTR_I                          1650         // 1.650 Amps
 #define HTR_OC_ABS                              1750         // 1.750 Amps
