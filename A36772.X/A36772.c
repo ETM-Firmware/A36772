@@ -158,10 +158,30 @@ void DoStateMachine(void) {
 
     
   case STATE_START_UP:
-    InitializeA36772();
-    DisableBeam();
-    DisableHighVoltage();
-    DisableHeater();
+//    InitializeA36772();
+    PIN_CS_DAC = !OLL_PIN_CS_DAC_SELECTED;
+    PIN_CS_ADC = !OLL_PIN_CS_ADC_SELECTED;
+    PIN_CS_FPGA = !OLL_PIN_CS_FPGA_SELECTED;
+	  
+ 
+  // Initialize all I/O Registers
+    TRISA = A36772_TRISA_VALUE;
+    TRISB = A36772_TRISB_VALUE;
+    TRISC = A36772_TRISC_VALUE;
+    TRISD = A36772_TRISD_VALUE;
+    TRISF = A36772_TRISF_VALUE;
+    TRISG = A36772_TRISG_VALUE;
+    
+     // Initialize TMR2
+    PR2   = A36772_PR2_VALUE;
+    TMR2  = 0;
+    _T2IF = 0;
+  //  _T2IP = 5;
+    _T2IP = 2;
+    T2CON = A36772_T2CON_VALUE;
+//    DisableBeam();
+//    DisableHighVoltage();
+//    DisableHeater();
     _CONTROL_NOT_CONFIGURED = 1;
     _CONTROL_NOT_READY = 1;
     global_data_A36772.heater_start_up_attempts = 0;
@@ -174,28 +194,30 @@ void DoStateMachine(void) {
     break;
 
   case STATE_WAIT_FOR_CONFIG:
-    DisableBeam();
-    DisableHighVoltage();
-    DisableHeater(); 
-    global_data_A36772.current_state_msg = STATE_MESSAGE_START_UP;
-    global_data_A36772.watchdog_counter = 0;
-    PIN_CS_DAC = OLL_PIN_CS_DAC_SELECTED;                    
-    PIN_CS_ADC = OLL_PIN_CS_ADC_SELECTED;              
-    PIN_CS_FPGA = OLL_PIN_CS_FPGA_SELECTED;
-    PIN_SPI1_CLK =  OLL_PIN_CS_FPGA_SELECTED;
-    PIN_SPI1_DO  =  OLL_PIN_CS_FPGA_SELECTED;
+ //   DisableBeam();
+ //   DisableHighVoltage();
+ //   DisableHeater(); 
+ //   global_data_A36772.current_state_msg = STATE_MESSAGE_START_UP;
+ //   global_data_A36772.watchdog_counter = 0;
+
     while (global_data_A36772.control_state == STATE_WAIT_FOR_CONFIG) {
       if (_T2IF) {
     // Run once every 10ms
         _T2IF = 0;
-        global_data_A36772.run_time_counter++;
-      }  
-//      DoA36772();
-      DoStartupLEDs();
-      if ((global_data_A36772.run_time_counter >= LED_STARTUP_FLASH_TIME) && (_CONTROL_NOT_CONFIGURED == 0)) {
-       // global_data_A36772.control_state = STATE_RESET_FPGA;
-        global_data_A36772.run_time_counter = 0;
+        PIN_CS_DAC = OLL_PIN_CS_DAC_SELECTED;                    
+        PIN_CS_ADC = OLL_PIN_CS_ADC_SELECTED;              
+        PIN_CS_FPGA = OLL_PIN_CS_FPGA_SELECTED;
+        PIN_SPI1_CLK =  OLL_PIN_CS_FPGA_SELECTED;
+        PIN_SPI1_DO  =  OLL_PIN_CS_FPGA_SELECTED;
+//        global_data_A36772.run_time_counter++;
       }
+      Nop();
+//      DoA36772();
+ //     DoStartupLEDs();
+  //    if ((global_data_A36772.run_time_counter >= LED_STARTUP_FLASH_TIME) && (_CONTROL_NOT_CONFIGURED == 0)) {
+       // global_data_A36772.control_state = STATE_RESET_FPGA;
+  //      global_data_A36772.run_time_counter = 0;
+  //    }
     }
     break;
     
