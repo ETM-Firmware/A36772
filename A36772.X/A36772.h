@@ -105,7 +105,7 @@
 #define A36772_TRISB_VALUE 0b1110000011111011 
 #define A36772_TRISC_VALUE 0b0000000000000010 
 #define A36772_TRISD_VALUE 0b0001000100010000 
-#define A36772_TRISF_VALUE 0b0000000111001111 
+#define A36772_TRISF_VALUE 0b0000000010001111 
 #define A36772_TRISG_VALUE 0b1100000111001111 
 
 
@@ -150,6 +150,10 @@
 
 #define PIN_CS_FPGA                                  _LATD15
 #define OLL_PIN_CS_FPGA_SELECTED                     1
+
+#define PIN_SPI1_CLK                                 _LATF6
+#define PIN_SPI1_DO                                  _LATF8
+
 
 
 

@@ -179,11 +179,22 @@ void DoStateMachine(void) {
     DisableHeater(); 
     global_data_A36772.current_state_msg = STATE_MESSAGE_START_UP;
     global_data_A36772.watchdog_counter = 0;
+    PIN_CS_DAC = OLL_PIN_CS_DAC_SELECTED;                    
+    PIN_CS_ADC = OLL_PIN_CS_ADC_SELECTED;              
+    PIN_CS_FPGA = OLL_PIN_CS_FPGA_SELECTED;
+    PIN_SPI1_CLK =  OLL_PIN_CS_FPGA_SELECTED;
+    PIN_SPI1_DO  =  OLL_PIN_CS_FPGA_SELECTED;
     while (global_data_A36772.control_state == STATE_WAIT_FOR_CONFIG) {
-      DoA36772();
+      if (_T2IF) {
+    // Run once every 10ms
+        _T2IF = 0;
+        global_data_A36772.run_time_counter++;
+      }  
+//      DoA36772();
       DoStartupLEDs();
       if ((global_data_A36772.run_time_counter >= LED_STARTUP_FLASH_TIME) && (_CONTROL_NOT_CONFIGURED == 0)) {
-        global_data_A36772.control_state = STATE_RESET_FPGA;
+       // global_data_A36772.control_state = STATE_RESET_FPGA;
+        global_data_A36772.run_time_counter = 0;
       }
     }
     break;
