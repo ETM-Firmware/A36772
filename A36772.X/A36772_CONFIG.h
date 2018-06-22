@@ -64,9 +64,9 @@
 #define __MODE_MODBUS_INTERFACE
 #define __OPTION_ENABLE_CAN
 #define OLL_PIN_CPU_HV_ENABLE_HV_ENABLED        1
-#define REF_VTOP_SCALE_SELECTED                 .62500       // 1V = 40V above -100V Eg
-#define REF_VTOP_OFFSET_SELECTED                -3200
-#define REF_EK_SCALE_SELECTED                   .31250       // 1V = 2kV Ek 
+#define REF_VTOP_SCALE_SELECTED                 .77495 //.62500       // 1V = 40V above -100V Eg
+#define REF_VTOP_OFFSET_SELECTED                -2581 //-3200
+#define REF_EK_SCALE_SELECTED                   .38748 //.31250       // 1V = 2kV Ek 
 #define DAC_MON_HTR_CURRENT_SCALE_SELECTED      10.6667      // 1V = 500mA If
 #define DAC_MON_EK_VOLTAGE_SCALE_SELECTED       2.6667       // 1V = 2kV Ek
 #define DAC_MON_TOP_VOLTAGE_SCALE_SELECTED      1.3333       // 1V = 40V above -100V Eg
@@ -75,7 +75,7 @@
 #define MAX_PROGRAM_HTR_VOLTAGE                 8000         // 8.0 V
 #define MAX_RAMP_HTR_I                          4000         // 4.000 Amps
 #define HTR_OC_ABS                              4200         // 4.200 Amps
-#define HV_MAX_SET_BOARD_SPEC                   20000        // -20KV
+#define HV_MAX_SET_BOARD_SPEC                   20000        // -20KV.
 #define HV_MIN_SET_BOARD_SPEC                   5000         // -5KV
 #define TOP_MAX_SET_BOARD_SPEC                  38000        // 300V
 #define TOP_MIN_SET_BOARD_SPEC                  0            // -80V
@@ -434,7 +434,7 @@
 #define POT_EK_FIXED_SCALE                    .42230
 #define POT_EK_FIXED_OFFSET                   0
 
-#define REF_HTR_FIXED_SCALE                   .15625                            // 1V = -1V Ef
+#define REF_HTR_FIXED_SCALE                   .19374 //.15625                            // 1V = -1V Ef
 #define REF_HTR_FIXED_OFFSET                  0
 
 #define REF_VTOP_FIXED_SCALE                  REF_VTOP_SCALE_SELECTED
