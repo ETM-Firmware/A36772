@@ -296,6 +296,8 @@ typedef struct {
   unsigned int fault_holdoff_state;             // This is whether to hold off current limit fault during htr warmup period
   unsigned int fault_holdoff_count;             // This is a counter for the current limit fault holdoff
   
+  volatile unsigned int modbus_fw_rev;
+  
   volatile unsigned char control_config;        // This indicates when all set values from the CAN interface have been received
 
   unsigned int state_message;                   // This is a state message for the modbus module

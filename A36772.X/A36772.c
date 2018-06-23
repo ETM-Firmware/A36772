@@ -533,6 +533,9 @@ void InitializeA36772(void) {
   _ADON = 1;
   
 #ifdef __MODE_MODBUS_INTERFACE
+  global_data_A36772.modbus_fw_rev = (0x000F & FIRMWARE_MINOR_REV);
+  global_data_A36772.modbus_fw_rev |= (0x00F0 & (FIRMWARE_BRANCH<<4));
+  global_data_A36772.modbus_fw_rev |= (0x0F00 & (FIRMWARE_AGILE_REV<<8));
   ETMModbusInit();
 #endif
   
@@ -1346,7 +1349,8 @@ void DoA36772(void) {
     modbus_slave_hold_reg_0x26 = global_data_A36772.input_bias_v_mon.reading_scaled_and_calibrated / 10;
     modbus_slave_hold_reg_0x27 = global_data_A36772.input_gun_i_peak.reading_scaled_and_calibrated / 10;
     modbus_slave_hold_reg_0x28 = timer_report;                //global_data_A36772.heater_warm_up_time_remaining;
-    
+    modbus_slave_hold_reg_0x29 = global_data_A36772.modbus_fw_rev;
+            
     modbus_slave_hold_reg_0x31 = global_data_A36772.state_message;
     modbus_slave_hold_reg_0x32 = _FAULT_REGISTER;
     modbus_slave_hold_reg_0x33 = _WARNING_REGISTER; 
