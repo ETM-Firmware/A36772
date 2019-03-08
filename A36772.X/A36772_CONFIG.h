@@ -4,8 +4,8 @@
 //-----------------------Specific board selections---------------------
 
 //#define __A36772_000
-#define __A36772_600
-//#define __A36772_700
+//#define __A36772_600
+#define __A36772_700
 //#define __A36772_100
 //#define __A36772_200
 

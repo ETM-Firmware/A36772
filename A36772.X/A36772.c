@@ -1923,9 +1923,9 @@ void ADCConfigure(void) {
   PIN_CS_ADC  = OLL_PIN_CS_ADC_SELECTED;
   __delay32(DELAY_FPGA_CABLE_DELAY);
 
+  temp = SPICharInverted(MAX1230_RESET_BYTE);
   temp = SPICharInverted(MAX1230_SETUP_BYTE);
   temp = SPICharInverted(MAX1230_AVERAGE_BYTE);
-  temp = SPICharInverted(MAX1230_RESET_BYTE);
 
 
   PIN_CS_ADC  = !OLL_PIN_CS_ADC_SELECTED;
@@ -2015,6 +2015,7 @@ void UpdateADCResults(void) {
     global_data_A36772.adc_read_error_count++;
     global_data_A36772.adc_read_error_test++;
     global_data_A36772.adc_read_ok = 0;
+    ADCConfigure();
   } else {
     // The data passed the most basic test.  Load the values into RAM
     global_data_A36772.adc_read_ok = 1;

@@ -186,7 +186,7 @@
 #define PIN_RESET_DETECT_OUTPUT                      _LATG14
 #define PIN_RESET_DETECT_INPUT                       _RG14
 
-#define PIN_TEST_POINT_B                             _LATF5
+#define PIN_TEST_POINT_B                             _LATD9
 #define PIN_TEST_POINT_E                             _LATB8
 #define PIN_TEST_POINT_F                             _LATB9
 
