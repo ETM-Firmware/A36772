@@ -54,6 +54,7 @@
 
 #ifdef __A36772_700
 #define __MODE_DISCRETE_INTERFACE
+#define __OPTION_ENABLE_MODBUS
 #define __OPTION_ENABLE_CAN
 #define REF_VTOP_SCALE_SELECTED                 .31250       // 1V = 20V above -100V Eg
 #define REF_VTOP_OFFSET_SELECTED                -6400
@@ -145,11 +146,12 @@
 #ifndef __MODE_CAN_INTERFACE
 #ifndef __MODE_POT_INTERFACE
 #ifndef __MODE_DISCRETE_INTERFACE
+#ifndef __MODE_MODBUS_INTERFACE
 #error "No reference Source Selected"
 #endif
 #endif
 #endif
-
+#endif
 
 // Create and check compile time options based on configuration above
 #ifdef __MODE_CAN_INTERFACE
@@ -181,11 +183,19 @@
 #endif
 #endif
 
+#ifdef __MODE_MODBUS_INTERFACE
+#define __MODBUS_REFERENCE
+#define __MODBUS_CONTROLS
+#define __MODBUS_ENABLED
+#endif
+
 #ifdef __OPTION_ENABLE_CAN
 #define __CAN_ENABLED
 #endif
 
-
+#ifdef __OPTION_ENABLE_MODBUS
+#define __MODBUS_ENABLED
+#endif
 
 
 // ----------- Timers configurations - ALL Times are in 10ms Units --------------------
