@@ -56,9 +56,9 @@
 #define __MODE_DISCRETE_INTERFACE
 #define __OPTION_ENABLE_MODBUS
 #define __OPTION_ENABLE_CAN
-#define REF_VTOP_SCALE_SELECTED                 .31250       // 1V = 20V above -100V Eg
+#define REF_VTOP_SCALE_SELECTED                 .38748       //.31250       // 1V = 20V above -100V Eg
 #define REF_VTOP_OFFSET_SELECTED                -6400
-#define REF_EK_SCALE_SELECTED                   .31250       // 1V = -2kV Ek
+#define REF_EK_SCALE_SELECTED                   .38748       //.31250       // 1V = -2kV Ek
 #define DAC_MON_EK_VOLTAGE_SCALE_SELECTED       2.6667       // 1V = -2kV Ek
 #define DAC_MON_TOP_VOLTAGE_SCALE_SELECTED      2.6667       // 1V = 20V above -100V Eg
 #define DAC_MON_TOP_VOLTAGE_OFFSET_SELECTED     2000
@@ -319,7 +319,7 @@
 #define POT_EK_FIXED_SCALE                    .42230
 #define POT_EK_FIXED_OFFSET                   0
 
-#define REF_HTR_FIXED_SCALE                   .15625                            // 1V = -1V Ef
+#define REF_HTR_FIXED_SCALE                   .19374					//.15625   // 1V = -1V Ef
 #define REF_HTR_FIXED_OFFSET                  0
 
 #define REF_VTOP_FIXED_SCALE                  REF_VTOP_SCALE_SELECTED
