@@ -1,8 +1,6 @@
 // This is firmware for the Gun Driver Board
 
-
 #include "A36772.h"
-#include "A36772_CONFIG.h"
 
 _FOSC(EC & CSW_FSCM_OFF);
 _FWDT(WDT_ON & WDTPSA_512 & WDTPSB_8); // 8 Second watchdog timer
@@ -38,8 +36,11 @@ unsigned int GetModbusResetEnable(void);
 
 #ifdef __noModbusLibrary
 
+#ifdef Intraop_A36772_700
 static unsigned char ETMmodbus_put_index;
 static unsigned char ETMmodbus_get_index;
+#endif
+
 unsigned char modbus_transmission_needed = 0;
 unsigned char modbus_receiving_flag = 0;
 unsigned char ETM_last_modbus_fail = 0;
@@ -135,7 +136,6 @@ int main(void) {
 
 void DoStateMachine(void) {
     switch (global_data_A36772.control_state) {
-
 
         case STATE_START_UP:
             InitializeA36772();
@@ -455,8 +455,11 @@ void InitializeA36772(void) {
     PR3 = A36772_PR3_VALUE;
     TMR3 = 0;
     _T3IF = 0;
-    //  _T3IP = 5;
+#ifdef Intraop_A36772_700
+    _T3IP = 5;
+#else
     _T3IP = 2;
+#endif
     T3CON = A36772_T3CON_VALUE;
 
     // Configure on-board DAC
@@ -481,8 +484,19 @@ void InitializeA36772(void) {
 
 #ifdef __MODE_MODBUS_INTERFACE
     ETMModbusInit();
+#ifdef MD51_A36772_150
+    rev_firm = (FIRMWARE_AGILE_REV << 12) & 0xF000;
+    rev_firm += (FIRMWARE_BRANCH << 8) & 0x0F00;
+    rev_firm += FIRMWARE_MINOR_REV & 0x00FF;
+    modbus_slave_hold_reg_0x2A = rev_firm;
+#endif
 #endif
 
+#ifdef Intraop_A36772_700
+#ifdef __MODBUS_ENABLED
+    ETMModbusInit();
+#endif
+#endif
 
 #ifdef __CAN_ENABLED
     // Initialize the Can module
@@ -582,9 +596,9 @@ void InitializeA36772(void) {
             0);
 
 
-            // ----------------- Initialize PIC's internal ADC Inputs --------------------- //
+    // ----------------- Initialize PIC's internal ADC Inputs --------------------- //
 
-            ETMAnalogInputInitialize(&global_data_A36772.pot_htr,
+    ETMAnalogInputInitialize(&global_data_A36772.pot_htr,
             MACRO_DEC_TO_SCALE_FACTOR_16(POT_HTR_FIXED_SCALE),
             POT_HTR_FIXED_OFFSET,
             0);
@@ -678,14 +692,36 @@ void InitializeA36772(void) {
             0);
 
 
+#ifdef Xcision_A36772_200
+    ETMAnalogOutputDisable(&global_data_A36772.monitor_heater_voltage);
+    ETMAnalogOutputDisable(&global_data_A36772.monitor_heater_current);
+    ETMAnalogOutputDisable(&global_data_A36772.monitor_cathode_voltage);
+    ETMAnalogOutputDisable(&global_data_A36772.monitor_grid_voltage);
+#else
     ETMAnalogOutputEnable(&global_data_A36772.monitor_heater_voltage);
     ETMAnalogOutputEnable(&global_data_A36772.monitor_heater_current);
     ETMAnalogOutputEnable(&global_data_A36772.monitor_cathode_voltage);
     ETMAnalogOutputEnable(&global_data_A36772.monitor_grid_voltage);
-
+#endif  
 
     //Reset faults/warnings and inputs
     ResetAllFaultInfo();
+
+#ifdef __DISCRETE_CONTROLS
+    global_data_A36772.discrete_commands_always = 1;
+#endif
+
+#ifdef __DISCRETE_REFERENCE
+    global_data_A36772.analog_references_always = 1;
+#endif
+
+#ifdef __MODBUS_CONTROLS
+    global_data_A36772.modbus_controls_enabled = 1;
+#endif
+
+#ifdef __POT_REFERENCE
+    global_data_A36772.pot_references_always = 1;
+#endif
 
 }
 
@@ -797,6 +833,9 @@ unsigned int CheckHeaterFault(void) {
     fault |= _FAULT_ADC_DIGITAL_OVER_TEMP;
     fault |= _FAULT_ADC_DIGITAL_GRID;
     fault |= _FAULT_HEATER_RAMP_TIMEOUT;
+#ifdef MD51_A36772_150
+    fault |= _FAULT_CONVERTER_LOGIC_ADC_READ_FAILURE;
+#endif
     if (fault) {
         return 1;
     } else {
@@ -813,6 +852,9 @@ unsigned int CheckFault(void) {
     fault |= _FAULT_ADC_BIAS_V_MON_OVER_ABSOLUTE;
     fault |= _FAULT_ADC_BIAS_V_MON_UNDER_ABSOLUTE;
     fault |= _FAULT_ADC_DIGITAL_ARC;
+#ifdef MD51_A36772_150
+    fault |= _STATUS_INTERLOCK_INHIBITING_HV;
+#endif
     if (fault) {
         return 1;
     } else {
@@ -825,6 +867,9 @@ unsigned int CheckPreTopFault(void) {
     fault = _FAULT_ADC_HV_V_MON_OVER_RELATIVE;
     fault |= _FAULT_ADC_HV_V_MON_UNDER_RELATIVE;
     fault |= _FAULT_ADC_DIGITAL_ARC;
+#ifdef MD51_A36772_150
+    fault |= _STATUS_INTERLOCK_INHIBITING_HV;
+#endif
     if (fault) {
         return 1;
     } else {
@@ -836,6 +881,9 @@ unsigned int CheckPreHVFault(void) {
     unsigned int fault = 0;
     fault = _FAULT_ADC_HV_V_MON_OVER_RELATIVE;
     fault |= _FAULT_ADC_DIGITAL_ARC;
+#ifdef MD51_A36772_150
+    fault |= _STATUS_INTERLOCK_INHIBITING_HV;
+#endif
     if (fault) {
         return 1;
     } else {
@@ -857,24 +905,98 @@ void DoA36772(void) {
     ETMModbusSlaveDoModbus();
 #endif
 
-
-#ifdef __DISCRETE_CONTROLS
-    if (PIN_CUSTOMER_HV_ON == ILL_PIN_CUSTOMER_HV_ON_ENABLE_HV) {
-        global_data_A36772.request_hv_enable = 1;
-        _STATUS_CUSTOMER_HV_ON = 1;
-    } else {
-        global_data_A36772.request_hv_enable = 0;
-        _STATUS_CUSTOMER_HV_ON = 0;
-    }
-
-    if (PIN_CUSTOMER_BEAM_ENABLE == ILL_PIN_CUSTOMER_BEAM_ENABLE_BEAM_ENABLED) {
-        global_data_A36772.request_beam_enable = 1;
-        _STATUS_CUSTOMER_BEAM_ENABLE = 1;
-    } else {
-        global_data_A36772.request_beam_enable = 0;
-        _STATUS_CUSTOMER_BEAM_ENABLE = 0;
-    }
+#ifdef Intraop_A36772_700
+#ifdef  __MODBUS_ENABLED
+    ETMModbusSlaveDoModbus();
 #endif
+#endif
+
+#ifdef MD51_A36772_150
+    ETMAnalogInputUpdate(&global_data_A36772.interlock_relay_closed, PIN_INTERLOCK_RELAY_STATUS);
+#endif
+
+
+    // Deciding whether to use discrete commands or Modbus commands    
+    if ((global_data_A36772.discrete_commands_always == 1) || (modbus_slave_bit_0x05 != 0)) {
+
+        if (PIN_CUSTOMER_HV_ON == ILL_PIN_CUSTOMER_HV_ON_ENABLE_HV) {
+            global_data_A36772.request_hv_enable = 1;
+            _STATUS_CUSTOMER_HV_ON = 1;
+        } else {
+            global_data_A36772.request_hv_enable = 0;
+            _STATUS_CUSTOMER_HV_ON = 0;
+        }
+
+        if (PIN_CUSTOMER_BEAM_ENABLE == ILL_PIN_CUSTOMER_BEAM_ENABLE_BEAM_ENABLED) {
+            global_data_A36772.request_beam_enable = 1;
+            _STATUS_CUSTOMER_BEAM_ENABLE = 1;
+        } else {
+            global_data_A36772.request_beam_enable = 0;
+            _STATUS_CUSTOMER_BEAM_ENABLE = 0;
+        }
+
+    } else if (global_data_A36772.modbus_controls_enabled) {
+
+#ifdef Sameer_A36772_100   
+        if ((PIN_CUSTOMER_HV_ON == ILL_PIN_CUSTOMER_HV_ON_ENABLE_HV) && (modbus_slave_bit_0x02 != 0)) {
+            global_data_A36772.request_hv_enable = 1;
+            _STATUS_CUSTOMER_HV_ON = 1;
+        } else {
+            global_data_A36772.request_hv_enable = 0;
+            _STATUS_CUSTOMER_HV_ON = 0;
+        }
+
+        if ((PIN_CUSTOMER_BEAM_ENABLE == ILL_PIN_CUSTOMER_BEAM_ENABLE_BEAM_ENABLED) && (modbus_slave_bit_0x03 != 0)) {
+            global_data_A36772.request_beam_enable = 1;
+            _STATUS_CUSTOMER_BEAM_ENABLE = 1;
+        } else {
+            global_data_A36772.request_beam_enable = 0;
+            _STATUS_CUSTOMER_BEAM_ENABLE = 0;
+        }
+#endif
+#if defined (ZAP_A36772_000)
+        if (modbus_slave_bit_0x02) {
+            _STATUS_CUSTOMER_HV_ON = 1;
+            if (PIN_CUSTOMER_HV_ON == ILL_PIN_CUSTOMER_HV_ON_ENABLE_HV) {
+                global_data_A36772.request_hv_enable = 1;
+            } else {
+                global_data_A36772.request_hv_enable = 0;
+            }
+        } else {
+            global_data_A36772.request_hv_enable = 0;
+            _STATUS_CUSTOMER_HV_ON = 0;
+        }
+
+        if (modbus_slave_bit_0x03) {
+            _STATUS_CUSTOMER_BEAM_ENABLE = 1;
+            if (PIN_CUSTOMER_BEAM_ENABLE == ILL_PIN_CUSTOMER_BEAM_ENABLE_BEAM_ENABLED) {
+                global_data_A36772.request_beam_enable = 1;
+            } else {
+                global_data_A36772.request_beam_enable = 0;
+            }
+        } else {
+            global_data_A36772.request_beam_enable = 0;
+            _STATUS_CUSTOMER_BEAM_ENABLE = 0;
+        }
+#else 
+        if (modbus_slave_bit_0x02) {
+            global_data_A36772.request_hv_enable = 1;
+            _STATUS_CUSTOMER_HV_ON = 1;
+        } else {
+            global_data_A36772.request_hv_enable = 0;
+            _STATUS_CUSTOMER_HV_ON = 0;
+        }
+
+        if (modbus_slave_bit_0x03) {
+            global_data_A36772.request_beam_enable = 1;
+            _STATUS_CUSTOMER_BEAM_ENABLE = 1;
+        } else {
+            global_data_A36772.request_beam_enable = 0;
+            _STATUS_CUSTOMER_BEAM_ENABLE = 0;
+        }
+#endif 
+    }
+
 
 #ifdef __CAN_CONTROLS
     if (!ETMCanSlaveGetSyncMsgSystemHVDisable()) {
@@ -895,38 +1017,15 @@ void DoA36772(void) {
 
 #endif
 
-#ifdef __MODBUS_CONTROLS
-    if (modbus_slave_bit_0x02) {
-        _STATUS_CUSTOMER_HV_ON = 1;
-        if (PIN_CUSTOMER_HV_ON == ILL_PIN_CUSTOMER_HV_ON_ENABLE_HV) {
-            global_data_A36772.request_hv_enable = 1;
-        } else {
-            global_data_A36772.request_hv_enable = 0;
-        }
-    } else {
-        global_data_A36772.request_hv_enable = 0;
-        _STATUS_CUSTOMER_HV_ON = 0;
-    }
-
-    if (modbus_slave_bit_0x03) {
-        _STATUS_CUSTOMER_BEAM_ENABLE = 1;
-        if (PIN_CUSTOMER_BEAM_ENABLE == ILL_PIN_CUSTOMER_BEAM_ENABLE_BEAM_ENABLED) {
-            global_data_A36772.request_beam_enable = 1;
-        } else {
-            global_data_A36772.request_beam_enable = 0;
-        }
-    } else {
-        global_data_A36772.request_beam_enable = 0;
-        _STATUS_CUSTOMER_BEAM_ENABLE = 0;
-    }
-
-#endif
-
     //--------- Following happens every 10ms ------------//
     if (ETMTickRunOnceEveryNMilliseconds(10, &timer_write_holding_var_10ms)) {
 
+#if defined (ZAP_A36772_000) || defined (Intraop_A36772_700)
         SetStateMessage(global_data_A36772.current_state_msg);
-
+#else
+        unsigned int timer_report;
+        SetStateMessage(global_data_A36772.current_state_msg);
+#endif
 
 #ifdef __CAN_CONTROLS
         if (global_data_A36772.control_state != STATE_FAULT_WARMUP_HEATER_OFF) {
@@ -940,37 +1039,43 @@ void DoA36772(void) {
         }
 #endif
 
-#ifdef __DISCRETE_CONTROLS
-        unsigned int state_pin_customer_hv_on = PIN_CUSTOMER_HV_ON;
-        if (global_data_A36772.control_state != STATE_FAULT_WARMUP_HEATER_OFF) {
-            if ((state_pin_customer_hv_on == !ILL_PIN_CUSTOMER_HV_ON_ENABLE_HV) && (global_data_A36772.previous_state_pin_customer_hv_on == ILL_PIN_CUSTOMER_HV_ON_ENABLE_HV)) {
-                global_data_A36772.reset_active = 1;
-            } else {
-                global_data_A36772.reset_active = 0;
-            }
-            global_data_A36772.previous_state_pin_customer_hv_on = state_pin_customer_hv_on;
+        // Deciding whether to use discrete reset command or Modbus reset command    
+        if ((global_data_A36772.discrete_commands_always == 1) || (modbus_slave_bit_0x05 != 0)) {
 
-        } else {
-            global_data_A36772.reset_active = 1;
+            unsigned int state_pin_customer_hv_on = PIN_CUSTOMER_HV_ON;
+            if (global_data_A36772.control_state != STATE_FAULT_WARMUP_HEATER_OFF) {
+                if ((state_pin_customer_hv_on == !ILL_PIN_CUSTOMER_HV_ON_ENABLE_HV) && (global_data_A36772.previous_state_pin_customer_hv_on == ILL_PIN_CUSTOMER_HV_ON_ENABLE_HV)) {
+                    global_data_A36772.reset_active = 1;
+                } else {
+                    global_data_A36772.reset_active = 0;
+                }
+                global_data_A36772.previous_state_pin_customer_hv_on = state_pin_customer_hv_on;
+
+            } else {
+                global_data_A36772.reset_active = 1;
+            }
+
+        } else if (global_data_A36772.modbus_controls_enabled) {
+            ModbusTimer++;
+            if (global_data_A36772.control_state != STATE_FAULT_WARMUP_HEATER_OFF) {
+                if (GetModbusResetEnable()) {
+                    global_data_A36772.reset_active = 1;
+                } else {
+                    global_data_A36772.reset_active = 0;
+                }
+            } else {
+                global_data_A36772.reset_active = 1;
+            }
         }
 
+#ifdef Sameer_A36772_100
+        modbus_slave_bit_0x07 = 0;
+#else
+        modbus_slave_bit_0x05 = 0;
+        modbus_slave_bit_0x06 = 0;
+        modbus_slave_bit_0x07 = 0;
 #endif
 
-#ifdef __MODBUS_CONTROLS
-        ModbusTimer++;
-        if (global_data_A36772.control_state != STATE_FAULT_WARMUP_HEATER_OFF) {
-            if (GetModbusResetEnable()) {
-                global_data_A36772.reset_active = 1;
-            } else {
-                global_data_A36772.reset_active = 0;
-            }
-        } else {
-            global_data_A36772.reset_active = 1;
-        }
-
-#endif
-
-        // pin = 1
 
         // Update to counter used to flash the LEDs at startup and time transmits to DACs
         if (global_data_A36772.power_supply_startup_remaining) {
@@ -1037,7 +1142,17 @@ void DoA36772(void) {
         } else {
             global_data_A36772.watchdog_set_mode = WATCHDOG_MODE_0;
         }
-
+#ifndef ZAP_A36772_000
+#ifndef Intraop_A36772_700
+        if (global_data_A36772.control_state == STATE_HEATER_RAMP_UP) {
+            timer_report = (global_data_A36772.heater_ramp_up_time + HEATER_WARM_UP_TIME) / 100;
+        } else if (global_data_A36772.heater_warm_up_time_remaining > 100) {
+            timer_report = global_data_A36772.heater_warm_up_time_remaining / 100;
+        } else {
+            timer_report = 0;
+        }
+#endif
+#endif
 
 #ifdef __MODE_MODBUS_INTERFACE
         modbus_slave_hold_reg_0x21 = ETMAnalogInputGetReading(&global_data_A36772.input_htr_v_mon);
@@ -1047,32 +1162,20 @@ void DoA36772(void) {
         modbus_slave_hold_reg_0x25 = ETMAnalogInputGetReading(&global_data_A36772.input_temperature_mon) / 100;
         modbus_slave_hold_reg_0x26 = ETMAnalogInputGetReading(&global_data_A36772.input_bias_v_mon) / 10;
         modbus_slave_hold_reg_0x27 = ETMAnalogInputGetReading(&global_data_A36772.input_gun_i_peak) / 10;
+#if defined (ZAP_A36772_000) || defined(Intraop_A36772_700)
         modbus_slave_hold_reg_0x28 = global_data_A36772.heater_warm_up_time_remaining;
+#else 
+        modbus_slave_hold_reg_0x28 = timer_report;
+#endif 
+#ifdef MD51_A36772_150
+        modbus_slave_hold_reg_0x29 = global_data_A36772.control_state;
+#endif
 
         modbus_slave_hold_reg_0x31 = global_data_A36772.state_message;
         modbus_slave_hold_reg_0x32 = global_data_A36772._FAULT_REGISTER;
         modbus_slave_hold_reg_0x33 = global_data_A36772._WARNING_REGISTER;
 #endif
 
-
-#ifdef __POT_REFERENCE
-        // The set points should be based on the pots
-        ETMAnalogSetOutput(&global_data_A36772.analog_output_high_voltage, global_data_A36772.pot_ek.reading_scaled_and_calibrated);
-        ETMAnalogSetOutput(&global_data_A36772.analog_output_top_voltage, global_data_A36772.pot_vtop.reading_scaled_and_calibrated);
-        global_data_A36772.heater_voltage_target = global_data_A36772.pot_htr.reading_scaled_and_calibrated;
-        //global_data_A36772.analog_output_high_voltage.set_point = global_data_A36772.pot_ek.reading_scaled_and_calibrated;
-        //global_data_A36772.analog_output_top_voltage.set_point  = global_data_A36772.pot_vtop.reading_scaled_and_calibrated;
-#endif
-
-#ifdef __DISCRETE_REFERENCE
-        // The set points should be based on the analog references
-        ETMAnalogSetOutput(&global_data_A36772.analog_output_high_voltage, global_data_A36772.ref_ek.reading_scaled_and_calibrated);
-        ETMAnalogSetOutput(&global_data_A36772.analog_output_top_voltage, global_data_A36772.ref_vtop.reading_scaled_and_calibrated);
-        global_data_A36772.heater_voltage_target = global_data_A36772.ref_htr.reading_scaled_and_calibrated;
-        //global_data_A36772.analog_output_high_voltage.set_point = global_data_A36772.ref_ek.reading_scaled_and_calibrated;
-        //global_data_A36772.analog_output_top_voltage.set_point  = global_data_A36772.ref_vtop.reading_scaled_and_calibrated;
-
-#endif
 
 #ifdef __CAN_REFERENCE
         ETMAnalogSetOutput(&global_data_A36772.analog_output_high_voltage, global_data_A36772.can_high_voltage_set_point);
@@ -1082,36 +1185,69 @@ void DoA36772(void) {
         //global_data_A36772.analog_output_top_voltage.set_point  = global_data_A36772.can_pulse_top_set_point;
 #endif
 
-#ifdef __MODBUS_REFERENCE
-        ETMAnalogOutputSetPoint(&global_data_A36772.analog_output_high_voltage, modbus_slave_hold_reg_0x13);
-        ETMAnalogInputInitializeRelativeTripLevels(&global_data_A36772.input_hv_v_mon,
-                modbus_slave_hold_reg_0x13,
-                ADC_HV_VMON_RELATIVE_TRIP_SCALE,
-                ADC_HV_VMON_RELATIVE_TRIP_FLOOR,
-                ADC_HV_VMON_RELATIVE_TRIP_COUNT);
+        if ((modbus_slave_bit_0x06 != 0) || (global_data_A36772.analog_references_always == 1)
+                || (global_data_A36772.pot_references_always == 1)) {
 
-        ETMAnalogOutputSetPoint(&global_data_A36772.analog_output_top_voltage, modbus_slave_hold_reg_0x12);
-        ETMAnalogInputInitializeRelativeTripLevels(&global_data_A36772.input_top_v_mon,
-                modbus_slave_hold_reg_0x12,
-                ADC_TOP_V_MON_RELATIVE_TRIP_SCALE,
-                ADC_TOP_V_MON_RELATIVE_TRIP_FLOOR,
-                ADC_TOP_V_MON_RELATIVE_TRIP_TIME);
+            if (((modbus_slave_bit_0x06 != 0) && (modbus_slave_bit_0x07 != 0)) || (global_data_A36772.pot_references_always == 1)) {
+                ETMAnalogOutputSetPoint(&global_data_A36772.analog_output_high_voltage, ETMAnalogInputGetReading(&global_data_A36772.pot_ek));
+                ETMAnalogOutputSetPoint(&global_data_A36772.analog_output_top_voltage, ETMAnalogInputGetReading(&global_data_A36772.pot_vtop));
+                ETMAnalogInputInitializeRelativeTripLevels(&global_data_A36772.input_hv_v_mon,
+                        ETMAnalogInputGetReading(&global_data_A36772.pot_ek),
+                        ADC_HV_VMON_RELATIVE_TRIP_SCALE,
+                        ADC_HV_VMON_RELATIVE_TRIP_FLOOR,
+                        ADC_HV_VMON_RELATIVE_TRIP_COUNT);
+                ETMAnalogInputInitializeRelativeTripLevels(&global_data_A36772.input_top_v_mon,
+                        ETMAnalogInputGetReading(&global_data_A36772.pot_vtop),
+                        ADC_TOP_V_MON_RELATIVE_TRIP_SCALE,
+                        ADC_TOP_V_MON_RELATIVE_TRIP_FLOOR,
+                        ADC_TOP_V_MON_RELATIVE_TRIP_TIME);
+                global_data_A36772.heater_voltage_target = ETMAnalogInputGetReading(&global_data_A36772.pot_htr);
+            } else {
+                // The set points should be based on the analog references
+                ETMAnalogOutputSetPoint(&global_data_A36772.analog_output_high_voltage, ETMAnalogInputGetReading(&global_data_A36772.ref_ek));
+                ETMAnalogOutputSetPoint(&global_data_A36772.analog_output_top_voltage, ETMAnalogInputGetReading(&global_data_A36772.ref_vtop));
+                ETMAnalogInputInitializeRelativeTripLevels(&global_data_A36772.input_hv_v_mon,
+                        ETMAnalogInputGetReading(&global_data_A36772.ref_ek),
+                        ADC_HV_VMON_RELATIVE_TRIP_SCALE,
+                        ADC_HV_VMON_RELATIVE_TRIP_FLOOR,
+                        ADC_HV_VMON_RELATIVE_TRIP_COUNT);
+                ETMAnalogInputInitializeRelativeTripLevels(&global_data_A36772.input_top_v_mon,
+                        ETMAnalogInputGetReading(&global_data_A36772.ref_vtop),
+                        ADC_TOP_V_MON_RELATIVE_TRIP_SCALE,
+                        ADC_TOP_V_MON_RELATIVE_TRIP_FLOOR,
+                        ADC_TOP_V_MON_RELATIVE_TRIP_TIME);
+                global_data_A36772.heater_voltage_target = ETMAnalogInputGetReading(&global_data_A36772.ref_htr);
+            }
 
-        global_data_A36772.heater_voltage_target = modbus_slave_hold_reg_0x11;
+        } else if (global_data_A36772.modbus_controls_enabled) {
+            ETMAnalogOutputSetPoint(&global_data_A36772.analog_output_high_voltage, modbus_slave_hold_reg_0x13);
+            ETMAnalogInputInitializeRelativeTripLevels(&global_data_A36772.input_hv_v_mon,
+                    modbus_slave_hold_reg_0x13,
+                    ADC_HV_VMON_RELATIVE_TRIP_SCALE,
+                    ADC_HV_VMON_RELATIVE_TRIP_FLOOR,
+                    ADC_HV_VMON_RELATIVE_TRIP_COUNT);
 
-        if (modbus_slave_hold_reg_0x13 < HIGH_VOLTAGE_MIN_SET_POINT || modbus_slave_hold_reg_0x13 > HIGH_VOLTAGE_MAX_SET_POINT) {
-            modbus_slave_invalid_data = 1;
+            ETMAnalogOutputSetPoint(&global_data_A36772.analog_output_top_voltage, modbus_slave_hold_reg_0x12);
+            ETMAnalogInputInitializeRelativeTripLevels(&global_data_A36772.input_top_v_mon,
+                    modbus_slave_hold_reg_0x12,
+                    ADC_TOP_V_MON_RELATIVE_TRIP_SCALE,
+                    ADC_TOP_V_MON_RELATIVE_TRIP_FLOOR,
+                    ADC_TOP_V_MON_RELATIVE_TRIP_TIME);
+
+            global_data_A36772.heater_voltage_target = modbus_slave_hold_reg_0x11;
+
+            if (modbus_slave_hold_reg_0x13 < HIGH_VOLTAGE_MIN_SET_POINT || modbus_slave_hold_reg_0x13 > HIGH_VOLTAGE_MAX_SET_POINT) {
+                modbus_slave_invalid_data = 1;
+            }
+
+            if (modbus_slave_hold_reg_0x12 > TOP_VOLTAGE_MAX_SET_POINT) {
+                modbus_slave_invalid_data = 1;
+            }
+
+            if (modbus_slave_hold_reg_0x11 > MAX_PROGRAM_HTR_VOLTAGE) {
+                modbus_slave_invalid_data = 1;
+            }
         }
-
-        if (modbus_slave_hold_reg_0x12 > TOP_VOLTAGE_MAX_SET_POINT) {
-            modbus_slave_invalid_data = 1;
-        }
-
-        if (modbus_slave_hold_reg_0x11 > MAX_PROGRAM_HTR_VOLTAGE) {
-            modbus_slave_invalid_data = 1;
-        }
-
-#endif
 
 
         if (global_data_A36772.heater_voltage_target > MAX_PROGRAM_HTR_VOLTAGE) {
@@ -1351,6 +1487,31 @@ void UpdateFaults(void) {
         }
     }
 
+#ifdef MD51_A36772_150
+    if (global_data_A36772.control_state >= STATE_POWER_SUPPLY_RAMP_UP) {
+        if (global_data_A36772.interlock_relay_closed.filtered_reading == 0) {
+            _STATUS_INTERLOCK_INHIBITING_HV = 1;
+        }
+    } else if (global_data_A36772.reset_active) {
+        _STATUS_INTERLOCK_INHIBITING_HV = 0;
+    }
+
+    if (global_data_A36772.adc_read_error_test > MAX_CONVERTER_LOGIC_ADC_READ_ERRORS) {
+        global_data_A36772.adc_read_error_test = MAX_CONVERTER_LOGIC_ADC_READ_ERRORS;
+        _FAULT_CONVERTER_LOGIC_ADC_READ_FAILURE = 1;
+    } else if (global_data_A36772.reset_active) {
+        _FAULT_CONVERTER_LOGIC_ADC_READ_FAILURE = 0;
+    }
+#endif
+
+#ifdef Intraop_A36772_700
+    if (global_data_A36772.adc_read_error_test > MAX_CONVERTER_LOGIC_ADC_READ_ERRORS) {
+        global_data_A36772.adc_read_error_test = MAX_CONVERTER_LOGIC_ADC_READ_ERRORS;
+        _FAULT_CONVERTER_LOGIC_ADC_READ_FAILURE = 1;
+    } else if (global_data_A36772.reset_active) {
+        _FAULT_CONVERTER_LOGIC_ADC_READ_FAILURE = 0;
+    }
+#endif
 
     if ((global_data_A36772.heater_ramp_up_time == 0) && (global_data_A36772.control_state == STATE_HEATER_RAMP_UP)) {
         _FAULT_HEATER_RAMP_TIMEOUT = 1;
@@ -1435,6 +1596,20 @@ void SetStateMessage(unsigned int message) {
     } else {
         message &= ~0x0200;
     }
+
+#if defined (Sameer_A36772_100) || defined (TecHaus_A36772_300) || defined (RTX_A36772_600_2AMPS) || defined (RTX_A36772_600_4AMPS)
+    if (modbus_slave_bit_0x05 != 0) {
+        message |= 0x0400;
+    } else {
+        message &= ~0x0400;
+    }
+
+    if (modbus_slave_bit_0x06 != 0) {
+        message |= 0x0800;
+    } else {
+        message &= ~0x0800;
+    }
+#endif
 
     global_data_A36772.state_message = message;
 
@@ -1765,6 +1940,31 @@ void DACWriteChannel(unsigned int command_word, unsigned int data_word) {
     }
 }
 
+#ifdef MD51_A36772_150
+
+typedef struct {
+    unsigned fpga_firmware_rev : 8;
+    unsigned unused_bits : 2;
+    unsigned customer_hardware_rev : 6;
+    unsigned arc : 1;
+    unsigned arc_high_voltage_inihibit_active : 1;
+    unsigned heater_voltage_less_than_4_5_volts : 1;
+    unsigned module_temp_greater_than_65_C : 1;
+    unsigned module_temp_greater_than_75_C : 1;
+    unsigned pulse_width_limiting_active : 1;
+    unsigned prf_fault : 1;
+    unsigned current_monitor_pulse_width_fault : 1;
+    unsigned grid_module_hardware_fault : 1;
+    unsigned grid_module_over_voltage_fault : 1;
+    unsigned grid_module_under_voltage_fault : 1;
+    unsigned grid_module_bias_voltage_fault : 1;
+    unsigned hv_regulation_warning : 1;
+    unsigned dipswitch_1_on : 1;
+    unsigned test_mode_toggle_switch_set_to_test : 1;
+    unsigned local_mode_toggle_switch_set_to_local : 1;
+} TYPE_FPGA_DATA;
+#else
+
 typedef struct {
     unsigned fpga_firmware_minor_rev : 6;
     unsigned fpga_firmware_major_rev : 4;
@@ -1786,6 +1986,7 @@ typedef struct {
     unsigned test_mode_toggle_switch_set_to_test : 1;
     unsigned local_mode_toggle_switch_set_to_local : 1;
 } TYPE_FPGA_DATA;
+#endif
 
 void FPGAReadData(void) {
     unsigned long bits;
@@ -1815,6 +2016,17 @@ void FPGAReadData(void) {
     // error check the data and update digital inputs  
     fpga_bits = *(TYPE_FPGA_DATA*) & bits;
 
+#ifdef MD51_A36772_150
+    // Check the firmware major rev (LATCHED)    
+    if (fpga_bits.fpga_firmware_rev != TARGET_FPGA_FIRMWARE_REV) {
+        ETMDigitalUpdateInput(&global_data_A36772.fpga_firmware_major_rev_mismatch, 1);
+    } else {
+        ETMDigitalUpdateInput(&global_data_A36772.fpga_firmware_major_rev_mismatch, 0);
+    }
+
+    // Only check the rest of the data bits if the Major Rev Matches
+    if (fpga_bits.fpga_firmware_rev == TARGET_FPGA_FIRMWARE_REV) {
+#else
     // Check the firmware major rev (LATCHED)    
     if (fpga_bits.fpga_firmware_major_rev != TARGET_FPGA_FIRMWARE_MAJOR_REV) {
         ETMDigitalUpdateInput(&global_data_A36772.fpga_firmware_major_rev_mismatch, 1);
@@ -1845,6 +2057,7 @@ void FPGAReadData(void) {
         } else {
             _FPGA_FIRMWARE_MINOR_REV_MISMATCH = 0;
         }
+#endif
 
         // Check the Arc Count (NOT LATCHED)
         ETMDigitalUpdateInput(&global_data_A36772.fpga_arc, fpga_bits.arc);
@@ -1861,6 +2074,16 @@ void FPGAReadData(void) {
         } else {
             _FPGA_ARC_HIGH_VOLTAGE_INHIBIT_ACTIVE = 0;
         }
+
+#if defined (MD51_A36772_150) || defined (Intraop_A36772_700)
+        // Check module temp greater than 65 C (NOT LATCHED)
+        ETMDigitalUpdateInput(&global_data_A36772.fpga_module_temp_greater_than_65_C, fpga_bits.module_temp_greater_than_65_C);
+        if (global_data_A36772.fpga_module_temp_greater_than_65_C.filtered_reading) {
+            _FPGA_MODULE_TEMP_GREATER_THAN_65_C = 1;
+        } else {
+            _FPGA_MODULE_TEMP_GREATER_THAN_65_C = 0;
+        }
+#endif
 
         // Check module temp greater than 75 C (NOT LATCHED)
         ETMDigitalUpdateInput(&global_data_A36772.fpga_module_temp_greater_than_75_C, fpga_bits.module_temp_greater_than_75_C);
@@ -2123,8 +2346,10 @@ void ETMModbusInit(void) {
     uart1_output_buffer.write_location = 0;
     uart1_output_buffer.read_location = 0;
 
+#ifdef Intraop_A36772_700
     ETMmodbus_put_index = 0;
     ETMmodbus_get_index = 0;
+#endif
 
     U1MODE = MODBUS_U1MODE_VALUE;
     U1BRG = MODBUS_U1BRG_VALUE;

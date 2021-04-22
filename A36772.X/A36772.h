@@ -19,6 +19,7 @@
 #include <uart.h>
 #include "ETM.h"
 #include "FIRMWARE_VERSION.h"
+#include "A36772_CONFIG.h"
 
 #define FCY_CLK                    10000000
 
@@ -109,7 +110,7 @@
 
 /*
   This sets up the ADC to work as following
-  AUTO Sampeling
+  AUTO Sampling
   External Vref+/Vref-
   With 10MHz System Clock, ADC Clock is 450ns, Sample Time is 6 ADC Clock so total sample time is 9.0uS
   8 Samples per Interrupt, use alternating buffers
@@ -162,7 +163,6 @@
 #define PIN_CPU_HV_ENABLE                            _LATD2
 #define PIN_CPU_BEAM_ENABLE                          _LATD1
 #define OLL_PIN_CPU_BEAM_ENABLE_BEAM_ENABLED         1
-#define OLL_PIN_CPU_HV_ENABLE_HV_ENABLED             1
 
 #define PIN_RS485_ENABLE                             _LATF4  // DPARKER THERE IS ERROR ON SCHEMATIC
 
@@ -247,15 +247,31 @@
 
 #define ADC_DATA_DIGITAL_HIGH                        0x0800
 
+#if defined(ZAP_A36772_000) || defined(Sameer_A36772_100) || defined(Xcision_A36772_200) || defined(TecHaus_A36772_300) || defined(RTX_A36772_600_2AMPS) || defined(RTX_A36772_600_4AMPS) || defined(Intraop_A36772_700)
 #define TARGET_CUSTOMER_HARDWARE_REV                 0b000100
 #define TARGET_FPGA_FIRMWARE_MAJOR_REV               0b0001
 #define TARGET_FPGA_FIRMWARE_MINOR_REV               0b000010
-
 // MAX1230 Control Words
 #define MAX1230_CONVERSION_BYTE                      0b10000011
 #define MAX1230_SETUP_BYTE                           0b01101000
 #define MAX1230_AVERAGE_BYTE                         0b00111000
 #define MAX1230_RESET_BYTE                           0b00010000
+#endif
+
+#ifdef  MD51_A36772_150
+#define TARGET_CUSTOMER_HARDWARE_REV                 0b000100
+#define TARGET_FPGA_FIRMWARE_MAJOR_REV               0b0001
+#define TARGET_FPGA_FIRMWARE_MINOR_REV               0b000010
+
+#define TARGET_FPGA_FIRMWARE_REV                     0b01000010    // 0x42 'B'
+#define INTERFACE_HARDWARE_REV                       0b01000001    // 0x41 'A'
+
+// MAX1230 Control Words
+#define MAX1230_CONVERSION_BYTE                      0b10000011
+#define MAX1230_SETUP_BYTE                           0b01100100    //with external ref
+#define MAX1230_AVERAGE_BYTE                         0b00111000
+#define MAX1230_RESET_BYTE                           0b00010000
+#endif
 
 
 // ---------------------- Fault Bits & Warning Bits ------------------------ //
@@ -332,6 +348,10 @@ typedef struct {
     unsigned int can_pulse_top_set_point; // This is the pulse top set point set over the can interface (it is only used if can mode is selected)
     unsigned int can_heater_voltage_set_point; // This is the heater voltage set point set over the can interface (it is only used if can mode is selected)
 
+    unsigned int discrete_commands_always;
+    unsigned int pot_references_always;
+    unsigned int analog_references_always;
+    unsigned int modbus_controls_enabled;
 
     unsigned int accumulator_counter; // This counts the number of converstion on the internal ADC (used for averaging)
     unsigned int adc_read_error_count; // This counts the total number of errors on reads from the adc on the converter logic board
@@ -344,7 +364,6 @@ typedef struct {
 
     unsigned int heater_voltage_current_limited; // This counter is used to track how long the heater is opperating in current limited mode. 
     unsigned int previous_state_pin_customer_hv_on; // This stores the previous state of customer HV on input.  An On -> Off transion of this pin is used to generate a reset in discrete control mode
-
 
     // These are the Data Structures for the DAC outputs on the converter logic board
     TYPE_PUBLIC_ANALOG_OUTPUT analog_output_high_voltage;
@@ -361,8 +380,6 @@ typedef struct {
     TYPE_PUBLIC_ANALOG_OUTPUT monitor_heater_current;
     TYPE_PUBLIC_ANALOG_OUTPUT monitor_cathode_voltage;
     TYPE_PUBLIC_ANALOG_OUTPUT monitor_grid_voltage;
-
-
 
     // These are the Data Structures for the Digital Data from the FPGA on the Converter Logic board
     TYPE_DIGITAL_INPUT fpga_coverter_logic_pcb_rev_mismatch;
@@ -452,10 +469,8 @@ extern TYPE_GLOBAL_DATA_A36772 global_data_A36772;
 
 
 // ---------------------- FAULT & STATUS   CONFIGURATION ---------------------------- //
-
-
-
-
+#if defined(ZAP_A36772_000) || defined(Sameer_A36772_100) || defined(Xcision_A36772_200) || defined(TecHaus_A36772_300) || defined(RTX_A36772_600_2AMPS) || defined(RTX_A36772_600_4AMPS) || defined(Intraop_A36772_700)
+//FAULTS
 #define _FAULT_FPGA_FIRMWARE_MAJOR_REV_MISMATCH        global_data_A36772.gun_fault.fault_0
 #define _FAULT_ADC_HV_V_MON_OVER_RELATIVE              global_data_A36772.gun_fault.fault_1 
 #define _FAULT_ADC_HV_V_MON_UNDER_RELATIVE             global_data_A36772.gun_fault.fault_1 
@@ -475,8 +490,7 @@ extern TYPE_GLOBAL_DATA_A36772 global_data_A36772;
 #define _FAULT_HEATER_VOLTAGE_CURRENT_LIMITED          global_data_A36772.gun_fault.fault_D
 #define _FAULT_HEATER_RAMP_TIMEOUT                     global_data_A36772.gun_fault.fault_E
 #define _FAULT_HEATER_STARTUP_FAILURE                  global_data_A36772.gun_fault.fault_F
-
-
+//WARNINGS
 #define _STATUS_CUSTOMER_HV_ON                         global_data_A36772.gun_warnings.warning_0
 #define _STATUS_CUSTOMER_BEAM_ENABLE                   global_data_A36772.gun_warnings.warning_1
 #define _STATUS_ADC_DIGITAL_HEATER_NOT_READY           global_data_A36772.gun_warnings.warning_2
@@ -493,6 +507,48 @@ extern TYPE_GLOBAL_DATA_A36772 global_data_A36772;
 #define _FPGA_DIPSWITCH_1_ON                           global_data_A36772.gun_warnings.warning_D
 #define _FPGA_TEST_MODE_TOGGLE_SWITCH_TEST_MODE        global_data_A36772.gun_warnings.warning_E
 #define _FPGA_LOCAL_MODE_TOGGLE_SWITCH_LOCAL_MODE      global_data_A36772.gun_warnings.warning_F
+#endif
+
+#ifdef  MD51_A36772_150
+//FAULTS
+#define _FAULT_FPGA_FIRMWARE_MAJOR_REV_MISMATCH        global_data_A36772.gun_fault.fault_0
+#define _FAULT_ADC_HV_V_MON_OVER_RELATIVE              global_data_A36772.gun_fault.fault_1 
+#define _FAULT_ADC_HV_V_MON_UNDER_RELATIVE             global_data_A36772.gun_fault.fault_1 
+#define _FAULT_ADC_HTR_V_MON_OVER_RELATIVE             global_data_A36772.gun_fault.fault_2
+#define _FAULT_ADC_HTR_V_MON_UNDER_RELATIVE            global_data_A36772.gun_fault.fault_2
+#define _FAULT_ADC_HTR_I_MON_OVER_ABSOLUTE             global_data_A36772.gun_fault.fault_3
+#define _FAULT_ADC_HTR_I_MON_UNDER_ABSOLUTE            global_data_A36772.gun_fault.fault_4
+#define _FAULT_ADC_TOP_V_MON_OVER_RELATIVE             global_data_A36772.gun_fault.fault_5
+#define _FAULT_ADC_TOP_V_MON_UNDER_RELATIVE            global_data_A36772.gun_fault.fault_5
+#define _FAULT_ADC_BIAS_V_MON_OVER_ABSOLUTE            global_data_A36772.gun_fault.fault_6
+#define _FAULT_ADC_BIAS_V_MON_UNDER_ABSOLUTE           global_data_A36772.gun_fault.fault_6
+#define _STATUS_INTERLOCK_INHIBITING_HV                global_data_A36772.gun_fault.fault_7
+#define _FAULT_SPI_COMMUNICATION                       global_data_A36772.gun_fault.fault_8
+#define _FAULT_ADC_DIGITAL_ARC                         global_data_A36772.gun_fault.fault_9
+#define _FAULT_ADC_DIGITAL_OVER_TEMP                   global_data_A36772.gun_fault.fault_A
+#define _FAULT_CONVERTER_LOGIC_ADC_READ_FAILURE        global_data_A36772.gun_fault.fault_B
+#define _FAULT_ADC_DIGITAL_GRID                        global_data_A36772.gun_fault.fault_C
+#define _FAULT_HEATER_VOLTAGE_CURRENT_LIMITED          global_data_A36772.gun_fault.fault_D
+#define _FAULT_HEATER_RAMP_TIMEOUT                     global_data_A36772.gun_fault.fault_E
+#define _FAULT_HEATER_STARTUP_FAILURE                  global_data_A36772.gun_fault.fault_F
+//WARNINGS
+#define _STATUS_CUSTOMER_HV_ON                         global_data_A36772.gun_warnings.warning_0
+#define _STATUS_CUSTOMER_BEAM_ENABLE                   global_data_A36772.gun_warnings.warning_1
+#define _STATUS_ADC_DIGITAL_HEATER_NOT_READY           global_data_A36772.gun_warnings.warning_2
+#define _STATUS_DAC_WRITE_FAILURE                      global_data_A36772.gun_warnings.warning_3
+#define _FPGA_ARC_COUNTER_GREATER_ZERO                 global_data_A36772.gun_warnings.warning_4
+#define _FPGA_ARC_HIGH_VOLTAGE_INHIBIT_ACTIVE          global_data_A36772.gun_warnings.warning_5
+#define _FPGA_MODULE_TEMP_GREATER_THAN_65_C            global_data_A36772.gun_warnings.warning_6
+#define _FPGA_MODULE_TEMP_GREATER_THAN_75_C            global_data_A36772.gun_warnings.warning_7
+#define _FPGA_GRID_MODULE_HARDWARE_FAULT               global_data_A36772.gun_warnings.warning_8
+#define _FPGA_GRID_MODULE_OVER_VOLTAGE_FAULT           global_data_A36772.gun_warnings.warning_9
+#define _FPGA_GRID_MODULE_UNDER_VOLTAGE_FAULT          global_data_A36772.gun_warnings.warning_A
+#define _FPGA_GRID_MODULE_BIAS_VOLTAGE_FAULT           global_data_A36772.gun_warnings.warning_B
+#define _FPGA_HV_REGULATION_WARNING                    global_data_A36772.gun_warnings.warning_C
+#define _FPGA_DIPSWITCH_1_ON                           global_data_A36772.gun_warnings.warning_D
+#define _FPGA_TEST_MODE_TOGGLE_SWITCH_TEST_MODE        global_data_A36772.gun_warnings.warning_E
+#define _FPGA_LOCAL_MODE_TOGGLE_SWITCH_LOCAL_MODE      global_data_A36772.gun_warnings.warning_F
+#endif
 
 #define ETM_CAN_REGISTER_GUN_DRIVER_RESET_FPGA        0x8202
 
