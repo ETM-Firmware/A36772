@@ -2,14 +2,14 @@
 #define __A36772_CONFIG_H
 
 //-----------------------Specific board selections---------------------
-#define ZAP_A36772_000
+//#define ZAP_A36772_000
 //#define Sameer_A36772_100
 //#define MD51_A36772_150
 //#define Xcision_A36772_200
 //#define TecHaus_A36772_300
 //#define RTX_A36772_600_2AMPS
 //#define RTX_A36772_600_4AMPS
-//#define Intraop_A36772_700
+#define Intraop_A36772_700
 
 // Make sure that at least one board is selected
 #ifndef ZAP_A36772_000
@@ -319,11 +319,13 @@
 #define REF_VTOP_SCALE_SELECTED                 .38748       // 1V = 20V above -100V Eg
 #define REF_VTOP_OFFSET_SELECTED                -6400
 #define REF_EK_SCALE_SELECTED                   .38748       // 1V = -2kV Ek
+#define DAC_MON_HTR_CURRENT_SCALE_SELECTED      10.6667      // 1V = 500mA If
 #define DAC_MON_EK_VOLTAGE_SCALE_SELECTED       2.6667       // 1V = -2kV Ek
 #define DAC_MON_TOP_VOLTAGE_SCALE_SELECTED      2.6667       // 1V = 20V above -100V Eg
 #define DAC_MON_TOP_VOLTAGE_OFFSET_SELECTED     2000
 #define REF_HTR_SCALE_SELECTED                  .19374
 #define BOARD_DASH_NUMBER                       700
+#define OLL_PIN_CPU_HV_ENABLE_HV_ENABLED        1
 #endif
 
 

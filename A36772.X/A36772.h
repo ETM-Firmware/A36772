@@ -486,6 +486,7 @@ extern TYPE_GLOBAL_DATA_A36772 global_data_A36772;
 #define _FAULT_SPI_COMMUNICATION                       global_data_A36772.gun_fault.fault_8
 #define _FAULT_ADC_DIGITAL_ARC                         global_data_A36772.gun_fault.fault_9
 #define _FAULT_ADC_DIGITAL_OVER_TEMP                   global_data_A36772.gun_fault.fault_A
+#define _FAULT_CONVERTER_LOGIC_ADC_READ_FAILURE        global_data_A36772.gun_fault.fault_B
 #define _FAULT_ADC_DIGITAL_GRID                        global_data_A36772.gun_fault.fault_C
 #define _FAULT_HEATER_VOLTAGE_CURRENT_LIMITED          global_data_A36772.gun_fault.fault_D
 #define _FAULT_HEATER_RAMP_TIMEOUT                     global_data_A36772.gun_fault.fault_E
@@ -496,6 +497,7 @@ extern TYPE_GLOBAL_DATA_A36772 global_data_A36772;
 #define _STATUS_ADC_DIGITAL_HEATER_NOT_READY           global_data_A36772.gun_warnings.warning_2
 #define _STATUS_DAC_WRITE_FAILURE                      global_data_A36772.gun_warnings.warning_3
 #define _FPGA_FIRMWARE_MINOR_REV_MISMATCH              global_data_A36772.gun_warnings.warning_6
+#define _FPGA_MODULE_TEMP_GREATER_THAN_65_C            global_data_A36772.gun_warnings.warning_6
 #define _FPGA_ARC_COUNTER_GREATER_ZERO                 global_data_A36772.gun_warnings.warning_7
 #define _FPGA_ARC_HIGH_VOLTAGE_INHIBIT_ACTIVE          global_data_A36772.gun_warnings.warning_7
 #define _FPGA_MODULE_TEMP_GREATER_THAN_75_C            global_data_A36772.gun_warnings.warning_8
