@@ -2369,8 +2369,8 @@ void ETMModbusInit(void) {
     ETMEEPromReadPage(6, global_data_A36772.page_data6);
     ETMEEPromReadPage(7, global_data_A36772.page_data7);
     ETMEEPromReadPage(8, global_data_A36772.page_data8);
-    ETMEEPromReadPage(9, global_data_A36772.page_data8);
-    ETMEEPromReadPage(10, global_data_A36772.page_data8);
+    ETMEEPromReadPage(9, global_data_A36772.page_data9);
+    ETMEEPromReadPage(10, global_data_A36772.page_data10);
 
     int i;
     int j;
