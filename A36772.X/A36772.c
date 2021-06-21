@@ -2373,31 +2373,22 @@ void ETMModbusInit(void) {
     ETMEEPromReadPage(10, global_data_A36772.page_data10);
 
     int i;
-    int j;
 
     //Slave Holding Registers
     for (i = 0; i < 14; i++) {//0-13
         ModbusSlaveHoldingRegister[i] = global_data_A36772.page_data1[0 + i];
     }
     for (i = 0; i < 14; i++) {//14-27
-        for (j = 14; j < 28; j++) {
-            ModbusSlaveHoldingRegister[j] = global_data_A36772.page_data2[0 + i];
-        }
+            ModbusSlaveHoldingRegister[i+14] = global_data_A36772.page_data2[0 + i];
     }
     for (i = 0; i < 14; i++) {//28-41
-        for (j = 28; j < 42; j++) {
-            ModbusSlaveHoldingRegister[j] = global_data_A36772.page_data3[0 + i];
-        }
+            ModbusSlaveHoldingRegister[i+28] = global_data_A36772.page_data3[0 + i];
     }
     for (i = 0; i < 14; i++) {//42-55
-        for (j = 42; j < 56; j++) {
-            ModbusSlaveHoldingRegister[j] = global_data_A36772.page_data4[0 + i];
-        }
+            ModbusSlaveHoldingRegister[i+42] = global_data_A36772.page_data4[0 + i];
     }
     for (i = 0; i < 8; i++) {//56-69
-        for (j = 56; j < 64; j++) {
-            ModbusSlaveHoldingRegister[j] = global_data_A36772.page_data5[0 + i];
-        }
+            ModbusSlaveHoldingRegister[i+56] = global_data_A36772.page_data5[0 + i];
     }
 
 
@@ -2406,24 +2397,16 @@ void ETMModbusInit(void) {
         ModbusSlaveBit[i] = global_data_A36772.page_data6[0 + i];
     }
     for (i = 0; i < 14; i++) {//14-27
-        for (j = 14; j < 28; j++) {
-            ModbusSlaveBit[j] = global_data_A36772.page_data7[0 + i];
-        }
+            ModbusSlaveBit[i+14] = global_data_A36772.page_data7[0 + i];
     }
     for (i = 0; i < 14; i++) {//28-41
-        for (j = 28; j < 42; j++) {
-            ModbusSlaveBit[j] = global_data_A36772.page_data8[0 + i];
-        }
+            ModbusSlaveBit[i+28] = global_data_A36772.page_data8[0 + i];
     }
     for (i = 0; i < 14; i++) {//42-55
-        for (j = 42; j < 56; j++) {
-            ModbusSlaveBit[j] = global_data_A36772.page_data9[0 + i];
-        }
+            ModbusSlaveBit[i+42] = global_data_A36772.page_data9[0 + i];
     }
     for (i = 0; i < 8; i++) {//56-69
-        for (j = 56; j < 64; j++) {
-            ModbusSlaveBit[j] = global_data_A36772.page_data10[0 + i];
-        }
+            ModbusSlaveBit[i+56] = global_data_A36772.page_data10[0 + i];
     }
 
 
@@ -2752,7 +2735,7 @@ void ProcessCommand(MODBUS_MESSAGE * ptr) {
             coil_index = ptr->data_address;
             if ((ptr->write_value == 0x0000) || (ptr->write_value == 0xFF00)) {
                 ModbusSlaveBit[coil_index] = ptr->write_value;
-                if ((coil_index = 0) && (coil_index < 14)) {
+                if ((coil_index >= 0) && (coil_index < 14)) {
                     global_data_A36772.page_data6[coil_index] = ptr->write_value;
                     ETMEEPromWritePage(6, global_data_A36772.page_data6);
                 }
@@ -2788,7 +2771,7 @@ void ProcessCommand(MODBUS_MESSAGE * ptr) {
             }
             byte_index = ptr->data_address;
             ModbusSlaveHoldingRegister[byte_index] = ptr->write_value;
-            if ((coil_index = 0) && (coil_index < 14)) {
+            if ((coil_index >= 0) && (coil_index < 14)) {
                 global_data_A36772.page_data1[coil_index] = ptr->write_value;
                 ETMEEPromWritePage(1, global_data_A36772.page_data1);
             }

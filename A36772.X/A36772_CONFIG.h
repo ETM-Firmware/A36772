@@ -2,14 +2,14 @@
 #define __A36772_CONFIG_H
 
 //-----------------------Specific board selections---------------------
-//#define ZAP_A36772_000
+#define ZAP_A36772_000
 //#define Sameer_A36772_100
 //#define MD51_A36772_150
 //#define Xcision_A36772_200
 //#define TecHaus_A36772_300
 //#define RTX_A36772_600_2AMPS
 //#define RTX_A36772_600_4AMPS
-#define Intraop_A36772_700
+//#define Intraop_A36772_700
 
 // Make sure that at least one board is selected
 #ifndef ZAP_A36772_000
